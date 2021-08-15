@@ -135,8 +135,6 @@ onoremap au :<c-u>call SelectUnderlineWord()<cr>
 nnoremap <space>e :<c-u>execute "normal!" "?{}\\\\|()\\\\|[]\r:nohlsearch\r" <cr> 
 
 
-" set delimate and YCM to compatible
-inoremap <expr> <buffer>  <S-Tab>   pumvisible() ? "\<C-P>" : delimitMate#JumpAny()
 " Shot key for copy: disable the mouse and enable the mouse
 cabbr vem set mouse=a
 cabbr vdm set mouse=
@@ -203,3 +201,6 @@ let g:UltiSnipsJumpBackwardTrigger='<c-k>'
 
 """ YCM config
 let g:ycm_python_binary_path = '/root/miniconda3/envs/xkcv/bin/python3.7'
+
+""" VimEnter
+autocmd BufEnter * source ~/.vim/after/keymap.vim
