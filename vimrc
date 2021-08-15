@@ -89,7 +89,6 @@ map <left> :tabp <cr>
 map <right> :tabn <cr>
 let g:ctrlp_working_path_mode = 'r'
 
-source /home/data/tags/paddle.vim
 set undofile
 set undodir=/tmp/
 set grepprg=grep\ -n\ $*
