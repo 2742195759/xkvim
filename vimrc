@@ -14,6 +14,7 @@ Bundle 'https://github.com/vim-airline/vim-airline'
 Bundle 'https://github.com/kien/ctrlp.vim'
 Bundle 'https://github.com/Valloric/YouCompleteMe'
 Bundle 'https://github.com/Raimondi/delimitMate'
+Bundle 'https://github.com/tpope/vim-surround'
 
 
 if has("cscope")
