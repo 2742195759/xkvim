@@ -2,6 +2,8 @@ this repo contains 2 files :
     1. vimrc --- will override _MY_VIM_ vimrc. because _MY_VIM_ rc is just a old version.
     2. xiongkun --- will override .vim/plugin/xiongkun.  this contain may useful functions.
     3. install.sh --- run this script to update the xkvim.
+    4. bashrc ---  add git prompt for bash
+    5. bash_script --- add git prompt for bash
 
 note:  the old path: AltKey.vim is deprecated. Lastest scripts will put in xiongkun plugin
 
