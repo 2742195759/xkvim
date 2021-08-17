@@ -43,5 +43,5 @@ com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 
 
 """""""""""""""": Map below {{{
-noremap <buffer> <silent> <space>m :Mt<cr>
+noremap <silent> <space>m :Mt<cr>
 """""""""""""""" }}}
