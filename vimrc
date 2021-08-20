@@ -205,3 +205,6 @@ let g:ycm_python_binary_path = '/root/miniconda3/envs/xkcv/bin/python3.7'
 
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
+
+""" pdf for vim
+abbre xkpdb import pdb<cr>pdb.set_trace()
