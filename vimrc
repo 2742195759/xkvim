@@ -143,7 +143,7 @@ cabbr vex <c-r>=expand('<cword>')<cr>
 
 
 " Repace Operator, replace text with "0 register. (last yank)
-nmap <silent> <space>r :set opfunc=CountSpaces<CR>g@
+nmap <silent> cr :set opfunc=CountSpaces<CR>g@
 vmap <silent> <space>r :<C-U>call CountSpaces(visualmode(), 1)<CR>
 
 function! CountSpaces(type, ...)
@@ -205,3 +205,12 @@ let g:ycm_python_binary_path = '/root/miniconda3/envs/xkcv/bin/python3.7'
 
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
+
+"""Add YCM jump abbre
+cabbre yd YcmCompleter GoToDefinition
+cabbre yt YcmCompleter GetType
+cabbre yp YcmCompleter GetParent
+cabbre yi YcmCompleter GoToInclude
+cabbre yf YcmCompleter FixIt
+cabbre yr YcmCompleter GoToReference
+
