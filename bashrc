@@ -59,3 +59,4 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+TERM=xterm-256color

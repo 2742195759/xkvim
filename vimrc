@@ -214,3 +214,5 @@ cabbre yi YcmCompleter GoToInclude
 cabbre yf YcmCompleter FixIt
 cabbre yr YcmCompleter GoToReference
 
+""" pdf for vim
+abbre xkpdb import pdb<cr>pdb.set_trace()
