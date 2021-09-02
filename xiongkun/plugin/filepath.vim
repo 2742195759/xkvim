@@ -1,4 +1,4 @@
-let g:mru_files=['/home/data/cvpack2', '/home']
+let g:mru_files=['/home/data/cvpack2/', '/home/data/Paddle/']
 
 " used in "<C-R>=Getfiles()" to complete the command or insert
 fu! Getfiles()
