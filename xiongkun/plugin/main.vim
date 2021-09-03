@@ -36,9 +36,29 @@ function! s:TriggerMatch(pattern)
     en
 endf
 
-"""""""""""""""": Command below {{{
+function! s:OpenHeaderOrCpp(filepath)
+    " Use the execute to do actual things
+    " and wrap command as call <somefunction>
+    let newpath = a:filepath
+    let doit = 0
+    if match(a:filepath, '\.cc$') != -1
+        let newpath = substitute(a:filepath, '\.cc$', '\.h', '')
+        let doit = 1
+    en
+    if match(a:filepath, '\.h$') != -1
+        let newpath = substitute(a:filepath, '\.h$', '\.cc', '')
+        let doit = 1
+    en
+    if doit == 0
+        echom "filepath don't seam to be a .cc or .h, do nothing"
+    else
+        execute 'e' newpath
+    en 
+endf
 
+"""""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
+com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
 """""""""""""""" }}}
 
 
