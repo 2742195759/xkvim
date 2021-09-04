@@ -22,10 +22,11 @@ def GetGitComment(filepath, line_nr):
     comment = os.popen("git log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative" + 
         '| grep ' + commit_id)
     comment = str(comment.read())
-    return commit_id, info, content, comment
+    return commit_id, info, content, comment[:-1]
 
 def ShowGitComment(filepath, line_nr):
     commit_id, info, content, comment = GetGitComment(filepath, line_nr)
     vim.command('echom "' + info + '"') 
-    vim.command('echom "' + comment + '"')
+    vim.command('echom "' + "####" + '"') 
+    vim.command('echom "' + "    " + comment + '"')
     
