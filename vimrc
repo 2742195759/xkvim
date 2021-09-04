@@ -15,6 +15,8 @@ Bundle 'https://github.com/kien/ctrlp.vim'
 Bundle 'https://github.com/Valloric/YouCompleteMe'
 Bundle 'https://github.com/Raimondi/delimitMate'
 Bundle 'https://github.com/tpope/vim-surround'
+Bundle 'https://github.com/jreybert/vimagit'
+Bundle 'The-NERD-Commenter'
 
 
 if has("cscope")
@@ -218,3 +220,4 @@ cabbre yr YcmCompleter GoToReference
 
 """ pdf for vim
 abbre xkpdb import pdb<cr>pdb.set_trace()
+let mapleader='\'
