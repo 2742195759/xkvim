@@ -56,9 +56,18 @@ function! s:OpenHeaderOrCpp(filepath)
     en 
 endf
 
+""""""""""""""""" GitCommenter
+py3 import Xiongkun
+function! s:ShowGitComment()
+    let filename = expand("%")
+    let linenr = getcurpos()[1]
+    execute 'py3' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
+endf
+
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
+com! -n=0 GC cal s:ShowGitComment()
 """""""""""""""" }}}
 
 
