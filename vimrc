@@ -205,6 +205,7 @@ let g:ycm_python_binary_path = '/root/miniconda3/envs/xkcv/bin/python3.7'
 
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
+autocmd BufEnter * source ~/.vim/plugin/xiongkun/plugin/config.vim
 
 """Add YCM jump abbre
 cabbre yd YcmCompleter GoToDefinition
