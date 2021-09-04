@@ -91,7 +91,7 @@ let delimitMate_expand_space = 1
 map <left> :tabp <cr>
 map <right> :tabn <cr>
 let g:ctrlp_working_path_mode = 'r'
-
+set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/build/*,*/build_rocm/*       " Linux/MacOSX
 set undofile
 set undodir=/tmp/
 set grepprg=grep\ -n\ $*
