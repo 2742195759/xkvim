@@ -5,5 +5,5 @@
 inoremap <buffer> <expr> <S-Tab>  pumvisible() ? "\<C-P>" : delimitMate#JumpAny()
 imap <buffer> <BS>       <Plug>delimitMateBS
 nnoremap <C-P> :call OpenCtrlpWithPath() <cr>
+nnoremap <C-P>p :CtrlP ./<cr>
 """""""""""""""" }}}
-

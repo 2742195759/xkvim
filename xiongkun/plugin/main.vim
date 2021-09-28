@@ -70,7 +70,6 @@ com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
 com! -n=0 GG cal s:ShowGitComment()
 """""""""""""""" }}}
 
-
 """""""""""""""": Map below {{{
 noremap <silent> <space>m :Mt<cr>
 """""""""""""""" }}}
