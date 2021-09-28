@@ -223,3 +223,4 @@ abbre xkpdb import pdb<cr>pdb.set_trace()
 let mapleader='\'
 set runtimepath+=/root/.vim/plugin/xiongkun/plugin
 set shell=bash
+set path+='./'

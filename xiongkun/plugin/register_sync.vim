@@ -7,7 +7,7 @@ function! s:RegisterSyncRead(timer_id)
     if last_ftime > g:last_ftime
         let regname = '"'
         let lines = readfile(filepath, 'r')
-        call setreg(regname, lines)
+        call setreg(regname, lines[1:], lines[0])
         let last_ftime = last_ftime
     endif
 endf
@@ -23,10 +23,11 @@ function! s:RegisterSyncWrite()
     " different container should have this softlink to 
     " sync the register of yank.
     let filepath = expand('~/.vim_yank')
-    if v:event['operator'] == 'y'
-        let lines =  v:event['regcontents']
-        cal writefile(lines, filepath, 's')
-    endif
+    "if v:event['regname'] == '"'
+    let lines =  copy(v:event['regcontents'])
+    let lines = insert(lines, v:event['regtype'], 0)
+    cal writefile(lines, filepath, 's')
+    "endif
 endfunction
 
 augroup RegisterSync
