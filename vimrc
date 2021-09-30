@@ -68,7 +68,7 @@ set fdm=marker
 set foldcolumn=1
 
 colorscheme molokai
-source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc
+"source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc  # move to metakey.vim
 source ~/Important/MyVim/_MY_VIM_/WindowTabeSwitch.vimrc
 if (or(&filetype == 'c',&filetype=='cpp'))
 	source ~/Important/MyVim/_MY_VIM_/VimCpp.vimrc
