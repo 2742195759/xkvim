@@ -23,4 +23,3 @@ fu! OpenCtrlpWithPath()
     echom "CtrlP".filepath
     execute 'CtrlP' filepath
 endf
-

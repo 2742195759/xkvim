@@ -208,7 +208,7 @@ let g:ycm_python_binary_path = '/root/miniconda3/envs/xkcv/bin/python3.7'
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
 if filereadable(expand("~/.xkconfig.vim"))
-    autocmd BufEnter * source ~/.xkconfig.vim
+    autocmd VimEnter * source ~/.xkconfig.vim
 endif
 """Add YCM jump abbre
 cabbre yd YcmCompleter GoToDefinition
@@ -223,3 +223,4 @@ abbre xkpdb import pdb<cr>pdb.set_trace()
 let mapleader='\'
 set runtimepath+=/root/.vim/plugin/xiongkun/plugin
 set shell=bash
+set path+='./'
