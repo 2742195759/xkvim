@@ -94,7 +94,7 @@ let g:ctrlp_working_path_mode = 'r'
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/build/*,*/build_rocm/*       " Linux/MacOSX
 set undofile
 set undodir=/tmp/
-set grepprg=grep\ -n\ $*
+set grepprg=egrep\ -n\ $*
 
 let g:ctrlp_extensions = ['tag', 'line' ]
 set scrolloff=8
