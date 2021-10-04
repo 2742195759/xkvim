@@ -68,7 +68,7 @@ set fdm=marker
 set foldcolumn=1
 
 colorscheme molokai
-source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc
+"source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc  # move to metakey.vim
 source ~/Important/MyVim/_MY_VIM_/WindowTabeSwitch.vimrc
 if (or(&filetype == 'c',&filetype=='cpp'))
 	source ~/Important/MyVim/_MY_VIM_/VimCpp.vimrc
@@ -94,7 +94,7 @@ let g:ctrlp_working_path_mode = 'r'
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/build/*,*/build_rocm/*,*.pyc*,*.swp*,*.swo*       " Linux/MacOSX
 set undofile
 set undodir=/tmp/
-set grepprg=grep\ -n\ $*
+set grepprg=egrep\ -n\ $*
 
 let g:ctrlp_extensions = ['tag', 'line' ]
 set scrolloff=8
