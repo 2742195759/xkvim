@@ -207,6 +207,13 @@ let g:ycm_python_binary_path = '/root/miniconda3/envs/xkcv/bin/python3.7'
 
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
+
+augroup NERDTREE
+    autocmd!
+    autocmd VimEnter * NERDTreeToggle
+    "autocmd TabNew * NERDTreeMirror
+augroup END
+
 if filereadable(expand("~/.xkconfig.vim"))
     autocmd VimEnter * source ~/.xkconfig.vim
 endif
