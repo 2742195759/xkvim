@@ -12,7 +12,6 @@ function! RegisterNERDTreeKeyMap()
            \ 'scope': 'DirNode' })
 endfunction
 
-
 function! NERDTreeAutoGrep(dirnode)
     echohl Directory
     let pattern = input("Grep pattern: ")
@@ -22,12 +21,30 @@ function! NERDTreeAutoGrep(dirnode)
     let pattern = substitute(pattern, "|", "\\|", "g")
     echohl None
     let path = a:dirnode.path.str() 
-    exec "normal ". "\<c-w>\<c-w>"
-    let cmd = 'silent! grep! -r "'.pattern.'" '.path.' '.'| redraw! | cl'
+    let cmd = 'silent! grep! -r "'.pattern.'" '.path.' '.'| redraw! '
     exec cmd
+    let qflist = getqflist()	
+    if len(qflist) > 0
+        exec "normal ". "\<c-w>\<c-w>"
+        if len(qflist) == 1
+            exec "cc"
+        else
+            exec "cl"
+        endif
+    endif
 endfunction
 
 function! NERDTreeCtrlP(dirnode)
     let path = a:dirnode.path.str() 
     exec 'CtrlP '.path
 endfunction
+
+
+function! GrepUnderCursor()
+    let to_search = expand('<cword>')
+    let nerd_win_nr = bufwinnr('NERD')
+    exe string(nerd_win_nr).'wincmd w'
+    exec "normal gg ".to_search."\<cr>"
+endfunction
+
+noremap <leader>f :call GrepUnderCursor()<cr>
