@@ -21,7 +21,7 @@ function! NERDTreeAutoGrep(dirnode)
     let pattern = substitute(pattern, "|", "\\|", "g")
     echohl None
     let path = a:dirnode.path.str() 
-    let cmd = 'silent! grep! -r "'.pattern.'" '.path.' '.'| redraw! '
+    let cmd = 'silent! grep! -r '.pattern.' '.path.' '.'| redraw! '
     exec cmd
     let qflist = getqflist()	
     if len(qflist) > 0
@@ -48,3 +48,4 @@ function! GrepUnderCursor()
 endfunction
 
 noremap <leader>f :call GrepUnderCursor()<cr>
+noremap <leader>F :NERDTreeFind<cr>
