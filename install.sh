@@ -11,3 +11,7 @@ rm -rf /root/.scripts
 ln -sf /root/xkvim/bashrc /root/.bashrc
 ln -sf /root/xkvim/bash_scripts /root/.scripts
 source /root/.bashrc
+
+apt install -y python3-pip
+pip3 install dict-cli
+

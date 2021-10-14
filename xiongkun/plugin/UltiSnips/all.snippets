@@ -1,0 +1,51 @@
+snippet signature "Xiongkun Signature"
+/*******
+
+author              : xiongkun
+email               : xk18@mails.tsinghua.edu.cn
+homepage            : https://github.com/2742195759
+last modified time  : `date +%m/%d/%Y`
+
+*******/
+endsnippet
+
+
+snippet file "print the current file name"
+`!v expand("%")`
+endsnippet
+
+global !p
+def add_xiongkun(str):
+    return str + "_xiongkun"
+endglobal
+
+snippet file "print the current file name"
+`!v expand("%")`
+endsnippet
+
+
+snippet example1 "add _xiongkun at the end of the ${0}"
+$1
+`!p 
+snip.rv=add_xiongkun(t[1])
+`
+${0}
+endsnippet
+
+
+snippet example2 "select from list"
+${1|Mon,The,Wen|}
+${0}
+endsnippet
+
+
+snippet q
+Your age: ${1|<18,18~60,>60|}
+Your height: ${2|<120cm,120cm~180cm,>180cm|}
+endsnippet
+
+snippet checknan "python: check loss is nan"
+if torch.isnan(proxy_loss) or torch.isinf(proxy_loss):
+    __import__('pdb').set_trace()
+    a = 0
+endsnippet

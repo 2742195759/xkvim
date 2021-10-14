@@ -50,7 +50,7 @@ function! s:OpenHeaderOrCpp(filepath)
         let doit = 1
     en
     if doit == 0
-        echom "filepath don't seam to be a .cc or .h, do nothing"
+        echom "filepath don't seem to be a .cc or .h, do nothing"
     else
         execute 'e' newpath
     en 
@@ -67,9 +67,11 @@ endf
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
-com! -n=0 GG cal s:ShowGitComment()
 """""""""""""""" }}}
 
 """""""""""""""": Map below {{{
 noremap <silent> <space>m :Mt<cr>
+noremap K :!clear && dict <C-R>=expand("<cword>")<cr><cr>
+vnoremap K "dy:!clear && dict <C-R>d<cr>
+"vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
 """""""""""""""" }}}
