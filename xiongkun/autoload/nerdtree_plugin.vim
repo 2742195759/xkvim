@@ -10,6 +10,13 @@ function! RegisterNERDTreeKeyMap()
            \ 'callback': 'NERDTreeCtrlP',
            \ 'quickhelpText': 'grep in the current directory.',
            \ 'scope': 'DirNode' })
+
+    call NERDTreeAddKeyMap({
+           \ 'key': '<leader>t',
+           \ 'callback': 'NERDTreeStartShell',
+           \ 'quickhelpText': 'start shell in current dirnode',
+           \ 'scope': 'DirNode' })
+
 endfunction
 
 function! NERDTreeAutoGrep(dirnode)
@@ -46,6 +53,14 @@ function! GrepUnderCursor()
     exe string(nerd_win_nr).'wincmd w'
     exec "normal gg ".to_search."\<cr>"
 endfunction
+
+function! NERDTreeStartShell(dirnode)
+    let path = a:dirnode.path.str() 
+    exec 'cd '.path
+    exec 'sh'
+    exec 'cd -'
+endfunction
+
 
 noremap <leader>f :call GrepUnderCursor()<cr>
 noremap <leader>F :NERDTreeFind<cr>
