@@ -67,6 +67,7 @@ endf
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
+com! -n=0 GG cal s:ShowGitComment()
 """""""""""""""" }}}
 
 """""""""""""""": Map below {{{

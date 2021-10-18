@@ -1,0 +1,32 @@
+
+snippet to_static "some dygraph-to-static utility function"
+
+from paddle.jit import to_static
+from paddle.static import InputSpec
+def create_input_specs():
+    src_word = paddle.static.InputSpec(
+        name="src_word", shape=[None, None], dtype="int64")
+    trg_word = paddle.static.InputSpec(
+        name="trg_word", shape=[None, None], dtype="int64")
+    return [
+        src_word, trg_word
+    ]
+    
+def apply_to_static(config, model):
+    support_to_static = config.get('to_static', False)
+    if support_to_static:
+        specs = create_input_specs()
+        is_pass = config.get('enable_pass', False)
+        if is_pass:
+            build_strategy = paddle.static.BuildStrategy()
+            #build_strategy.fuse_elewise_add_act_ops = True
+            #build_strategy.fuse_bn_act_ops = True
+            #build_strategy.fuse_bn_add_act_ops = True
+            #build_strategy.enable_addto = True
+        else: 
+            build_strategy = None
+        model = to_static(model, input_spec=specs, build_strategy=build_strategy)
+    return model
+
+endsnippet
+
