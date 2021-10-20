@@ -44,3 +44,7 @@ if torch.isnan(proxy_loss) or torch.isinf(proxy_loss):
     __import__('pdb').set_trace()
     a = 0
 endsnippet
+
+snippet tabstop "add tabstop for snippet"
+\${${1:1}: ${2:default}}
+endsnippet
