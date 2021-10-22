@@ -133,3 +133,25 @@ torch.set_rng_state(torch.manual_seed($1).get_state())
 random.seed($1)
 endsnippet
 #}}}
+
+#{{{ import_common
+snippet import_common "import all the common package we used"
+import sys
+import os
+import os.path as osp
+endsnippet
+#}}}
+
+#{{{args
+snippet args "add args in python using sys.argv"
+assert len(sys.argv) <= 1, "please input the args."
+${1:name_of_args1} = sys.argv[1]
+endsnippet
+#}}}
+
+#{{{fread
+snippet fread "open file and read lines"
+with open(${1:"output.txt"}, "r") as fp :
+    ${2:lines} = fp.readlines()
+endsnippet
+#}}}
