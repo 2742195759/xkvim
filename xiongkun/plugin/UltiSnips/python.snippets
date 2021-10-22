@@ -124,3 +124,12 @@ snippet get "dict get default" i
 get(${1:"key"}, ${2:False})
 endsnippet
 #}}}
+
+#{{{set_seed
+snippet set_seed "set seed for all science computation library"
+paddle.set(${1:2021})
+np.random.seed($1)
+torch.set_rng_state(torch.manual_seed($1).get_state())
+random.seed($1)
+endsnippet
+#}}}
