@@ -15,3 +15,4 @@ source /root/.bashrc
 apt install -y python3-pip
 pip3 install dict-cli
 
+apt install -y language-pack-zh-hans

@@ -1,0 +1,13 @@
+#{{{ PADDLE_RAISE 
+snippet PADDLE_THROW "raise error by paddle API"
+PADDLE_THROW(platform::errors::InvalidArgument(
+    ${1:"This argument is invalid, expect %d, get %d"}, ${2:"expected_"}, ${3:"actual_"}));
+endsnippet
+#}}}
+
+#{{{ PADDLE_ENFORCE_GT
+snippet PADDLE_ENFORCE_GT "raise error by paddle API"
+PADDLE_ENFORCE_GT(${1:first}, ${2:second}, platform::errors::InvalidArgument(
+    ${3:"This argument is invalid, expect %d, get %d"}, ${4:"expected_"}, ${5:"actual_"}));
+endsnippet
+#}}}

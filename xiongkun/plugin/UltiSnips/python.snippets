@@ -1,4 +1,4 @@
-
+#{{{ to_static
 snippet to_static "some dygraph-to-static utility function"
 
 from paddle.jit import to_static
@@ -29,6 +29,101 @@ def apply_to_static(config, model):
     return model
 
 endsnippet
+#}}}
+
+#{{{cv_import 
+snippet cv_import "add the import statement of cvpods"
+import cvpods
+from cvpods.engine.base_runner import RunnerBase
+from cvpods.checkpoint import Checkpointer
+from cvpods.data import build_test_loader, build_train_loader
+from cvpods.utils import (
+    CommonMetricPrinter, JSONWriter, PathManager,
+    TensorboardXWriter, collect_env_info, comm,
+    seed_all_rng, setup_logger, VisdomWriter
+)
+from cvpods.engine import DefaultRunner, default_argument_parser, default_setup, hooks, launch
+from cvpods.evaluation import ClassificationEvaluator
+from cvpods.utils import comm
+import cvpods.model_zoo as model_zoo
+import logging
+
+endsnippet
+#}}}
+
+#{{{cv_model_zoo 
+snippet cv_model_zoo "add the model_zoo example"
+model_zoo.get(
+    ${1:"./config.py"},
+    playground_path=${2:"/home/data/cvpods_example"},
+    custom_config=dict(
+        MODEL=dict(
+            WEIGHTS="",
+        ),
+        DATASETS=dict(
+            TRAIN="",
+        ),
+    )
+)
+$0
+endsnippet
+#}}}
+
+#{{{cv_auc
+snippet cv_auc "auc calculation example"
+from sklearn.metrics import roc_auc_score
+# $1 : (D, ) of (0/1)
+# $2 : (D, ) of float
+auc = roc_auc_score(${1:labels}.numpy(), ${2:labels}.numpy()) 
+$0
+endsnippet
+#}}}
+
+#{{{cv_info
+snippet cv_info "info using logger"
+logging.getLogger(${1:__name__}).info(${2:"output"})
+$0
+endsnippet
+#}}}
+
+#{{{cv_logfilter
+snippet cv_logfilter "filter some header in logging"
+class ${1:NoParsingFilter}(logging.Filter):
+    def filter(self, record):
+        return False
+logging.getLogger(${2:"logger name"}).addFilter($1())
+$0
+endsnippet
+#}}}
+
+#{{{unittest
+snippet unittest "add unittest for python code"
+class ${1:TestCaseName}(unittest.TestCase):
+    def setUp(self):
+        ${1:pass}
+
+    def tearDown(self):
+        ${2:pass}
+
+    def test_${3:add}(self):
+        self.assertEqual(1, 1)
+
+$0
+endsnippet
+#}}}
+
+#{{{unittest_main
+snippet unittest_main "add unittest main for python code"
+if __name__ == "__main__":
+    unittest.main()
+endsnippet
+#}}}
+
+#{{{get
+snippet get "dict get default" i
+get(${1:"key"}, ${2:False})
+endsnippet
+#}}}
 
 snippet signature_python "Add signature for python file"
 #!/usr/bin/env python
@@ -42,3 +137,34 @@ snippet signature_python "Add signature for python file"
 @Last Modified time :   `date +%Y-%m-%d`
 '''
 endsnippet
+
+#{{{set_seed
+snippet set_seed "set seed for all science computation library"
+paddle.set(${1:2021})
+np.random.seed($1)
+torch.set_rng_state(torch.manual_seed($1).get_state())
+random.seed($1)
+endsnippet
+#}}}
+
+#{{{ import_common
+snippet import_common "import all the common package we used"
+import sys
+import os
+import os.path as osp
+endsnippet
+#}}}
+
+#{{{args
+snippet args "add args in python using sys.argv"
+assert len(sys.argv) <= 1, "please input the args."
+${1:name_of_args1} = sys.argv[1]
+endsnippet
+#}}}
+
+#{{{fread
+snippet fread "open file and read lines"
+with open(${1:"output.txt"}, "r") as fp :
+    ${2:lines} = fp.readlines()
+endsnippet
+#}}}
