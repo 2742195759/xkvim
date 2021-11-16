@@ -11,3 +11,72 @@ PADDLE_ENFORCE_GT(${1:first}, ${2:second}, platform::errors::InvalidArgument(
     ${3:"This argument is invalid, expect %d, get %d"}, ${4:"expected_"}, ${5:"actual_"}));
 endsnippet
 #}}}
+
+#{{{ unique
+snippet std::unique "unique a std::vector or std::list."
+std::sort(${1:gc_check_input_list}.begin(), ${1}.end());
+auto last =
+    std::unique(${1}.begin(), ${1}.end());
+${1}.erase(last, ${1}.end());
+endsnippet
+#}}}
+
+#{{{ platform::errors
+snippet platform::errors "platform::errors will list all example of platform::errors"
+platform::errors::InvalidArgument(${1:"This argument is invalid %s"}, ${2:name})
+endsnippet
+#}}}
+
+#{{{ VLOG
+snippet VLOG "vlog(N) example"
+VLOG(${1:3}) << ${2:"the output"} ; 
+endsnippet
+#}}}
+
+#{{{ Disable Copy and Assign
+snippet DISABLE_COPY_ASSIGN "C++ optimization: Disable copy and assign."
+public:  // just declare, don't need definition
+  ${1:BigClass}($1 const &) = delete;
+  $1& operator = ($1 const &) = delete;
+endsnippet
+#}}}
+
+#{{{ all class function
+snippet CLASS_FUNC "list all CPP function"
+public:  // just declare, don't need definition
+  ${1:BigClass} ($1 const &) = default;         // copy construct
+  $1 ($1 &&) = default;                         // move construct
+  $1() = default;                               // construct 
+  ~ $1() = default;                             // deconstruct 
+  $1& operator = ($1 const &) = default;        // copy assign
+  $1& operator = ($1 &&) = default;             // move assign
+endsnippet
+#}}}
+
+#{{{ rvo example
+snippet RVO_EXAMPLE "class A example for experiment"
+class A{
+public:  // just declare, don't need definition
+  A (const A &) {
+    printf("Copy Construct\n");
+  };
+  A (A &&) {
+    printf("Move Construct\n");
+  }
+  A(){
+    printf("Construct\n");
+  };                               // construct
+  ~ A() {
+    printf("Deconstruct\n");
+  }
+  A& operator = (A const &){
+    printf("copy assign\n");
+  }
+  A& operator = (A &&) {
+    printf("move assign\n");
+  }
+};
+endsnippet
+#}}}
+
+

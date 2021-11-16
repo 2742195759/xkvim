@@ -120,23 +120,23 @@ endsnippet
 #}}}
 
 #{{{get
-snippet get "dict get default" i
+snippet get "inner word. dict get default" i
 get(${1:"key"}, ${2:False})
 endsnippet
 #}}}
 
-snippet signature_python "Add signature for python file"
+snippet xiongkun "#Add signature for python file" #{{{
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 '''
 @File               :   `!v expand("%:t")`
 @Time               :   2021-08-21
 @Author             :   Kun Xiong
-@Contact            :   
+@Contact            :   xk18@mails.tsinghua.edu.cn
 @Last Modified by   :   `date +%Y-%m-%d`
 @Last Modified time :   `date +%Y-%m-%d`
 '''
-endsnippet
+endsnippet  #}}}
 
 #{{{set_seed
 snippet set_seed "set seed for all science computation library"
@@ -156,15 +156,61 @@ endsnippet
 #}}}
 
 #{{{args
-snippet args "add args in python using sys.argv"
-assert len(sys.argv) <= 1, "please input the args."
-${1:name_of_args1} = sys.argv[1]
+snippet args "add argments parser."
+def parameter_parser():
+    import argparse
+    parser = argparse.ArgumentParser(description="Support Args:")
+
+    parser.add_argument("--data_path",                 type=str,   default="./data/Amazon_Instant_Video/",  help="data path")
+    parser.add_argument("--epoch_number",              type=int,   default=40,                              help="number of training epochs")
+    parser.add_argument("--learning_rate",             type=float, default=0.01,                            help="learning rate")
+    parser.add_argument("--intervener_soft",           type=bool,  default=False,                           help="the regular item of the MF model")
+
+    return parser.parse_args()
+
+args = parameter_parser()
 endsnippet
 #}}}
 
 #{{{fread
-snippet fread "open file and read lines"
+snippet open "open file and read lines"
 with open(${1:"output.txt"}, "r") as fp :
     ${2:lines} = fp.readlines()
+endsnippet
+#}}}
+
+#{{{ # import_paddle
+snippet import_paddle "import all paddle package."
+from __future__ import print_function
+
+import numpy as np
+import os
+import unittest
+
+import paddle
+import paddle.fluid as fluid
+import paddle.fluid.core as core
+import paddle.fluid.layers as layers
+import paddle.fluid.framework as framework
+from paddle.fluid.backward import append_backward
+from paddle.fluid.framework import Program, program_guard
+endsnippet
+#}}}
+
+#{{{ # pd -> paddle
+snippet pd "pd" i
+paddle
+endsnippet
+#}}}
+
+#{{{ # pd.set_device
+snippet pd.set_device "paddle.set_device('cpu')"
+paddle.set_device('cpu')
+endsnippet
+#}}}
+
+#{{{ # pd.enable_static
+snippet pd.enable_static "paddle.enable_static()"
+paddle.enable_static()
 endsnippet
 #}}}
