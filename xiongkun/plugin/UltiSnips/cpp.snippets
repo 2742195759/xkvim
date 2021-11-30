@@ -45,11 +45,11 @@ endsnippet
 snippet CLASS_FUNC "list all CPP function"
 public:  // just declare, don't need definition
   ${1:BigClass} ($1 const &) = default;         // copy construct
-  $1 ($1 &&) = default;                         // move construct
+  $1 ($1 &&) = default noexcept;                         // move construct
   $1() = default;                               // construct 
   ~ $1() = default;                             // deconstruct 
   $1& operator = ($1 const &) = default;        // copy assign
-  $1& operator = ($1 &&) = default;             // move assign
+  $1& operator = ($1 &&) = default noexcept;             // move assign
 endsnippet
 #}}}
 
@@ -79,4 +79,20 @@ public:  // just declare, don't need definition
 endsnippet
 #}}}
 
+#{{{ Scope Guard
+snippet ScopeGuard "ScopeGuard Template"
+template <typename ReleaseCallback>
+class ScopeGuard {
+ public:
+  explicit ScopeGuard(const ReleaseCallback &callback) : callback_(callback) {}
 
+  ~ScopeGuard() { callback_(); }
+
+ private:
+  DISABLE_COPY_ASSIGN $0
+
+ private:
+  ReleaseCallback callback_;
+};
+endsnippet
+#}}}

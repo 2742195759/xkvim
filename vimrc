@@ -231,3 +231,5 @@ let mapleader='\'
 set runtimepath+=/root/.vim/plugin/xiongkun/plugin
 set shell=bash
 set path+='./'
+set cursorline
+hi CursorLine cterm=Underline ctermbg=None ctermfg=None

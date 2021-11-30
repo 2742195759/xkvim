@@ -214,3 +214,9 @@ snippet pd.enable_static "paddle.enable_static()"
 paddle.enable_static()
 endsnippet
 #}}}
+
+#{{{ # pd.scope_guard
+snippet pd.scope_guard "add scope guard statement for program"
+with paddle.fluid.scope_guard(paddle.static.Scope()) : 
+endsnippet
+#}}}
