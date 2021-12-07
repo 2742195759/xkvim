@@ -179,6 +179,12 @@ with open(${1:"output.txt"}, "r") as fp :
 endsnippet
 #}}}
 
+################
+#
+# Paddle Snippets
+#
+################
+
 #{{{ # import_paddle
 snippet import_paddle "import all paddle package."
 from __future__ import print_function
@@ -220,3 +226,71 @@ snippet pd.scope_guard "add scope guard statement for program"
 with paddle.fluid.scope_guard(paddle.static.Scope()) : 
 endsnippet
 #}}}
+
+################
+#
+# Matplotlib Examples
+#
+################
+
+#{{{ # plt.line 
+snippet plt.line "the example of draw a line"
+def ${1:line}(ax):
+    # 使用连续的实线来进行绘图
+    # https://matplotlib.org/stable/tutorials/introductory/pyplot.html for details
+    x = np.linspace(0, 2, 100)  # Sample data.
+    ax.plot(x, x ** 2, label="y = x ^ 2", marker=None, linewidth=2.0, color='r') 
+    #markers in [ '+' | ',' | '.' | '1' | '2' | '3' | '4' ] 
+    ax.set_xlabel('x label')  # Add an x-label to the axes.
+    ax.set_ylabel('y label')  # Add an x-label to the axes.
+    ax.set_title ("example")  # Add a title to the axes.
+    ax.legend()               # Add a legend.
+endsnippet
+#}}}
+
+#{{{ # plt.scatter
+snippet plt.scatter "the example of draw a scatter graph"
+def scatter(ax):
+    x = np.linspace(0, 2, 5)  # Sample data.
+    ax.scatter(x, x ** 2, label="y = x ^ 2", marker='x')  # marker is " x | ^ | o | s " 
+    ax.scatter(x, x ** 3, label="y = x ^ 3", marker='o')  # marker is " x | ^ | o | s " 
+    ax.set_xlabel('x label')  # Add an x-label to the axes.
+    ax.set_ylabel('y label')  # Add an x-label to the axes.
+    ax.set_title ("example")  # Add a title to the axes.
+    ax.legend()               # Add a legend.
+
+def plot(ax):
+    x = np.arange(0., 5., 0.2)
+    ax.plot(x, x, 'r--', x, x**2, 'bs', x, x**3, 'g^') # the first r,b,g is color, the second is marker
+
+endsnippet
+#}}}
+
+#{{{ # plt.histogram
+snippet plt.histogram "the example of draw a histogram"
+def histogram(ax):
+    mu, sigma = 100, 15
+    x = mu + sigma * np.random.randn(10000)
+    n, bins, patches = ax.hist(x, bins=50, density=1, facecolor='g', alpha=0.75)
+    ax.xlabel('Smarts')
+    ax.ylabel('Probability')
+    ax.title('Histogram of IQ')
+    ax.text(60, .025, r'$\mu=100,\ \sigma=15$')
+    ax.axis([40, 160, 0, 0.03])
+    ax.grid(True)
+endsnippet
+#}}}
+
+#{{{ # plt.text
+snippet plt.text "the example of draw a text in arbitrary position"
+${1:ax}.text(60, .025, r'$\mu=100,\ \sigma=15$')  # markdown mathjax is ok
+endsnippet
+#}}}
+
+#{{{ # plt.save
+snippet plt.save "the example of save a plot or animation"
+fig.savefig('sales.png', transparent=False, dpi=80, bbox_inches="tight")
+endsnippet
+#}}}
+
+
