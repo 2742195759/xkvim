@@ -96,3 +96,14 @@ class ScopeGuard {
 };
 endsnippet
 #}}}
+
+#{{{ PrintTensor
+snippet PrintTensor "Print CPU Tensor / GPU Tensor."
+{
+  framework::Tensor cpu;
+  framework::TensorCopy(*out, platform::CPUPlace(), dev_ctx, &cpu);
+  VLOG(4) << "in_vars[0] is" << cpu;
+  $0
+}
+endsnippet
+#}}}

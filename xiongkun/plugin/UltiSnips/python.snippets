@@ -136,11 +136,12 @@ snippet xiongkun "#Add signature for python file" #{{{
 @Last Modified by   :   `date +%Y-%m-%d`
 @Last Modified time :   `date +%Y-%m-%d`
 '''
-endsnippet  #}}}
+endsnippet
+#}}}
 
 #{{{set_seed
 snippet set_seed "set seed for all science computation library"
-paddle.set(${1:2021})
+paddle.seed(${1:2021})
 np.random.seed($1)
 torch.set_rng_state(torch.manual_seed($1).get_state())
 random.seed($1)

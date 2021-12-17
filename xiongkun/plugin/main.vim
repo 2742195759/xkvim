@@ -64,6 +64,7 @@ function! s:ShowGitComment()
     execute 'py3' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
 endf
 
+
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
@@ -73,6 +74,9 @@ com! -n=0 GG cal s:ShowGitComment()
 """""""""""""""": Map below {{{
 noremap <silent> <space>m :Mt<cr>
 noremap K :!clear && dict <C-R>=expand("<cword>")<cr><cr>
-vnoremap K "dy:!clear && dict <C-R>d<cr>
+vnoremap K "dy:!clear && dict <C-R>d<cr>:set filtype=
+
+""" copy the visual into a tempname file. to view a part of a file
+vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetype=tmp<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
 """""""""""""""" }}}

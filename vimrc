@@ -16,17 +16,19 @@ Bundle 'https://github.com/Valloric/YouCompleteMe'
 Bundle 'https://github.com/Raimondi/delimitMate'
 Bundle 'https://github.com/tpope/vim-surround'
 Bundle 'https://github.com/jreybert/vimagit'
+Bundle 'https://github.com/AndrewRadev/quickpeek.vim'
+Bundle 'https://github.com/skywind3000/vim-quickui'
 Bundle 'The-NERD-Commenter'
 
 
 if has("cscope")
-  set cscopeprg=/usr/bin/gtags-cscope
+  set cscopeprg=/usr/bin/cscope
   set csto=0
   set cst
   set nocsverb
   " add any database in current directory
-  if filereadable("GTAGS")
-      cs add GTAGS
+  if filereadable("cscope.out")
+      cs add cscope.out
   endif
   set csverb
 endif
@@ -232,4 +234,13 @@ set runtimepath+=/root/.vim/plugin/xiongkun/plugin
 set shell=bash
 set path+='./'
 set cursorline
+set tags+=/root/cpp_src/stl.tags
 hi CursorLine cterm=Underline ctermbg=None ctermfg=None
+
+
+
+""" configure for quick-peek plugin 
+let g:quickpeek_auto = v:true
+" Open filetype plugin, you can use the quickpeek plugin
+filetype plugin on 
+

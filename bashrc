@@ -63,3 +63,4 @@ unset __conda_setup
 # <<< conda initialize <<<
 TERM=xterm-256color
 export PYTHONIOENCODING=utf-8
+export PATH=$PATH:/usr/local/bin
