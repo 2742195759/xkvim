@@ -10,6 +10,13 @@ let s:previewer = {
 \ 'bufid': -1,
 \}
 
+" Global Setting 
+" g:jump_cmd   set the jump cmd, tabe | e | vertical e
+"
+let g:jump_cmd="e"
+let g:max_filename_length=35
+let g:max_text_length=90
+
 function! s:previewer.reset()
     if self.bufid != -1
         "silent! exec printf('bdelete %d', self.bufid)
@@ -27,7 +34,7 @@ function! s:previewer.preview(filename, linenr, opts)
   let bufnr = bufadd(a:filename)
   call bufload(bufnr)
   let self.bufid = bufnr
-  let maxheight = get(a:opts, 'maxheight', 7)
+  let maxheight = get(a:opts, 'maxheight', 9)
   let options = {
         \ 'pos':    'topleft',
         \ 'border': [],
@@ -102,33 +109,107 @@ function! s:searcher.search_and_render(input_text, cwd)
 endf
 
 function! s:searcher.search(input_text)
-    "let results = YCMSearcher(self, a:input_text)
-    let results = []
+    let results = YCMSearcher(self, a:input_text)
     let results = results + CtagSearcher(self, a:input_text)
     let results = results + GrepSearcher(self, a:input_text)
     return results
 endfunction
 
+function! s:StringTrimer(str, max_len)
+    if a:max_len < len(a:str)
+        return '|...' . a:str[-a:max_len:] . '|'
+    else
+        return '|' . a:str . '|'
+    endif
+endfunction
+
+function! s:FilenameTrimer(filename)
+    return s:StringTrimer(a:filename, g:max_filename_length)
+endfunction
+
+function! s:TextTrimer(text)
+    if g:max_text_length < len(a:text)
+        return a:text[0:g:max_text_length-1] . "..."
+    else
+        return a:text
+    endif
+endfunction
+
+function! s:searcher.unique(results)
+    let unique_set = {} 
+    let ret = []
+    for item in a:results
+        let linenr = s:PeekLineNumber(item)
+        let item['lnum'] = linenr
+        let filename = fnamemodify(item["filename"], ":p")
+        let key = filename . linenr
+        if get(unique_set, key, 0) == 0
+            let unique_set[key] = 1
+            call add(ret, item)
+        endif
+    endfor
+    return ret
+endf
+
+function! s:SetqfList(results)
+    call setqflist(a:results)
+endfunc
+
+function! s:IsIgnored(ignore_list, idx, item)
+    let absfilename = fnamemodify(a:item["filename"], ":p")
+    for ig in a:ignore_list
+        let m = matchstr(absfilename, ig)
+        if m == absfilename
+            " matched, ignore this one, return 0 to discard
+            return 0
+        endif
+    endfor
+    return 1
+endf
+
+function! s:GetIgnoreList()
+    let filename = getcwd()."/ignore"
+    let bufnr = bufadd(filename)
+    call bufload(bufnr)
+    let lines = getbufline(bufnr, 1, "$") 
+    return lines
+endfunc
+
+function! s:searcher.apply_filter(results)
+    let ignore_list = s:GetIgnoreList()
+    call filter(a:results, function('s:IsIgnored', [ignore_list]))
+    return a:results
+endf
+    
+
 function! s:searcher.render(results, title)
-    " unique
-    " filter
+    " [unique]
+    "
+    let results = self.unique(a:results)
+    " [filter]
+    "
+    let l:results = self.apply_filter(l:results)
+    call s:SetqfList(l:results)
+    " [render]
+    "
     " render to boxlist
         " 1. first get the text and cmd.
         " 2. text is aligned by '\t'
-    let to_render = [["id\tsource\tfilename\ttext\tother", ""]]
+    let to_render = []
     let idx = 1
-    for item in a:results
+    for item in l:results
         let render_item = ["", ""]
-        let render_item[0] = join([idx, item["source"], item["filename"], trim(item["text"]), trim(get(item, 'other', ''))], "\t")
+        let render_item[0] = join([idx, item["source"], trim(get(item, 'other', '')), s:FilenameTrimer(item["filename"]), s:TextTrimer(trim(item["text"]))], "\t")
         let render_item[1] = printf("call ExecuteJumpCmd('%s', '%s')", item.filename, item.cmd)
         call add(to_render, render_item)
         let idx += 1
     endfor 
-    let self.hwnd = quickui#listbox#open(to_render, {'h': 20, 'title': a:title})
+    let self.hwnd = quickui#listbox#open(to_render, {'h': 20, 'title': a:title, 'syntax': 'search'})
+    silent call win_execute(self.hwnd.winid, printf("match Search /%s/", a:title))
     let oldopt = popup_getoptions(self.hwnd.winid)
 	let self.hwnd.old_filter = oldopt["filter"]
     let self.hwnd.old_callback = oldopt["callback"]
-    let self.hwnd.raw = a:results
+    let self.hwnd.raw = l:results
     let oldopt.filter = function('s:CustomedKeyMap')
     let oldopt.callback = function('s:CustomedCallback')
     call popup_setoptions(self.hwnd.winid, oldopt)
@@ -165,7 +246,7 @@ function! s:CustomedKeyMap(winid, key)
     " after call old filter
     if s:searcher.is_preview == 1
         call win_execute(a:winid, "silent let @q=line('.')")
-        let cur_selected = str2nr(@q) - 2
+        let cur_selected = str2nr(@q) - 1
         let filename = hwnd.raw[cur_selected].filename
         let linenr = s:PeekLineNumber(hwnd.raw[cur_selected])
         call s:previewer.preview(filename, linenr, s:GetPreviewRectangle(a:winid))
@@ -197,7 +278,7 @@ function! YCMSearcher(searcher, input_text)
     if item[1] == -1
         return []
     endif
-    return [{"filename": item[0], "lnum": item[1], "cmd": printf(":%d", item[1]), "other":"", "source":"YCM", "text":""}]
+    return [{"filename": item[0], "lnum": item[1], "cmd": printf(":%d", item[1]), "other":"", "source":"YCM", "text":item[2]}]
 
 endfunction
 
@@ -211,10 +292,10 @@ function! GrepSearcher(searcher, input_text)
     if len(qflist) > 0
         for qfitem in qflist
             if qfitem.valid
-                let item = {'source': 'Grep'}
+                let item = {'source': 'Grep', "other":""}
                 let item.filename = bufname(qfitem.bufnr)
                 let item.lnum = qfitem.lnum
-                let item.text = qfitem.text
+                let item.text = tr(qfitem.text, "\t", " ")
                 let item.cmd  = printf(":%d", item.lnum)
                 call add(ret, item)
             endif
@@ -224,8 +305,9 @@ function! GrepSearcher(searcher, input_text)
 endfunction
 
 function! ExecuteJumpCmd(filename, cmd)
-    silent exec "tabe ".a:filename
-    silent exec a:cmd
+    let cmd = escape(a:cmd, "~")
+    silent exec printf("%s %s",g:jump_cmd, fnameescape(a:filename))
+    silent exec l:cmd
 endfunction
 
 function! s:PeekLineNumber(universe_item)
@@ -234,14 +316,15 @@ function! s:PeekLineNumber(universe_item)
     elseif a:universe_item['cmd'][0] == "/"
         return s:PeekLineNumberFromSearch(a:universe_item['filename'], a:universe_item['cmd'])
     else
-        let cmd = hwnd.raw[cur_selected].cmd
         return 0
 endfunction
 
 function! s:PeekLineNumberFromSearch(filename, search_cmd)
+    let search_cmd = escape(a:search_cmd, "~")
     let new_buf = bufadd(a:filename)
+    call bufload(new_buf)
     let lines = getbufline(new_buf, 1, '$')
-    let line_nr = match(lines, a:search_cmd[1:-2]) + 1
+    let line_nr = match(lines, trim(search_cmd, "/")) + 1
     return line_nr
 endfunction
 
@@ -257,15 +340,20 @@ endfunction
 " Try YCM and return location. many cause flush
 function! TryYcmJumpAndReturnLocation(identifier)
     let pos = getpos('.')
+    " if don't set pos[0], the bufnr is always 0.
+    let pos[0] = bufnr() 
+    echom pos
     silent! exec "YcmCompleter GoToDefinition ".a:identifier 
-    if pos[0] == getpos('.')[0] && pos[1] == getpos('.')[1]
-        return ["", -1]
+    echom pos
+    if pos[0] == bufnr() && pos[1] == getpos('.')[1]
+        return ["", -1, ""]
     else
-        let filename = bufname(getpos('.')[0])
+        let filename = bufname(bufnr())
         let line_nr = getpos('.')[1]
+        let text = getline('.')
         echo filename
         call setpos('.', pos)
-        return [filename, line_nr]
+        return [filename, line_nr, text]
     endif
 endfun
 "------------

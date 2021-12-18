@@ -1,4 +1,5 @@
 set nocompatible
+
 set rtp+=~/.vim/bundle/vundle/
 set encoding=utf-8
 call vundle#rc()
@@ -6,7 +7,6 @@ call vundle#rc()
 Bundle 'gmarik/vundle'
 Bundle 'https://github.com/scrooloose/nerdtree'
 Bundle 'taglist.vim'
-Bundle 'https://github.com/SirVer/ultisnips'
 Bundle 'https://github.com/honza/vim-snippets'
 Bundle 'https://github.com/Shougo/neocomplete.vim'
 Bundle 'https://github.com/tomasr/molokai'
