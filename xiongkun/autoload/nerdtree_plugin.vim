@@ -25,7 +25,7 @@ function! NERDTreeAutoGrep(dirnode)
     if pattern == ""
         return
     endif
-    let pattern = substitute(pattern, "|", "\\|", "g")
+    let pattern = shellescape(pattern)
     echohl None
     let path = a:dirnode.path.str() 
     let cmd = 'silent! grep! -r '.pattern.' '.path.' '.'| redraw! '
