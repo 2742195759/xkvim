@@ -16,6 +16,7 @@ let s:previewer = {
 let g:jump_cmd="e"
 let g:max_filename_length=35
 let g:max_text_length=90
+let g:enable_ycm=1
 
 function! s:previewer.reset()
     if self.bufid != -1
@@ -69,7 +70,6 @@ function! s:searcher.preview_toggle()
     if self.is_preview == 0
         let self.is_preview = 1
     else 
-        echo "sdfsdf"
         let self.is_preivew = 0
         call s:previewer.reset()
     endif
@@ -91,7 +91,7 @@ function! KeyworkSearch()
     \ ["&translation", "execute('!clear && dict <C-R>=expand(\"<cword>\")<cr><cr>"], 
     \ ["Jump File name", ""], 
     \ ["Jump Tag name", ""], 
-    \ ["Jump YCM &definition", "YcmCompleter GoToDefinition"], 
+    \ ["Jump YCM &definition", "YcmCompleter GoTo"], 
     \ ]
     call quickui#context#open(context, {})
 endfunction
@@ -109,7 +109,10 @@ function! s:searcher.search_and_render(input_text, cwd)
 endf
 
 function! s:searcher.search(input_text)
-    let results = YCMSearcher(self, a:input_text)
+    let results = []
+    if g:enable_ycm == 1
+        let results = results + YCMSearcher(self, a:input_text)
+    endif
     let results = results + CtagSearcher(self, a:input_text)
     let results = results + GrepSearcher(self, a:input_text)
     return results
@@ -305,7 +308,7 @@ function! GrepSearcher(searcher, input_text)
 endfunction
 
 function! ExecuteJumpCmd(filename, cmd)
-    let cmd = escape(a:cmd, "~")
+    let cmd = escape(a:cmd, "~*.")
     silent exec printf("%s %s",g:jump_cmd, fnameescape(a:filename))
     silent exec l:cmd
 endfunction
@@ -320,7 +323,7 @@ function! s:PeekLineNumber(universe_item)
 endfunction
 
 function! s:PeekLineNumberFromSearch(filename, search_cmd)
-    let search_cmd = escape(a:search_cmd, "~")
+    let search_cmd = escape(a:search_cmd, "~*.")
     let new_buf = bufadd(a:filename)
     call bufload(new_buf)
     let lines = getbufline(new_buf, 1, '$')
@@ -342,20 +345,35 @@ function! TryYcmJumpAndReturnLocation(identifier)
     let pos = getpos('.')
     " if don't set pos[0], the bufnr is always 0.
     let pos[0] = bufnr() 
-    echom pos
     silent! exec "YcmCompleter GoToDefinition ".a:identifier 
-    echom pos
     if pos[0] == bufnr() && pos[1] == getpos('.')[1]
         return ["", -1, ""]
     else
         let filename = bufname(bufnr())
         let line_nr = getpos('.')[1]
         let text = getline('.')
-        echo filename
         call setpos('.', pos)
         return [filename, line_nr, text]
     endif
 endfun
+
+function! AddTags(name)
+endfun
+
+function! UniverseCtrl()
+    let under_cur = expand('<cfile>')
+    let is_file = 0
+    if match(under_cur, '[/\.]') != -1
+        let is_file = 1
+    endif
+    if is_file 
+        " jump to file 
+        exec 'YcmComplete GoTo'
+    else 
+        call g:universe_searcher.search_and_render(expand("<cword>"), "")
+    endif
+endfunction
+
 "------------
 "  test case
 "------------
