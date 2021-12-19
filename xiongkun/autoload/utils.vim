@@ -11,3 +11,13 @@ endfun
 
 function! GetAbsolutePath(file)
 endfunction
+
+function! CreateAndImportTmpTags()
+    let tmpname = "/tmp/tmp_tags"
+    call system('ctags -f '.tmpname.' '.expand("%:p"))
+    if match(&tags, tmpname) == -1
+        exec "set tags+=".tmpname
+    endif
+    return tmpname
+endfunction
+

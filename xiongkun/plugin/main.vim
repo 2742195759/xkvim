@@ -90,7 +90,9 @@ augroup UniverseCtrl
 augroup END
 
 function! TryOpenPreview()
-    call SearchFunctionWhileInsert()
+    if g:enable_insert_preview == 1
+        call SearchFunctionWhileInsert()
+    endif
 endfunc
 
 augroup PopupPreview
@@ -99,5 +101,4 @@ augroup PopupPreview
     autocmd InsertLeave  * cal g:previewer.reset()
     "autocmd CursorHoldI * cal TryOpenPreview()
 augroup END
-
 """"""""""""""}}}

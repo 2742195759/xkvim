@@ -12,13 +12,16 @@ let s:previewer = {
 \ 'bufid': -1,
 \}
 
+
 " Global Setting 
 " g:jump_cmd   set the jump cmd, tabe | e | vertical e
-"
+
 let g:jump_cmd="e"
+let g:enable_grep=1
 let g:max_filename_length=35
 let g:max_text_length=90
 let g:enable_ycm=1
+let g:enable_insert_preview=1
 
 function! s:previewer.exec(cmd)
     if self.winid != 1
@@ -28,20 +31,28 @@ endf
 
 function! s:previewer.tag_atcursor(tags)
     call self.reset()
-    let userlist = get(s:searcher.user_item, a:tags, [])
+
+    " here we disable grep , because grep will cause screen flash. which 
+    " is annoying
+    let g:enable_grep = 0
+    let results = s:searcher.do_search(a:tags)
+    let g:enable_grep = 1
+
+    "let userlist = get(s:searcher.user_item, a:tags, [])
+    let userlist = results
+    echom userlist
     if len(userlist) == 0
         return 
     endif
-    let opts = {'maxheight': 8, 
-    \ 'col': 'cursor', 
-    \ 'line': 'cursor+4', 
+    let opts = {'maxheight': 10, 
+    \ 'col': 'cursor+30', 
+    \ 'line': 'cursor+5', 
     \ 'minwidth': 0, 
     \ 'maxwidth': 10000,
     \}
     call self.preview(userlist[0]['filename'], 
         \ userlist[0]['lnum'], 
         \ opts)
-
 endf
 
 function! s:previewer.reset()
@@ -152,21 +163,29 @@ function! s:searcher.Exit()
     call SaveVariable(self.user_item, file)
 endf
 
-function! s:searcher.search(input_text)
+function! s:searcher.do_search(input_text)
+    call CreateAndImportTmpTags()
     let results = []
     let results = results + UserSearcher(self, a:input_text)
-    if g:enable_ycm == 1
+    if g:enable_ycm==1
         let results = results + YCMSearcher(self, a:input_text)
     endif
     let results = results + CtagSearcher(self, a:input_text)
-    let results = results + GrepSearcher(self, a:input_text)
-    
+    if g:enable_grep==1
+        let results = results + GrepSearcher(self, a:input_text)
+    endif
     " [unique]
     "
     let results = self.unique(results)
     " [filter]
     "
     let results = self.apply_filter(results)
+    return results
+endf
+
+function! s:searcher.search(input_text)
+    let results = self.do_search(a:input_text)
+    " post-search
     call s:SetqfList(results)
     let self.last = {'input_text':a:input_text, 'results': results}
     return results
@@ -379,13 +398,14 @@ function! UserSearcher(searcher, input_text)
     for item in results
         let item['source'] = 'User'
     endfor
-    echom results
     return results
 endfunction
 
-
 function! CtagSearcher(searcher, input_text)
+    if a:input_text=="" | return[] | endif
     let items = taglist(a:input_text)
+    " filter the partial match, exact match is valid
+    let items = filter(items, "v:val['name'] == a:input_text")
     for item in items
         let item["source"] = "CTag"
         let item["other"]  = item.kind
@@ -499,14 +519,20 @@ endfunction
 " find the first not matched function
 "
 function! SearchFunctionWhileInsert() 
+    if trim(getline('.')) == ""
+        call s:previewer.reset()
+        return
+    endif
     let cur_pos = getcurpos()
     exec "normal [("
     let new_pos = getcurpos()
-    if cur_pos != new_pos
+    echom cur_pos
+    echom new_pos
+    if cur_pos[2] - 1 != new_pos[2]
       exec "normal b"
       let tag = expand("<cword>")
     else
-       let tag = expand("<cword>")
+      let tag = expand("<cword>")
     endif 
     call s:previewer.tag_atcursor(tag)
     call setpos('.', cur_pos)
@@ -515,6 +541,7 @@ endfunction
 "------------
 "  test case
 "------------
+
 if 0
     "let line_nr = PeekLineNumberFromSearch("/sss", "/void func")
     "call assert_true(line_nr, 24
