@@ -3,7 +3,9 @@
 "----------------------------------------------------------------------
 "
 let s:searcher = {
-\'cwd': ""
+\'cwd': "",
+\'user_item': {},
+\'last': {},
 \}
 let s:previewer = {
 \ 'winid': -1, 
@@ -17,6 +19,30 @@ let g:jump_cmd="e"
 let g:max_filename_length=35
 let g:max_text_length=90
 let g:enable_ycm=1
+
+function! s:previewer.exec(cmd)
+    if self.winid != 1
+        call win_execute(self.winid, a:cmd)
+    endif
+endf
+
+function! s:previewer.tag_atcursor(tags)
+    call self.reset()
+    let userlist = get(s:searcher.user_item, a:tags, [])
+    if len(userlist) == 0
+        return 
+    endif
+    let opts = {'maxheight': 8, 
+    \ 'col': 'cursor', 
+    \ 'line': 'cursor+4', 
+    \ 'minwidth': 0, 
+    \ 'maxwidth': 10000,
+    \}
+    call self.preview(userlist[0]['filename'], 
+        \ userlist[0]['lnum'], 
+        \ opts)
+
+endf
 
 function! s:previewer.reset()
     if self.bufid != -1
@@ -44,12 +70,11 @@ function! s:previewer.preview(filename, linenr, opts)
   call extend(options, g:quickpeek_popup_options)
   call extend(options, {
         \ 'maxheight': maxheight,
-        \ 'minwidth':  a:opts.width,
-        \ 'minheight': 5,
-        \ 'maxwidth':  a:opts.width,
+        \ 'minwidth':  get(a:opts,'minwidth',0),
+        \ 'maxwidth':  get(a:opts,'maxwidth',10000),
         \ 'col':       a:opts.col,
         \ 'line':      a:opts.line,
-        \ 'posinvert': 0, 
+        \ 'posinvert': get(a:opts,'posinvert',0),
         \ })
   silent let self.winid  = popup_create(bufnr, options)
   for setting in g:quickpeek_window_settings
@@ -64,6 +89,7 @@ let s:searcher.status = {}
 let s:searcher.is_preview = 0
 
 let g:universe_searcher = s:searcher
+let g:previewer = s:previewer
 
 "{{{
 function! s:searcher.preview_toggle()
@@ -105,16 +131,44 @@ function! s:searcher.search_and_render(input_text, cwd)
     endif
     let ret = self.search(a:input_text)
     let self.cwd = ""
-    call self.render(ret, a:input_text)
+    call self.render(ret, self.cwd, a:input_text)
+endf
+
+function! s:searcher.get_user_tag_path()
+    let cwd = getcwd()
+    let user_tag_path = cwd . "/user_tag"
+    return user_tag_path
+endf
+
+function! s:searcher.Init()
+    let file = self.get_user_tag_path()
+    if filereadable(file) == 1 
+        let self.user_item = ReadVariable(file)
+    endif
+endf
+
+function! s:searcher.Exit()
+    let file = self.get_user_tag_path()
+    call SaveVariable(self.user_item, file)
 endf
 
 function! s:searcher.search(input_text)
     let results = []
+    let results = results + UserSearcher(self, a:input_text)
     if g:enable_ycm == 1
         let results = results + YCMSearcher(self, a:input_text)
     endif
     let results = results + CtagSearcher(self, a:input_text)
     let results = results + GrepSearcher(self, a:input_text)
+    
+    " [unique]
+    "
+    let results = self.unique(results)
+    " [filter]
+    "
+    let results = self.apply_filter(results)
+    call s:SetqfList(results)
+    let self.last = {'input_text':a:input_text, 'results': results}
     return results
 endfunction
 
@@ -139,7 +193,9 @@ function! s:TextTrimer(text)
 endfunction
 
 function! s:searcher.unique(results)
-    let unique_set = {} 
+    " remove the current postion.
+    let current_key = fnamemodify(bufname(), ":p") . getpos('.')[1]
+    let unique_set = {current_key: 1} 
     let ret = []
     for item in a:results
         let linenr = s:PeekLineNumber(item)
@@ -183,24 +239,23 @@ function! s:searcher.apply_filter(results)
     call filter(a:results, function('s:IsIgnored', [ignore_list]))
     return a:results
 endf
-    
 
-function! s:searcher.render(results, title)
-    " [unique]
-    "
-    let results = self.unique(a:results)
-    " [filter]
-    "
-    let l:results = self.apply_filter(l:results)
-    call s:SetqfList(l:results)
+function! s:searcher.render(results, title, identifier)
+    if len(a:results) == 0
+        echoh Error
+        echo "Not found: `". a:identifier . '`'
+        echoh None
+        return 
+    endif
     " [render]
     "
     " render to boxlist
         " 1. first get the text and cmd.
         " 2. text is aligned by '\t'
+    
     let to_render = []
     let idx = 1
-    for item in l:results
+    for item in a:results
         let render_item = ["", ""]
         let render_item[0] = join([idx, item["source"], trim(get(item, 'other', '')), s:FilenameTrimer(item["filename"]), s:TextTrimer(trim(item["text"]))], "\t")
         let render_item[1] = printf("call ExecuteJumpCmd('%s', '%s')", item.filename, item.cmd)
@@ -208,11 +263,11 @@ function! s:searcher.render(results, title)
         let idx += 1
     endfor 
     let self.hwnd = quickui#listbox#open(to_render, {'h': 20, 'title': a:title, 'syntax': 'search'})
-    silent call win_execute(self.hwnd.winid, printf("match Search /%s/", a:title))
+    silent call win_execute(self.hwnd.winid, printf("match Search /%s/", a:identifier))
     let oldopt = popup_getoptions(self.hwnd.winid)
 	let self.hwnd.old_filter = oldopt["filter"]
     let self.hwnd.old_callback = oldopt["callback"]
-    let self.hwnd.raw = l:results
+    let self.hwnd.raw = a:results
     let oldopt.filter = function('s:CustomedKeyMap')
     let oldopt.callback = function('s:CustomedCallback')
     call popup_setoptions(self.hwnd.winid, oldopt)
@@ -232,21 +287,78 @@ function! s:GetPreviewRectangle(winid)
     let ret = {}
     let ret.col = info.col
     let ret.line = info.line + info.height
-    let ret.width = info.width
-    let ret.height = 9
+    let ret.minwidth = info.width
+    let ret.maxwidth = info.width
+    let ret.minheight = 9
+    let ret.maxheight = 9
     return ret
 endfunction
+
+function! s:searcher.AddUserItem(pos_idx)
+    " pos is a int
+    let identifier = self.last.input_text
+    let item = deepcopy(self.last.results[a:pos_idx])
+    call remove(item, "source")
+    let user_list = get(self.user_item,identifier,[])
+    if index(user_list, item) == -1
+        call add(user_list, item)
+    endif
+    let self.user_item[identifier] = user_list
+endf
+
+function! s:searcher.DelUserItem(pos_idx)
+    let identifier = self.last.input_text
+    let item = deepcopy(self.last.results[a:pos_idx])
+    call remove(item, "source")
+    let user_list = get(self.user_item,identifier,[])
+    let idx = index(user_list, item)
+    if idx != -1
+        call remove(user_list, idx)
+    endif
+    let self.user_item[identifier] = user_list
+endf
 
 function! s:CustomedKeyMap(winid, key)
 	let local = quickui#core#popup_local(a:winid)
 	let hwnd = local.hwnd
     let OldFunc = hwnd.old_filter
+    call win_execute(a:winid, "silent let @q=line('.')")
+    let before_pos = str2nr(@q) - 1
     if a:key == 'p'
         call s:searcher.preview_toggle()
     endif
+
+    " control of user tag {{{
+    if a:key == 'd'
+        echoh Question
+        echom "Set current item as definition"
+        call s:searcher.AddUserItem(before_pos)
+        echoh None
+        return 1
+    endif
+    if a:key == 'D'
+        echoh Question
+        echom "Delete current item in user_definition"
+        call s:searcher.DelUserItem(before_pos)
+        echoh None
+        return 1
+    endif
+    " }}}
+
+    """ Control the previewer  {{{
+    if a:key == "\<UP>"
+        call s:previewer.exec("normal \<c-u>")
+        return 1
+    endif
+    if a:key == "\<DOWN>"
+        call s:previewer.exec("normal \<c-d>")
+        return 1
+    endif
+    """ }}}
     
     let ret = OldFunc(a:winid, a:key)
-    " after call old filter
+
+    " after call old filter {{{
     if s:searcher.is_preview == 1
         call win_execute(a:winid, "silent let @q=line('.')")
         let cur_selected = str2nr(@q) - 1
@@ -255,12 +367,21 @@ function! s:CustomedKeyMap(winid, key)
         call s:previewer.preview(filename, linenr, s:GetPreviewRectangle(a:winid))
         let cmd = hwnd.raw[cur_selected].cmd
     endif
+    " }}}
     return ret
 endfunction
 
 
 
 
+function! UserSearcher(searcher, input_text)
+    let results = deepcopy(get(a:searcher.user_item, a:input_text, []))
+    for item in results
+        let item['source'] = 'User'
+    endfor
+    echom results
+    return results
+endfunction
 
 
 function! CtagSearcher(searcher, input_text)
@@ -345,7 +466,9 @@ function! TryYcmJumpAndReturnLocation(identifier)
     let pos = getpos('.')
     " if don't set pos[0], the bufnr is always 0.
     let pos[0] = bufnr() 
-    silent! exec "YcmCompleter GoToDefinition ".a:identifier 
+    try 
+        silent! exec "YcmCompleter GoToDefinition ".a:identifier 
+    endtry
     if pos[0] == bufnr() && pos[1] == getpos('.')[1]
         return ["", -1, ""]
     else
@@ -355,9 +478,6 @@ function! TryYcmJumpAndReturnLocation(identifier)
         call setpos('.', pos)
         return [filename, line_nr, text]
     endif
-endfun
-
-function! AddTags(name)
 endfun
 
 function! UniverseCtrl()
@@ -372,6 +492,24 @@ function! UniverseCtrl()
     else 
         call g:universe_searcher.search_and_render(expand("<cword>"), "")
     endif
+endfunction
+
+"
+" search for the function tag to preview while inserting. 
+" find the first not matched function
+"
+function! SearchFunctionWhileInsert() 
+    let cur_pos = getcurpos()
+    exec "normal [("
+    let new_pos = getcurpos()
+    if cur_pos != new_pos
+      exec "normal b"
+      let tag = expand("<cword>")
+    else
+       let tag = expand("<cword>")
+    endif 
+    call s:previewer.tag_atcursor(tag)
+    call setpos('.', cur_pos)
 endfunction
 
 "------------
@@ -391,5 +529,4 @@ if 0
     let cur_s = s:searcher
     let ttt = cur_s.search("insert")
     call cur_s.render(ttt, "insert")
-
 endif 

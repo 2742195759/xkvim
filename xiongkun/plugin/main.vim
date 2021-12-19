@@ -57,7 +57,6 @@ function! s:OpenHeaderOrCpp(filepath)
 endf
 
 """"""""""""""""" GitCommenter
-py3 import Xiongkun
 function! s:ShowGitComment()
     let filename = expand("%")
     let linenr = getcurpos()[1]
@@ -81,3 +80,24 @@ noremap <C-]> :call UniverseCtrl()<cr>
 vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetype=tmp<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
 """""""""""""""" }}}
+
+"""""""""""""" AutoCmd {{{
+
+augroup UniverseCtrl
+    autocmd!
+    autocmd VimEnter * cal g:universe_searcher.Init()
+    autocmd VimLeave * cal g:universe_searcher.Exit()
+augroup END
+
+function! TryOpenPreview()
+    call SearchFunctionWhileInsert()
+endfunc
+
+augroup PopupPreview
+    autocmd!
+    autocmd CursorMovedI * cal TryOpenPreview()
+    autocmd InsertLeave  * cal g:previewer.reset()
+    "autocmd CursorHoldI * cal TryOpenPreview()
+augroup END
+
+""""""""""""""}}}
