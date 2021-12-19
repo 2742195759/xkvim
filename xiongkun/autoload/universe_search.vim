@@ -40,7 +40,6 @@ function! s:previewer.tag_atcursor(tags)
 
     "let userlist = get(s:searcher.user_item, a:tags, [])
     let userlist = results
-    echom userlist
     if len(userlist) == 0
         return 
     endif
@@ -262,7 +261,7 @@ endf
 function! s:searcher.render(results, title, identifier)
     if len(a:results) == 0
         echoh Error
-        echo "Not found: `". a:identifier . '`'
+        echom "Not found: `". a:identifier . '`'
         echoh None
         return 
     endif
@@ -514,6 +513,10 @@ function! UniverseCtrl()
     endif
 endfunction
 
+function! UniverseSearch()
+    let input_text = input("US>>>")
+    call g:universe_searcher.search_and_render(input_text, getcwd())
+endfunction
 "
 " search for the function tag to preview while inserting. 
 " find the first not matched function
@@ -526,9 +529,8 @@ function! SearchFunctionWhileInsert()
     let cur_pos = getcurpos()
     exec "normal [("
     let new_pos = getcurpos()
-    echom cur_pos
-    echom new_pos
-    if cur_pos[2] - 1 != new_pos[2]
+    let char = getline(".")[new_pos[2] - 1]
+    if cur_pos[2] - 1 != new_pos[2] || char == "("
       exec "normal b"
       let tag = expand("<cword>")
     else
@@ -546,7 +548,6 @@ if 0
     "let line_nr = PeekLineNumberFromSearch("/sss", "/void func")
     "call assert_true(line_nr, 24
     "let ret = GrepSearcher(s:searcher, "xk")
-    "echo ret
     "call assert_true(line_nr, 24)
     "
     "

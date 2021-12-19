@@ -7,7 +7,6 @@ endf
 
 fu! CmdCtrlSlash()
     let cmd = getcmdline()
-    echo cmd
     "let cmd = "/home/data/cvpack2/tests/test_rpn.py"
     let new_cmd = s:DeleteUntilSlash(cmd)
     return "\<C-U>".new_cmd
