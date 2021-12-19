@@ -48,6 +48,7 @@ function! s:previewer.tag_atcursor(tags)
     \ 'line': 'cursor+5', 
     \ 'minwidth': 0, 
     \ 'maxwidth': 10000,
+    \ 'posinvert' : 1,
     \}
     call self.preview(userlist[0]['filename'], 
         \ userlist[0]['lnum'], 
@@ -389,9 +390,6 @@ function! s:CustomedKeyMap(winid, key)
     return ret
 endfunction
 
-
-
-
 function! UserSearcher(searcher, input_text)
     let results = deepcopy(get(a:searcher.user_item, a:input_text, []))
     for item in results
@@ -416,14 +414,19 @@ endfunction
 function! CtrlPSearcher(searcher, input_text)
 endfunction
 
-function! YCMSearcher(searcher, input_text)
+let g:ycm_cache = cache#New()
+function! s:YCM_dosearch(searcher, input_text)
     let item = TryYcmJumpAndReturnLocation(a:input_text)
     if item[1] == -1
         return []
     endif
     return [{"filename": item[0], "lnum": item[1], "cmd": printf(":%d", item[1]), "other":"", "source":"YCM", "text":item[2]}]
-
 endfunction
+
+function! YCMSearcher(searcher, input_text)
+    let g:ycm_cache.proc = function("s:YCM_dosearch", [a:searcher, a:input_text])
+    return g:ycm_cache.Get(a:input_text)
+endf
 
 function! GrepSearcher(searcher, input_text)
     let pattern = shellescape(a:input_text)
