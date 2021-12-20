@@ -1,3 +1,5 @@
+let g:nerd_search_path = getcwd()
+
 function! RegisterNERDTreeKeyMap()
     call NERDTreeAddKeyMap({
            \ 'key': 'gg',
@@ -15,6 +17,12 @@ function! RegisterNERDTreeKeyMap()
            \ 'key': '<leader>t',
            \ 'callback': 'NERDTreeStartShell',
            \ 'quickhelpText': 'start shell in current dirnode',
+           \ 'scope': 'DirNode' })
+
+    call NERDTreeAddKeyMap({
+           \ 'key': 'S',
+           \ 'callback': 'NERDTreeChangeSearchPath',
+           \ 'quickhelpText': 'change current search path',
            \ 'scope': 'DirNode' })
 
 endfunction
@@ -60,6 +68,14 @@ function! NERDTreeStartShell(dirnode)
     exec 'sh'
     exec 'cd -'
 endfunction
+
+function! NERDTreeChangeSearchPath(dirnode)
+    let path = a:dirnode.path.str() 
+    let g:nerd_search_path = path
+    echoh Question
+    echom "change search path: ".path
+    echoh None
+endf
 
 
 noremap <leader>f :call GrepUnderCursor()<cr>

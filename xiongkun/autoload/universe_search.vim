@@ -141,7 +141,6 @@ function! s:searcher.search_and_render(input_text, cwd)
         let self.cwd = expand("%:p:h")
     endif
     let ret = self.search(a:input_text)
-    let self.cwd = ""
     call self.render(ret, self.cwd, a:input_text)
 endf
 
@@ -518,7 +517,7 @@ endfunction
 
 function! UniverseSearch()
     let input_text = input("US>>>")
-    call g:universe_searcher.search_and_render(input_text, getcwd())
+    call g:universe_searcher.search_and_render(input_text, g:nerd_search_path)
 endfunction
 "
 " search for the function tag to preview while inserting. 
