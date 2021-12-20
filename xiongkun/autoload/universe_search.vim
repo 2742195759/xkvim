@@ -516,6 +516,9 @@ function! UniverseCtrl()
 endfunction
 
 function! UniverseSearch()
+    echoh Question
+    echom "Search path : " . g:nerd_search_path . "    use `S` in nerdtree to change path"
+    echoh None
     let input_text = input("US>>>")
     call g:universe_searcher.search_and_render(input_text, g:nerd_search_path)
 endfunction
