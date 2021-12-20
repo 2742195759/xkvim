@@ -57,10 +57,11 @@ function! s:OpenHeaderOrCpp(filepath)
 endf
 
 """"""""""""""""" GitCommenter
+py import Xiongkun
 function! s:ShowGitComment()
     let filename = expand("%")
     let linenr = getcurpos()[1]
-    execute 'py3' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
+    execute 'py' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
 endf
 
 """"" Global Command {{{

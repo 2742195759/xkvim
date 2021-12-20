@@ -2,6 +2,8 @@
 " internal variables
 "----------------------------------------------------------------------
 "
+"
+""/home/data/ftp.py"
 let s:searcher = {
 \'cwd': "",
 \'user_item': {},
@@ -488,7 +490,7 @@ function! TryYcmJumpAndReturnLocation(identifier)
     " if don't set pos[0], the bufnr is always 0.
     let pos[0] = bufnr() 
     try 
-        silent! exec "YcmCompleter GoToDefinition ".a:identifier 
+        silent! exec "YcmCompleter GoTo ".a:identifier 
     endtry
     if pos[0] == bufnr() && pos[1] == getpos('.')[1]
         return ["", -1, ""]
@@ -496,8 +498,8 @@ function! TryYcmJumpAndReturnLocation(identifier)
         let filename = bufname(bufnr())
         let line_nr = getpos('.')[1]
         let text = getline('.')
-        " if pos[0] != bufnr(), it means jumping to other buffer, so :q the window
-        if pos[0] != bufnr()  
+        " if pos[0] != bufnr(), and modified, which means jumping to other buffer, so :q the window
+        if &modified && pos[0] != bufnr()  
             silent! wincmd q
         endif
         call setpos('.', pos)
@@ -511,11 +513,15 @@ function! UniverseCtrl()
     if match(under_cur, '[/\.]') != -1
         let is_file = 1
     endif
+    let res = ""
     if is_file 
         " jump to file 
-        exec 'YcmComplete GoTo'
+        let res = TryYcmJumpAndReturnLocation(under_cur)
+    endif
+    if res[1] == -1
+        call g:universe_searcher.search_and_render(expand("<cword>"), g:nerd_search_path)
     else 
-        call g:universe_searcher.search_and_render(expand("<cword>"), "")
+        exec ":0"
     endif
 endfunction
 
@@ -523,7 +529,7 @@ function! UniverseSearch()
     echoh Question
     echom "Search path : " . g:nerd_search_path . "    use `S` in nerdtree to change path"
     echoh None
-    let input_text = input("US>>>")
+    let input_text = trim(input("US>>>"))
     call g:universe_searcher.search_and_render(input_text, g:nerd_search_path)
 endfunction
 "
