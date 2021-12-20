@@ -497,6 +497,10 @@ function! TryYcmJumpAndReturnLocation(identifier)
         let filename = bufname(bufnr())
         let line_nr = getpos('.')[1]
         let text = getline('.')
+        " if pos[0] != bufnr(), it means jumping to other buffer, so :q the window
+        if pos[0] != bufnr()  
+            silent! wincmd q
+        endif
         call setpos('.', pos)
         return [filename, line_nr, text]
     endif
