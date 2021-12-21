@@ -10,8 +10,6 @@ make distclean  # 如果您以前构建Vim
 --enable-multibyte \
 --enable-python3interp=dynamic \
 --with-python3-config-dir=/usr/lib/python3.8/config-3.8-x86_64-linux-gnu \
---enable-python2interp=dynamic \
---with-python3-config-dir=/usr/lib/python2.7/config-2.7m-x86_64-linux-gnu \
 --enable-cscope \
 --enable-gui=auto \
 --enable-gtk2-check \
