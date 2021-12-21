@@ -14,6 +14,14 @@ let s:previewer = {
 \ 'bufid': -1,
 \}
 
+function! s:TagPreviewOpen(arglist)
+    call s:previewer.tag_atcursor(a:arglist[0])
+endf
+function! s:TagPreviewClose(arglist)
+    call s:previewer.reset()
+endf
+let s:tag_preview_trigger= trigger#New(function("s:TagPreviewOpen"), function("s:TagPreviewClose"))
+
 
 " Global Setting 
 " g:jump_cmd   set the jump cmd, tabe | e | vertical e
@@ -23,7 +31,7 @@ let g:enable_grep=1
 let g:max_filename_length=35
 let g:max_text_length=90
 let g:enable_ycm=1
-let g:enable_insert_preview=1
+let g:enable_insert_preview=0
 
 function! s:previewer.exec(cmd)
     if self.winid != 1
@@ -432,7 +440,8 @@ endf
 function! GrepSearcher(searcher, input_text)
     let pattern = shellescape(a:input_text)
     let path = a:searcher.cwd
-    let cmd = 'silent! grep! -r '.pattern.' '.path.' '.'| redraw! '
+    let cmd = printf("call SilentGrep(%s, '%s')", pattern, path)
+    echo cmd
     silent exec cmd
     let qflist = getqflist()	
     let ret = []
@@ -508,21 +517,7 @@ function! TryYcmJumpAndReturnLocation(identifier)
 endfun
 
 function! UniverseCtrl()
-    let under_cur = expand('<cfile>')
-    let is_file = 0
-    if match(under_cur, '[/\.]') != -1
-        let is_file = 1
-    endif
-    let res = ""
-    if is_file 
-        " jump to file 
-        let res = TryYcmJumpAndReturnLocation(under_cur)
-    endif
-    if res[1] == -1
-        call g:universe_searcher.search_and_render(expand("<cword>"), g:nerd_search_path)
-    else 
-        exec ":0"
-    endif
+    call g:universe_searcher.search_and_render(expand("<cword>"), g:nerd_search_path)
 endfunction
 
 function! UniverseSearch()
@@ -555,6 +550,10 @@ function! SearchFunctionWhileInsert()
     call setpos('.', cur_pos)
 endfunction
 
+function! TagPreviewTrigger() 
+    call s:tag_preview_trigger.Trigger([expand("<cword>")])
+endf
+
 "------------
 "  test case
 "------------
@@ -569,7 +568,8 @@ if 0
     "call TryYcmJumpAndReturnLocation("insert")
     "
     "
-    let cur_s = s:searcher
-    let ttt = cur_s.search("insert")
-    call cur_s.render(ttt, "insert")
+    "let cur_s = s:searcher
+    "let ttt = cur_s.search("insert")
+    "call cur_s.render(ttt, "insert")
+    call s:previewer.tag_atcursor("insert")
 endif 

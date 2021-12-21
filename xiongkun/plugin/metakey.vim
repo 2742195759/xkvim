@@ -19,6 +19,7 @@ set <M-i>=i  "Jump后一个
 set <M-F>=F  "切换Source/Head文件
 set <M-m>=m  
 set <M-W>=W 
+set <M-p>=p  "preview popup window.
 "set <M->=  "换行，但是会执行
 nnoremap  <M-o> <C-o>
 nnoremap  <M-i> <C-i>

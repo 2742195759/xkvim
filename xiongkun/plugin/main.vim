@@ -80,6 +80,7 @@ vnoremap K "dy:!clear && dict <C-R>d<cr>:set filtype=
 
 noremap <C-]> :call UniverseCtrl()<cr>
 noremap <M-f> :call UniverseSearch()<cr>
+noremap <M-p> :call TagPreviewTrigger()<cr>
 """ copy the visual into a tempname file. to view a part of a file
 vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetype=tmp<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
