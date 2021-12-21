@@ -438,11 +438,9 @@ function! YCMSearcher(searcher, input_text)
 endf
 
 function! GrepSearcher(searcher, input_text)
-    let pattern = shellescape(a:input_text)
+    let pattern = (a:input_text)
     let path = a:searcher.cwd
-    let cmd = printf("call SilentGrep(%s, '%s')", pattern, path)
-    echo cmd
-    silent exec cmd
+    call SilentGrep(pattern, path)
     let qflist = getqflist()	
     let ret = []
     if len(qflist) > 0
