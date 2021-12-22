@@ -44,9 +44,8 @@ function! s:previewer.tag_atcursor(tags)
 
     " here we disable grep , because grep will cause screen flash. which 
     " is annoying
-    let g:enable_grep = 0
+    "let g:enable_grep = 1
     let results = s:searcher.do_search(a:tags)
-    let g:enable_grep = 1
 
     "let userlist = get(s:searcher.user_item, a:tags, [])
     let userlist = results
@@ -523,13 +522,16 @@ function! UniverseSearch()
     echom "Search path : " . g:nerd_search_path . "    use `S` in nerdtree to change path"
     echoh None
     let input_text = trim(input("US>>>"))
+    " bacause ycm can only search a tag in current cursor, so disable it.
+    let g:enable_ycm=0 
     call g:universe_searcher.search_and_render(input_text, g:nerd_search_path)
+    let g:enable_ycm=1
 endfunction
 "
 " search for the function tag to preview while inserting. 
 " find the first not matched function
 "
-function! SearchFunctionWhileInsert() 
+function! SearchFunctionWhileInsert()
     if trim(getline('.')) == ""
         call s:previewer.reset()
         return
@@ -541,9 +543,8 @@ function! SearchFunctionWhileInsert()
     if cur_pos[2] - 1 != new_pos[2] || char == "("
       exec "normal b"
       let tag = expand("<cword>")
-    else
-      let tag = expand("<cword>")
     endif 
+    echom tag
     call s:previewer.tag_atcursor(tag)
     call setpos('.', cur_pos)
 endfunction

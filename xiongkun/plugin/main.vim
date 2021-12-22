@@ -64,9 +64,6 @@ function! s:ShowGitComment()
     execute 'py3' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
 endf
 
-""""" Global Command {{{
-""""" }}}
-
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
@@ -80,7 +77,8 @@ vnoremap K "dy:!clear && dict <C-R>d<cr>:set filtype=
 
 noremap <C-]> :call UniverseCtrl()<cr>
 noremap <M-f> :call UniverseSearch()<cr>
-noremap <M-p> :call TagPreviewTrigger()<cr>
+nnoremap <M-p> :call TagPreviewTrigger()<cr>
+inoremap <M-p> <C-o>:call SearchFunctionWhileInsert()<cr>
 """ copy the visual into a tempname file. to view a part of a file
 vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetype=tmp<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
