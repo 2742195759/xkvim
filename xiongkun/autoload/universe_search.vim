@@ -5,7 +5,6 @@
 "
 ""/home/data/ftp.py"
 let s:searcher = {
-\'cwd': "",
 \'user_item': {},
 \'last': {},
 \}
@@ -145,12 +144,8 @@ endfunction
 nmap U :call KeyworkSearch()<cr>
 
 function! s:searcher.search_and_render(input_text, cwd)
-    let self.cwd = a:cwd
-    if self.cwd == ""
-        let self.cwd = expand("%:p:h")
-    endif
     let ret = self.search(a:input_text)
-    call self.render(ret, self.cwd, a:input_text)
+    call self.render(ret, a:cwd, a:input_text)
 endf
 
 function! s:searcher.get_user_tag_path()
@@ -451,8 +446,7 @@ endf
 
 function! GrepSearcher(searcher, input_text)
     let pattern = (a:input_text)
-    let path = a:searcher.cwd
-    call SilentGrep(pattern, path)
+    call SilentGrep(pattern)
     let qflist = getqflist()	
     let ret = []
     if len(qflist) > 0
