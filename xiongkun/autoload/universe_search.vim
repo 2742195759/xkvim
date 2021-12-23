@@ -26,7 +26,7 @@ let s:tag_preview_trigger= trigger#New(function("s:TagPreviewOpen"), function("s
 " Global Setting 
 " g:jump_cmd   set the jump cmd, tabe | e | vertical e
 
-let g:jump_cmd="e"
+let g:default_jump_cmd="e"
 let g:enable_grep=1
 let g:max_filename_length=35
 let g:max_text_length=90
@@ -371,7 +371,20 @@ function! s:CustomedKeyMap(winid, key)
         return 1
     endif
     " }}}
-
+    
+    " Control of other jump cmd, {{{
+    " such as "t" for tag jump, "s" for split, "v" for vertical
+    if a:key == 't' || a:key == "s" || a:key == "v"
+        let saved_jumpcmd = g:default_jump_cmd
+        let CMD = { 's': 'sp ', 'v': 'vertical split ', 't': "tabe " }
+        let g:default_jump_cmd = CMD[a:key]
+        call s:searcher.DelUserItem(before_pos)
+        let tmp_ret = popup_filter_menu(hwnd.winid, "\<Enter>")
+        let g:default_jump_cmd = saved_jumpcmd
+        return tmp_ret
+    endif
+    " }}}
+    
     """ Control the previewer  {{{
     if a:key == "\<UP>"
         call s:previewer.exec("normal \<c-u>")
@@ -459,7 +472,7 @@ endfunction
 
 function! ExecuteJumpCmd(filename, cmd)
     let cmd = escape(a:cmd, "~*.")
-    silent exec printf("%s %s",g:jump_cmd, fnameescape(a:filename))
+    silent exec printf("%s %s",g:default_jump_cmd, fnameescape(a:filename))
     silent exec l:cmd
 endfunction
 
