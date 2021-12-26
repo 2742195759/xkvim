@@ -4,7 +4,6 @@ fu! SilentGrep(pattern)
     let &errorformat = &grepformat
     let output_file = tempname()
     let sh_cmd = printf("egrep -n -r \"%s\" %s > %s", a:pattern, directory_part, output_file)
-    echom sh_cmd
     call system(sh_cmd)
     exec "cgetfile ".output_file
     " restore the options

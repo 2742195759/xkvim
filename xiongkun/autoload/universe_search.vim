@@ -503,7 +503,7 @@ function! TryYcmJumpAndReturnLocation(identifier)
     " if don't set pos[0], the bufnr is always 0.
     let pos[0] = bufnr() 
     try 
-        silent! exec "YcmCompleter GoTo ".a:identifier 
+        silent! keepj exec "YcmCompleter GoTo ".a:identifier 
     endtry
     if pos[0] == bufnr() && pos[1] == getpos('.')[1]
         return ["", -1, ""]
