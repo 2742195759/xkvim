@@ -465,6 +465,8 @@ function! GrepSearcher(searcher, input_text)
 endfunction
 
 function! ExecuteJumpCmd(filename, cmd)
+    let new_tag_items = [{'bufnr': bufnr(), 'from': getpos('.'), 'matchnr': 0, 'tagname': getline('.')}]
+    call settagstack(winnr(), {"items": new_tag_items}, 'a')
     let cmd = escape(a:cmd, "~*.")
     silent exec printf("%s %s",g:default_jump_cmd, fnameescape(a:filename))
     silent exec l:cmd
