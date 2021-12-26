@@ -509,7 +509,7 @@ function! UniverseCtrl()
         " jump to file 
         exec 'YcmComplete GoTo'
     else 
-        call g:universe_searcher.search_and_render(expand("<cword>"), "")
+        call g:universe_searcher.search_and_render(escape(expand("<cword>"), '#,'), "")
     endif
 endfunction
 
