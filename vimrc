@@ -8,6 +8,7 @@ Bundle 'gmarik/vundle'
 Bundle 'https://github.com/scrooloose/nerdtree'
 Bundle 'taglist.vim'
 Bundle 'https://github.com/honza/vim-snippets'
+Bundle 'https://github.com/sirver/UltiSnips'
 Bundle 'https://github.com/Shougo/neocomplete.vim'
 Bundle 'https://github.com/tomasr/molokai'
 Bundle 'https://github.com/vim-airline/vim-airline'
@@ -205,7 +206,7 @@ let g:UltiSnipsJumpForwardTrigger='<c-j>'
 let g:UltiSnipsJumpBackwardTrigger='<c-k>'
 
 """ YCM config
-let g:ycm_python_binary_path = '/root/miniconda3/envs/xkcv/bin/python3.7'
+let g:ycm_python_binary_path = '/usr/bin/python3'
 
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
@@ -241,6 +242,7 @@ hi CursorLine cterm=Underline ctermbg=None ctermfg=None
 
 """ configure for quick-peek plugin 
 let g:quickpeek_auto = v:true
+set completeopt=menu,
 " Open filetype plugin, you can use the quickpeek plugin
 filetype plugin on 
 

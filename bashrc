@@ -64,3 +64,9 @@ unset __conda_setup
 TERM=xterm-256color
 export PYTHONIOENCODING=utf-8
 export PATH=$PATH:/usr/local/bin
+
+git config --global user.email xiongkun03@baidu.com
+git config --global user.name xiongkun
+git config --global push.default current
+git config --global credential.helper store
+

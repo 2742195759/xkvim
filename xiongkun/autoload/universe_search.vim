@@ -2,8 +2,9 @@
 " internal variables
 "----------------------------------------------------------------------
 "
+"
+""/home/data/ftp.py"
 let s:searcher = {
-\'cwd': "",
 \'user_item': {},
 \'last': {},
 \}
@@ -12,16 +13,24 @@ let s:previewer = {
 \ 'bufid': -1,
 \}
 
+function! s:TagPreviewOpen(arglist)
+    call s:previewer.tag_atcursor(a:arglist[0])
+endf
+function! s:TagPreviewClose(arglist)
+    call s:previewer.reset()
+endf
+let s:tag_preview_trigger= trigger#New(function("s:TagPreviewOpen"), function("s:TagPreviewClose"))
+
 
 " Global Setting 
 " g:jump_cmd   set the jump cmd, tabe | e | vertical e
 
-let g:jump_cmd="e"
+let g:default_jump_cmd="e"
 let g:enable_grep=1
 let g:max_filename_length=35
 let g:max_text_length=90
 let g:enable_ycm=1
-let g:enable_insert_preview=1
+let g:enable_insert_preview=0
 
 function! s:previewer.exec(cmd)
     if self.winid != 1
@@ -34,9 +43,8 @@ function! s:previewer.tag_atcursor(tags)
 
     " here we disable grep , because grep will cause screen flash. which 
     " is annoying
-    let g:enable_grep = 0
+    "let g:enable_grep = 1
     let results = s:searcher.do_search(a:tags)
-    let g:enable_grep = 1
 
     "let userlist = get(s:searcher.user_item, a:tags, [])
     let userlist = results
@@ -48,6 +56,7 @@ function! s:previewer.tag_atcursor(tags)
     \ 'line': 'cursor+5', 
     \ 'minwidth': 0, 
     \ 'maxwidth': 10000,
+    \ 'posinvert' : 1,
     \}
     call self.preview(userlist[0]['filename'], 
         \ userlist[0]['lnum'], 
@@ -135,13 +144,8 @@ endfunction
 nmap U :call KeyworkSearch()<cr>
 
 function! s:searcher.search_and_render(input_text, cwd)
-    let self.cwd = a:cwd
-    if self.cwd == ""
-        let self.cwd = expand("%:p:h")
-    endif
     let ret = self.search(a:input_text)
-    let self.cwd = ""
-    call self.render(ret, self.cwd, a:input_text)
+    call self.render(ret, a:cwd, a:input_text)
 endf
 
 function! s:searcher.get_user_tag_path()
@@ -362,7 +366,20 @@ function! s:CustomedKeyMap(winid, key)
         return 1
     endif
     " }}}
-
+    
+    " Control of other jump cmd, {{{
+    " such as "t" for tag jump, "s" for split, "v" for vertical
+    if a:key == 't' || a:key == "s" || a:key == "v"
+        let saved_jumpcmd = g:default_jump_cmd
+        let CMD = { 's': 'sp ', 'v': 'vertical split ', 't': "tabe " }
+        let g:default_jump_cmd = CMD[a:key]
+        call s:searcher.DelUserItem(before_pos)
+        let tmp_ret = popup_filter_menu(hwnd.winid, "\<Enter>")
+        let g:default_jump_cmd = saved_jumpcmd
+        return tmp_ret
+    endif
+    " }}}
+    
     """ Control the previewer  {{{
     if a:key == "\<UP>"
         call s:previewer.exec("normal \<c-u>")
@@ -389,9 +406,6 @@ function! s:CustomedKeyMap(winid, key)
     return ret
 endfunction
 
-
-
-
 function! UserSearcher(searcher, input_text)
     let results = deepcopy(get(a:searcher.user_item, a:input_text, []))
     for item in results
@@ -416,20 +430,23 @@ endfunction
 function! CtrlPSearcher(searcher, input_text)
 endfunction
 
-function! YCMSearcher(searcher, input_text)
+let g:ycm_cache = cache#New()
+function! s:YCM_dosearch(searcher, input_text)
     let item = TryYcmJumpAndReturnLocation(a:input_text)
     if item[1] == -1
         return []
     endif
     return [{"filename": item[0], "lnum": item[1], "cmd": printf(":%d", item[1]), "other":"", "source":"YCM", "text":item[2]}]
-
 endfunction
 
+function! YCMSearcher(searcher, input_text)
+    let g:ycm_cache.proc = function("s:YCM_dosearch", [a:searcher, a:input_text])
+    return g:ycm_cache.Get(a:input_text)
+endf
+
 function! GrepSearcher(searcher, input_text)
-    let pattern = shellescape(a:input_text)
-    let path = a:searcher.cwd
-    let cmd = 'silent! grep! -r '.pattern.' '.path.' '.'| redraw! '
-    silent exec cmd
+    let pattern = (a:input_text)
+    call SilentGrep(pattern)
     let qflist = getqflist()	
     let ret = []
     if len(qflist) > 0
@@ -449,7 +466,7 @@ endfunction
 
 function! ExecuteJumpCmd(filename, cmd)
     let cmd = escape(a:cmd, "~*.")
-    silent exec printf("%s %s",g:jump_cmd, fnameescape(a:filename))
+    silent exec printf("%s %s",g:default_jump_cmd, fnameescape(a:filename))
     silent exec l:cmd
 endfunction
 
@@ -486,7 +503,7 @@ function! TryYcmJumpAndReturnLocation(identifier)
     " if don't set pos[0], the bufnr is always 0.
     let pos[0] = bufnr() 
     try 
-        silent! exec "YcmCompleter GoToDefinition ".a:identifier 
+        silent! exec "YcmCompleter GoTo ".a:identifier 
     endtry
     if pos[0] == bufnr() && pos[1] == getpos('.')[1]
         return ["", -1, ""]
@@ -494,34 +511,34 @@ function! TryYcmJumpAndReturnLocation(identifier)
         let filename = bufname(bufnr())
         let line_nr = getpos('.')[1]
         let text = getline('.')
+        " if pos[0] != bufnr(), and modified, which means jumping to other buffer, so :q the window
+        if &modified && pos[0] != bufnr()  
+            silent! wincmd q
+        endif
         call setpos('.', pos)
         return [filename, line_nr, text]
     endif
 endfun
 
 function! UniverseCtrl()
-    let under_cur = expand('<cfile>')
-    let is_file = 0
-    if match(under_cur, '[/\.]') != -1
-        let is_file = 1
-    endif
-    if is_file 
-        " jump to file 
-        exec 'YcmComplete GoTo'
-    else 
-        call g:universe_searcher.search_and_render(escape(expand("<cword>"), '#,'), "")
-    endif
+    call g:universe_searcher.search_and_render(expand("<cword>"), g:nerd_search_path)
 endfunction
 
 function! UniverseSearch()
-    let input_text = input("US>>>")
-    call g:universe_searcher.search_and_render(input_text, getcwd())
+    echoh Question
+    echom "Search path : " . g:nerd_search_path . "    use `S` in nerdtree to change path"
+    echoh None
+    let input_text = trim(input("US>>>"))
+    " bacause ycm can only search a tag in current cursor, so disable it.
+    let g:enable_ycm=0 
+    call g:universe_searcher.search_and_render(input_text, g:nerd_search_path)
+    let g:enable_ycm=1
 endfunction
 "
 " search for the function tag to preview while inserting. 
 " find the first not matched function
 "
-function! SearchFunctionWhileInsert() 
+function! SearchFunctionWhileInsert()
     if trim(getline('.')) == ""
         call s:previewer.reset()
         return
@@ -533,12 +550,15 @@ function! SearchFunctionWhileInsert()
     if cur_pos[2] - 1 != new_pos[2] || char == "("
       exec "normal b"
       let tag = expand("<cword>")
-    else
-      let tag = expand("<cword>")
     endif 
+    echom tag
     call s:previewer.tag_atcursor(tag)
     call setpos('.', cur_pos)
 endfunction
+
+function! TagPreviewTrigger() 
+    call s:tag_preview_trigger.Trigger([expand("<cword>")])
+endf
 
 "------------
 "  test case
@@ -554,7 +574,8 @@ if 0
     "call TryYcmJumpAndReturnLocation("insert")
     "
     "
-    let cur_s = s:searcher
-    let ttt = cur_s.search("insert")
-    call cur_s.render(ttt, "insert")
+    "let cur_s = s:searcher
+    "let ttt = cur_s.search("insert")
+    "call cur_s.render(ttt, "insert")
+    call s:previewer.tag_atcursor("insert")
 endif 
