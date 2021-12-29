@@ -346,9 +346,6 @@ function! s:CustomedKeyMap(winid, key)
     let OldFunc = hwnd.old_filter
     call win_execute(a:winid, "silent let @q=line('.')")
     let before_pos = str2nr(@q) - 1
-    if a:key == 'p'
-        call s:searcher.preview_toggle()
-    endif
 
     " control of user tag {{{
     if a:key == 'd'
@@ -394,13 +391,15 @@ function! s:CustomedKeyMap(winid, key)
     let ret = OldFunc(a:winid, a:key)
 
     " after call old filter {{{
+    if a:key == 'p'
+        call s:searcher.preview_toggle()
+    endif
     if s:searcher.is_preview == 1
         call win_execute(a:winid, "silent let @q=line('.')")
         let cur_selected = str2nr(@q) - 1
         let filename = hwnd.raw[cur_selected].filename
         let linenr = s:PeekLineNumber(hwnd.raw[cur_selected])
         call s:previewer.preview(filename, linenr, s:GetPreviewRectangle(a:winid))
-        let cmd = hwnd.raw[cur_selected].cmd
     endif
     " }}}
     return ret
@@ -553,7 +552,7 @@ function! SearchFunctionWhileInsert()
       exec "normal b"
       let tag = expand("<cword>")
     endif 
-    echom tag
+    "echom tag
     call s:previewer.tag_atcursor(tag)
     call setpos('.', cur_pos)
 endfunction
