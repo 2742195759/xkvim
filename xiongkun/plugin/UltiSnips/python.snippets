@@ -228,6 +228,17 @@ with paddle.fluid.scope_guard(paddle.static.Scope()) :
 endsnippet
 #}}}
 
+#{{{ # pd.profile
+snippet pd_profile_cpu "add profile"
+import paddle.fluid.profiler as profiler
+if batch_id == 1:
+    profiler.start_profiler("All", "OpDetail")
+if batch_id == 10:
+    profiler.stop_profiler("total", "./profile_new_exe")
+endsnippet
+#}}}
+
+
 ################
 #
 # Matplotlib Examples
@@ -293,5 +304,4 @@ snippet plt.save "the example of save a plot or animation"
 fig.savefig('sales.png', transparent=False, dpi=80, bbox_inches="tight")
 endsnippet
 #}}}
-
 

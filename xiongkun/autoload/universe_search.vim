@@ -280,7 +280,7 @@ function! s:searcher.render(results, title, identifier)
     for item in a:results
         let render_item = ["", ""]
         let render_item[0] = join([idx, item["source"], trim(get(item, 'other', '')), s:FilenameTrimer(item["filename"]), s:TextTrimer(trim(item["text"]))], "\t")
-        let render_item[1] = printf("call ExecuteJumpCmd('%s', '%s')", item.filename, item.cmd)
+        let render_item[1] = printf("call ExecuteJumpCmd('%s', '%s')", item.filename, escape(item.cmd, "'"))
         call add(to_render, render_item)
         let idx += 1
     endfor 
