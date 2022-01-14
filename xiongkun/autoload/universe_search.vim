@@ -10,7 +10,7 @@ let s:searcher = {
 \}
 let s:previewer = {
 \ 'winid': -1, 
-\ 'bufid': -1,
+\ 'bufid': -1, 
 \}
 
 function! s:TagPreviewOpen(arglist)

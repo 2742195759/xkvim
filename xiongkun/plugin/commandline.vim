@@ -1,7 +1,7 @@
 
 fu! s:DeleteUntilSlash(str)
-    let new_str = substitute(a:str, "\/[^\/]*$", "\/", "")
-    "let new_str = substitute(a:str, ".*", "\/", "")
+    let new_str = substitute(a:str, "\/[^\/]*$", "\/", "g")
+    "let new_str = substitute(a:str, ".*", "\/", "g")
     return new_str
 endf
 
