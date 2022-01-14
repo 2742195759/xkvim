@@ -430,6 +430,7 @@ function! CtagSearcher(searcher, input_text)
         let item["source"] = "CTag"
         let item["other"]  = item.kind
         let item["text"]  =  trim(item.cmd, "\\/^$ \t")
+        let item.text = substitute(item.text, "&", "&&", "g")
     endfor
     return items
 endfunction
