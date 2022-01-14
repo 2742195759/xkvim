@@ -238,6 +238,23 @@ if batch_id == 10:
 endsnippet
 #}}}
 
+#{{{ # pd.nvprofile
+snippet pd_profile_cuda "cuda profile"
+import paddle.fluid.core as core
+global_step += 1
+if is_nsys and global_step == 100:
+    core.nvprof_start()
+    core.nvprof_enable_record_event()
+    core.nvprof_nvtx_push(str(global_step))
+if is_nsys and global_step == 110:
+    core.nvprof_nvtx_pop()
+    core.nvprof_stop()
+    sys.exit()
+if is_nsy and global_step > 100 and global_step < 110:
+    core.nvprof_nvtx_pop()
+    core.nvprof_nvtx_push(str(global_step))
+endsnippet
+#}}}
 
 ################
 #
