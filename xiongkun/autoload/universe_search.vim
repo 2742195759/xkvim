@@ -463,7 +463,7 @@ function! GrepSearcher(searcher, input_text)
                 let item.lnum = qfitem.lnum
                 " to avoid the \t and &
                 let item.text = tr(qfitem.text, "\t", " ") 
-                let item.text = substitute(item.text, "&", "&&", "")
+                let item.text = substitute(item.text, "&", "&&", "g")
                 let item.cmd  = printf(":%d", item.lnum)
                 call add(ret, item)
             endif
