@@ -281,7 +281,7 @@ function! s:searcher.render(results, title, identifier)
     for item in a:results
         let render_item = ["", ""]
         let render_item[0] = join([idx, item["source"], trim(get(item, 'other', '')), s:FilenameTrimer(item["filename"]), s:TextTrimer(trim(item["text"]))], "\t")
-        let render_item[1] = printf("call ExecuteJumpCmd('%s', '%s')", item.filename, item.cmd)
+        let render_item[1] = printf("call ExecuteJumpCmd('%s', '%s')", item.filename, escape(item.cmd, "'"))
         call add(to_render, render_item)
         let idx += 1
     endfor 
@@ -307,6 +307,9 @@ endfunction
 
 function! s:GetPreviewRectangle(winid)
     let info = popup_getpos(a:winid)
+    if info == {}
+        return {}
+    endif
     let ret = {}
     let ret.col = info.col
     let ret.line = info.line + info.height
@@ -347,9 +350,6 @@ function! s:CustomedKeyMap(winid, key)
     let OldFunc = hwnd.old_filter
     call win_execute(a:winid, "silent let @q=line('.')")
     let before_pos = str2nr(@q) - 1
-    if a:key == 'p'
-        call s:searcher.preview_toggle()
-    endif
 
     " control of user tag {{{
     if a:key == 'd'
@@ -370,12 +370,12 @@ function! s:CustomedKeyMap(winid, key)
     
     " Control of other jump cmd, {{{
     " such as "t" for tag jump, "s" for split, "v" for vertical
-    if a:key == 't' || a:key == "s" || a:key == "v"
+    if a:key == "t" || a:key == "s" || a:key == "v"
         let saved_jumpcmd = g:default_jump_cmd
         let CMD = { 's': 'sp ', 'v': 'vertical split ', 't': "tabe " }
         let g:default_jump_cmd = CMD[a:key]
         call s:searcher.DelUserItem(before_pos)
-        let tmp_ret = popup_filter_menu(hwnd.winid, "\<Enter>")
+        let tmp_ret = popup_filter_menu(a:winid, "\<Enter>")
         let g:default_jump_cmd = saved_jumpcmd
         return tmp_ret
     endif
@@ -395,13 +395,19 @@ function! s:CustomedKeyMap(winid, key)
     let ret = OldFunc(a:winid, a:key)
 
     " after call old filter {{{
+    if a:key == "p"
+        call s:searcher.preview_toggle()
+    endif
+
     if s:searcher.is_preview == 1
         call win_execute(a:winid, "silent let @q=line('.')")
         let cur_selected = str2nr(@q) - 1
         let filename = hwnd.raw[cur_selected].filename
         let linenr = s:PeekLineNumber(hwnd.raw[cur_selected])
-        call s:previewer.preview(filename, linenr, s:GetPreviewRectangle(a:winid))
-        let cmd = hwnd.raw[cur_selected].cmd
+        let opts = s:GetPreviewRectangle(a:winid)
+        if opts != {}
+            call s:previewer.preview(filename, linenr, opts)
+        endif
     endif
     " }}}
     return ret
@@ -456,7 +462,9 @@ function! GrepSearcher(searcher, input_text)
                 let item = {'source': 'Grep', "other":""}
                 let item.filename = bufname(qfitem.bufnr)
                 let item.lnum = qfitem.lnum
-                let item.text = tr(qfitem.text, "\t", " ")
+                " to avoid the \t and &
+                let item.text = tr(qfitem.text, "\t", " ") 
+                let item.text = substitute(item.text, "&", "&&", "")
                 let item.cmd  = printf(":%d", item.lnum)
                 call add(ret, item)
             endif
@@ -465,10 +473,14 @@ function! GrepSearcher(searcher, input_text)
     return ret
 endfunction
 
+function! EscapseSearchCmd(cmd)
+    return escape(a:cmd, "~*.[]")
+endfunction
+
 function! ExecuteJumpCmd(filename, cmd)
     let new_tag_items = [{'bufnr': bufnr(), 'from': getpos('.'), 'matchnr': 0, 'tagname': getline('.')}]
     call settagstack(winnr(), {"items": new_tag_items}, 'a')
-    let cmd = escape(a:cmd, "~*.")
+    let cmd = EscapseSearchCmd(a:cmd)
     silent exec printf("%s %s",g:default_jump_cmd, fnameescape(a:filename))
     silent exec l:cmd
 endfunction
@@ -483,7 +495,7 @@ function! s:PeekLineNumber(universe_item)
 endfunction
 
 function! s:PeekLineNumberFromSearch(filename, search_cmd)
-    let search_cmd = escape(a:search_cmd, "~*.")
+    let search_cmd = EscapseSearchCmd(a:search_cmd)
     let new_buf = bufadd(a:filename)
     call bufload(new_buf)
     let lines = getbufline(new_buf, 1, '$')
@@ -554,7 +566,7 @@ function! SearchFunctionWhileInsert()
       exec "normal b"
       let tag = expand("<cword>")
     endif 
-    echom tag
+    "echom tag
     call s:previewer.tag_atcursor(tag)
     call setpos('.', cur_pos)
 endfunction

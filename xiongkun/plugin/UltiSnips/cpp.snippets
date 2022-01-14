@@ -107,3 +107,12 @@ snippet PrintTensor "Print CPU Tensor / GPU Tensor."
 }
 endsnippet
 #}}}
+#
+#{{{ remove_if
+snippet std::remove_if "Remove element in vector using lambda example code. like filter in python."
+std::vector<int>v = {1,2,3,4};
+auto t = std::remove_if(v.begin(), v.end(), [](int a){return a < 2; });
+v.resize(t - v.begin());
+$0 // vector: v is the returning vector.
+endsnippet
+#}}}
