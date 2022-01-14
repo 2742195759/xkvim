@@ -322,3 +322,22 @@ fig.savefig('sales.png', transparent=False, dpi=80, bbox_inches="tight")
 endsnippet
 #}}}
 
+##################
+#
+# Cvpods Snippets
+#
+##################
+
+#{{{ # VisdomWriter Example
+snippet cvpods.visdomwriter "cvpods visdom writer example"
+# connect to the visdom server, construction step
+visdom = VisdomWriter(self.cfg.VISDOM.HOST, self.cfg.VISDOM.PORT, 20, ['name'], self.cfg.VISDOM.ENV_PREFIX)
+# use a event storage as container
+with EventStorage() as storage:
+    # data prepare step
+    storage.put_scalar('name', value)
+    # write 
+    visdom.write()
+	storage.step()
+endsnippet
+#}}}

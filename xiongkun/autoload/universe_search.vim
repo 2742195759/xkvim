@@ -134,6 +134,7 @@ function! KeyworkSearch()
     let context = [
     \ ["show &function list", "call quickui#tools#list_function()"], 
     \ ["&translation", "execute('!clear && dict <C-R>=expand(\"<cword>\")<cr><cr>"], 
+    \ ["&http server", "execute(':read /root/xkvim/template/http_server.py')"], 
     \ ["Jump File name", ""], 
     \ ["Jump Tag name", ""], 
     \ ["Jump YCM &definition", "YcmCompleter GoTo"], 
