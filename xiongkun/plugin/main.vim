@@ -64,6 +64,12 @@ function! s:ShowGitComment()
     execute 'py3' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
 endf
 
+function! MakePaddle()
+    let &makeprg="python3 /home/data/cmd_client.py && cat /home/data/error"
+endfunction
+
+packadd cfilter
+
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
@@ -86,7 +92,7 @@ vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetyp
 
 """""""""""""" AutoCmd {{{
 
-augroup UniverseCtrl
+augroup UniverseCtrlGroup
     autocmd!
     autocmd VimEnter * cal g:universe_searcher.Init()
     autocmd VimLeave * cal g:universe_searcher.Exit()
