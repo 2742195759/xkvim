@@ -1,4 +1,4 @@
-from node import *
+from .node import *
 from ply.lex import lex
 from ply.yacc import yacc
 
