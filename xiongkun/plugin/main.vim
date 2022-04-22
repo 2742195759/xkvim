@@ -68,6 +68,14 @@ function! MakePaddle()
     let &makeprg="python3 /home/data/cmd_client.py && cat /home/data/error"
 endfunction
 
+function! MakePaddle2()
+    let &makeprg="python3 /home/data/cmd_client2.py && cat /home/data/error2"
+endfunction
+
+function! ThreadDispatchExecutor(timer_id)
+    py3 Xiongkun.vim_dispatcher.ui_thread_worker()
+endfunction
+
 packadd cfilter
 
 """""""""""""""": Command below {{{
@@ -76,25 +84,49 @@ com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
 com! -n=0 GG cal s:ShowGitComment()
 """""""""""""""" }}}
 
+function! IMAP_EXECUTE_PY3(py3_stmt)"{{{
+    execute "py3 " . a:py3_stmt
+    return "\<Ignore>"
+endfunction"}}}
+
 """""""""""""""": Map below {{{
 noremap <silent> <space>m :Mt<cr>
 noremap K :!clear && dict <C-R>=expand("<cword>")<cr><cr>
-vnoremap K "dy:!clear && dict <C-R>d<cr>:set filtype=
+vnoremap K "dy:!clear && dict <C-R>d<cr>
 
-noremap <C-]> :call UniverseCtrl()<cr>
-noremap <M-f> :call UniverseSearch()<cr>
-nnoremap <M-p> :call TagPreviewTrigger()<cr>
+noremap <C-]> <Cmd>call UniverseCtrl()<cr>
+noremap <M-f> <Cmd>call UniverseSearch()<cr>
+nnoremap <M-p> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.find()<cr>
+nnoremap <M-j> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.next()<cr>
+nnoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
+nnoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_window()<cr>
 inoremap <M-p> <C-o>:call SearchFunctionWhileInsert()<cr>
+inoremap <M-j> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.next()<cr>
+inoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
+inoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_window()<cr>
+inoremap <M-f> <C-R>=ClangdServerComplete([])<cr>
+vnoremap // y/\V<C-R>=escape(@",'/\')<CR><CR>
 """ copy the visual into a tempname file. to view a part of a file
 vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetype=tmp<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
 """""""""""""""" }}}
 
 """""""""""""" AutoCmd {{{
+let g:vim_thread_timer = 0
+augroup VimThreadDispatcher
+    autocmd!
+    autocmd VimEnter * let g:vim_thread_timer = timer_start(200, "ThreadDispatchExecutor", {"repeat": -1})
+    autocmd VimLeave * let g:vim_thread_timer = timer_stop(g:vim_thread_timer)
+augroup END
 
 augroup UniverseCtrlGroup
     autocmd!
     autocmd VimEnter * cal g:universe_searcher.Init()
+    let index_path=getcwd().'/index.dex'
+    if filereadable(index_path)
+        autocmd VimEnter * execute 'ILoad '.index_path
+        autocmd VimLeave * execute 'IFinish'
+    endif
     autocmd VimLeave * cal g:universe_searcher.Exit()
 augroup END
 
@@ -105,9 +137,15 @@ function! TryOpenPreview()
 endfunc
 
 augroup PopupPreview
-    autocmd!
-    autocmd CursorMovedI * cal TryOpenPreview()
-    autocmd InsertLeave  * cal g:previewer.reset()
+    "autocmd!
+    "autocmd CursorMovedI * cal TryOpenPreview()
+    autocmd InsertLeave  * py3 Xiongkun.windows.GlobalPreviewWindow.hide()
     "autocmd CursorHoldI * cal TryOpenPreview()
 augroup END
+
+if match(getcwd(), "/home/data/") == 0
+    echo "Enable Clangd Server"
+    "start auto cmd
+    py3 Xiongkun.clangd_client._StartAutoCompile() 
+endif
 """"""""""""""}}}

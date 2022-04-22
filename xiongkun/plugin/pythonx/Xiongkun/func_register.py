@@ -34,18 +34,32 @@ import vim
 import sys
 import os
 
-def vim_register(name="", keymap=""):
+def vim_register(name="", keymap="", command="", with_args=False):
     def decorator(func):
         # register in vim
         vim_name = name
-        if not vim_name : vim_name = func.__name__.capitalize()
+        if not vim_name : 
+            vim_name = func.__name__.capitalize()
+            vim_name = "Py%s" % vim_name
+
         vim.command(
 """
-function! Py%s(list_of_args)
+function! %s(list_of_args)
     execute 'py3' 'Xiongkun.%s(vim.eval("a:list_of_args"))'
+    return ""
 endfunction
-"""%(vim_name, func.__name__)
-        )
+"""%(vim_name, func.__name__))
+
+        if keymap != "": 
+            vim.command( """
+noremap %s :call %s ([])
+""" % (keymap, vim_name))
+
+        if command != "": 
+            # split by space,  and pass as string
+            arg_num = '0'
+            if with_args: arg_num = '*'
+            vim.command( """ command -n=%s %s cal %s(split("<args>", " ")) """%(arg_num, command, vim_name))
         return func
     return decorator
 

@@ -174,7 +174,7 @@ endsnippet
 #}}}
 
 #{{{fread
-snippet open "open file and read lines"
+snippet fread "open file and read lines"
 with open(${1:"output.txt"}, "r") as fp :
     ${2:lines} = fp.readlines()
 endsnippet
@@ -253,6 +253,19 @@ if is_nsys and global_step == 110:
 if is_nsy and global_step > 100 and global_step < 110:
     core.nvprof_nvtx_pop()
     core.nvprof_nvtx_push(str(global_step))
+endsnippet
+#}}}
+
+#{{{ # pd.in_eager
+snippet pd.in_eager "is paddle in eager mode ? "
+if _in_eager_mode():
+    return _C_ops.final_state_allclose()
+endsnippet
+#}}}
+
+
+snippet pd.mode_import "non_static_mode"  #{{{
+from paddle.fluid.framework import in_dygraph_mode, non_static_mode, _in_legacy_dygraph
 endsnippet
 #}}}
 
@@ -339,5 +352,167 @@ with EventStorage() as storage:
     # write 
     visdom.write()
 	storage.step()
+endsnippet
+#}}}
+
+###############
+#
+# Ply snippets
+#
+###############
+
+#{{{ # p_
+snippet p_ "p_function of ply. a syntax parser function"
+def p_${1:expr}(p):
+    '''
+    $1 : ${2:TODO}
+    '''
+    ${3:p[0] = p[1]}
+
+$0
+endsnippet
+#}}}
+
+###############
+#
+# Threading
+#
+###############
+
+snippet Lock "Threading Lock" #{{{
+from threading import Lock
+l = Lock() # normal lock
+l = RLock() # reusable lock. multi-acquire and multi-release
+l.acquire()
+l.release()
+endsnippet
+#}}}
+
+snippet subprocess "subprocess example in python" #{{{
+import subprocess
+# create subprocess
+child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+# write into the stdin: string
+child.stdin.write("write into.")
+# C-D
+child.stdin.close()
+# get output from stdout
+info = child.stdout.read(num_bytes)
+info = child.stdout.readline()
+
+endsnippet
+#}}}
+
+snippet Thread "create thread and run a function." #{{{
+import threading
+# exit after run
+threading.Thread(target=func, args=(a1,), daemon=True).start() 
+# exit manually
+threading.Thread(target=func, args=(a1,), daemon=False).start() 
+endsnippet
+#}}}
+
+snippet pd.speed_test "[dygraph] speed test example for evaluation of matmul." #{{{
+import time
+import paddle
+
+shape = (100 ,100)
+times = 10000
+average_time = 30
+
+paddle.set_device('gpu')
+x = paddle.to_tensor(np.random.rand(*shape))
+y = paddle.to_tensor(np.random.rand(*shape))
+
+time_list = []
+for _ in range(average_time):
+    start = time.time()
+    for i in range(times):
+        z = paddle.matmul(x, y)
+    time_list.append( time.time() - start )
+
+print ("AvgTime: ", sum(time_list) * 1.0 / len(time_list))
+endsnippet
+#}}}
+
+snippet pd.static_example "[static] a static graph example" #{{{
+# TODO( Snippet paddle import. )
+paddle.set_device('cpu')
+paddle.enable_static()
+main_prg, startup_prg = Program(), Program()
+with program_guard(main_prg, startup_prg):
+    var_a = paddle.static.data(name='a', shape=[2,2], dtype='float32')
+    var_b = paddle.static.data(name='b', shape=[1], dtype='int64')
+    var_a.stop_gradient = False
+    var_c = paddle.unsqueeze(var_a, var_b)
+    print("CompileTimeShape:", var_c.shape)
+    exe = paddle.static.Executor()
+    exe.run(startup_prg)
+    out = exe.run(main_prg, 
+                  feed={'a': np.array([[1.0,2],[3,4]], dtype='float32'), 
+                        'b': np.array([0])}, 
+                  fetch_list=[var_c])
+    print("RuntimeShape", out[0].shape)
+endsnippet
+#}}}
+
+snippet doc "create doc for python function." #{{{
+    '''
+    Description of function.
+
+    Parameters
+    ----------
+    parameter_name:
+        description of parameter.
+    
+    Returns
+    -------
+    A tuple of g_labels, g_view, g_nout, g_count
+    g_labels:
+        the layout of all labels in a string
+    g_view:
+        the index table
+    g_nout:
+        the number of output dimensions
+    g_count:
+        the counter array for dimension contractions
+    '''
+endsnippet
+#}}}
+
+snippet string_example "string method example." #{{{
+x = "abcdefg".replace("abc", "xxx") # "xxxdefg
+x = "bbcaaadd".count('a') # 3
+x, *y = "xxxx".split("->") # x: "xxxx", y: []
+res = map(lambda x: x.strip(), "x , y ".split(",")) # res = ['x', 'y']
+x = "a".isalpha() # True
+endsnippet
+#}}}
+
+snippet default_dict "default_dict" #{{{
+import collections
+ddict = collections.defaultdict(lambda: [])
+endsnippet
+#}}}
+
+snippet prod "prod of a list" #{{{
+import numy as np
+np.prod([1,2,3,], dtype=np.int64)  # 6
+endsnippet
+#}}}
+
+snippet filter "filter a list or map" #{{{
+list = [None, 1, 2, 3]
+# while function == True, we keep it.
+filter(None, list) # [1,2,3]
+filter(lambda x: x == 1, list) # [1]
+endsnippet
+#}}}
+
+snippet func_cache "function cache provided by functools" #{{{
+from functools import lru_cache
+# function is a function. the lru_cache is a wrapper.
+# so we call the lru_cache and reset the function with wrapped function.
+function = lru_cache(maxsize=128)(function)
 endsnippet
 #}}}

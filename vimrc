@@ -64,7 +64,7 @@ set backspace=indent,eol,start whichwrap+=<,>,[,]
 set ofu=syntaxcomplete#Complete
 
 
-set mouse=a
+set mouse=
 
 " option for foldmethod
 set fdm=marker
@@ -83,7 +83,7 @@ elseif (&filetype == 'python')
 end
 
 " xiongkun added in 2021 year
-map gs :w<cr>
+map gs :update<cr>
 nn <up> <C-u>
 nn <down> <C-d>
 " nmap o  i<cr>
@@ -213,8 +213,7 @@ autocmd BufEnter * source ~/.vim/after/keymap.vim
 
 augroup NERDTREE
     autocmd!
-    autocmd VimEnter * NERDTreeToggle
-    "autocmd TabNew * NERDTreeMirror
+    autocmd VimEnter * NERDTreeToggle | wincmd w
 augroup END
 
 if filereadable(expand("~/.xkconfig.vim"))
@@ -242,7 +241,18 @@ hi CursorLine cterm=Underline ctermbg=None ctermfg=None
 
 """ configure for quick-peek plugin 
 let g:quickpeek_auto = v:true
-set completeopt=menu,
+set completeopt=menu,preview
 " Open filetype plugin, you can use the quickpeek plugin
 filetype plugin on 
 
+""" configure for g:UltiSnippetEdit
+let g:UltiSnipsSnippetStorageDirectoryForUltiSnipsEdit="/root/xkvim/xiongkun/plugin/UltiSnips/"
+
+""" universe reflesh
+function! UniverseReflesh()
+    call UltiSnips#RefreshSnippets()
+    YcmRestartServer
+endfunction
+nmap <F9> :call UniverseReflesh()<cr>
+let g:ctrlp_by_filename = 1  "default by filename mode for speed."
+nmap <leader><M-m> :tabe<cr>\M

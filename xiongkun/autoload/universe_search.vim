@@ -13,6 +13,8 @@ let s:previewer = {
 \ 'bufid': -1, 
 \}
 
+let g:USE = s:searcher
+
 function! s:TagPreviewOpen(arglist)
     call s:previewer.tag_atcursor(a:arglist[0])
 endf
@@ -76,6 +78,7 @@ endfunction
 
 ""{{{
 function! s:previewer.preview(filename, linenr, opts)
+  py3 Xiongkun.clangd_client._EndAutoCompile()
   call self.reset()
   let bufnr = bufadd(a:filename)
   call bufload(bufnr)
@@ -100,6 +103,7 @@ function! s:previewer.preview(filename, linenr, opts)
     call win_execute(self.winid, 'silent setlocal '.setting)
   endfor
   call win_execute(self.winid, 'silent normal! '.a:linenr.'Gzz')
+  py3 Xiongkun.clangd_client._StartAutoCompile()
 endfunction
 ""}}}
 
@@ -137,7 +141,7 @@ function! KeyworkSearch()
     \ ["&http server", "execute(':read /root/xkvim/template/http_server.py')"], 
     \ ["Jump File name", ""], 
     \ ["Jump Tag name", ""], 
-    \ ["Jump YCM &definition", "YcmCompleter GoTo"], 
+    \ ["GoTo clangd &definition", "Def"], 
     \ ]
     call quickui#context#open(context, {})
 endfunction
@@ -172,18 +176,16 @@ function! s:searcher.do_search(input_text)
     let results = []
     let results = results + UserSearcher(self, a:input_text)
     if g:enable_ycm==1
-        let results = results + YCMSearcher(self, a:input_text)
+        let results = results + YCMSearcher(a:input_text)
     endif
-    let results = results + CtagSearcher(self, a:input_text)
+    let results = results + CtagSearcher(a:input_text)
     if g:enable_grep==1
-        let results = results + GrepSearcher(self, a:input_text)
+        let results = results + GrepSearcher(a:input_text)
     endif
     " [unique]
-    "
-    let results = self.unique(results)
+    let results = ResultsUnique(results)
     " [filter]
-    "
-    let results = self.apply_filter(results)
+    let results = ResultsFilter(results)
     return results
 endf
 
@@ -203,11 +205,11 @@ function! s:StringTrimer(str, max_len)
     endif
 endfunction
 
-function! s:FilenameTrimer(filename)
+function! FilenameTrimer(filename)
     return s:StringTrimer(a:filename, g:max_filename_length)
 endfunction
 
-function! s:TextTrimer(text)
+function! TextTrimer(text)
     if g:max_text_length < len(a:text)
         return a:text[0:g:max_text_length-1] . "..."
     else
@@ -215,7 +217,7 @@ function! s:TextTrimer(text)
     endif
 endfunction
 
-function! s:searcher.unique(results)
+function! ResultsUnique(results)
     " remove the current postion.
     let current_key = fnamemodify(bufname(), ":p") . getpos('.')[1]
     let unique_set = {current_key: 1} 
@@ -257,7 +259,7 @@ function! s:GetIgnoreList()
     return lines
 endfunc
 
-function! s:searcher.apply_filter(results)
+function! ResultsFilter(results)
     let ignore_list = s:GetIgnoreList()
     call filter(a:results, function('s:IsIgnored', [ignore_list]))
     return a:results
@@ -280,7 +282,7 @@ function! s:searcher.render(results, title, identifier)
     let idx = 1
     for item in a:results
         let render_item = ["", ""]
-        let render_item[0] = join([idx, item["source"], trim(get(item, 'other', '')), s:FilenameTrimer(item["filename"]), s:TextTrimer(trim(item["text"]))], "\t")
+        let render_item[0] = join([idx, item["source"], trim(get(item, 'other', '')), FilenameTrimer(item["filename"]), TextTrimer(trim(item["text"]))], "\t")
         let render_item[1] = printf("call ExecuteJumpCmd('%s', '%s')", item.filename, escape(item.cmd, "'"))
         call add(to_render, render_item)
         let idx += 1
@@ -294,6 +296,39 @@ function! s:searcher.render(results, title, identifier)
     let oldopt.filter = function('s:CustomedKeyMap')
     let oldopt.callback = function('s:CustomedCallback')
     call popup_setoptions(self.hwnd.winid, oldopt)
+endfunction
+
+function s:PyWindowsKeyMap(winid, key)
+    let key = a:key
+    let keymap = { "\<up>": "<up>", "\<enter>": "<cr>", "\<down>": "<down>"}
+    if get(keymap, a:key, "") != ""
+        let key = keymap[a:key]
+    endif
+    if char2nr(a:key) == 0x80
+        return 1
+    endif
+    return py3eval(printf('Xiongkun.BoxListWindowManager.on_key(%d, "%s")', a:winid, escape(key, '\"')))
+endfunction
+
+function s:PyWindowsCloseCallback(winid, code)
+    return py3eval(printf('Xiongkun.BoxListWindowManager.on_close(%d, %d)', a:winid, a:code))
+    return 0
+endfunction
+
+function SetWindowsCallBack(wid)
+    let wid = a:wid
+    let oldopt = popup_getoptions(wid)
+    let oldopt.filter = function('s:PyWindowsKeyMap')
+    let oldopt.callback = function('s:PyWindowsCloseCallback')
+    call popup_setoptions(wid, oldopt)
+endfunction
+
+function SetWindowsCallBackWithDefault(wid)
+    let wid = a:wid
+    let oldopt = popup_getoptions(wid)
+    let oldopt.filter = function('s:PyWindowsKeyMap', [oldopt.filter])
+    let oldopt.callback = function('s:PyWindowsCloseCallback', [oldopt.callback])
+    call popup_setoptions(wid, oldopt)
 endfunction
 
 function! s:CustomedCallback(winid, code)
@@ -370,9 +405,9 @@ function! s:CustomedKeyMap(winid, key)
     
     " Control of other jump cmd, {{{
     " such as "t" for tag jump, "s" for split, "v" for vertical
-    if a:key == "t" || a:key == "s" || a:key == "v"
+    if a:key == "t" || a:key == "s" || a:key == "v" || a:key == "z"
         let saved_jumpcmd = g:default_jump_cmd
-        let CMD = { 's': 'sp ', 'v': 'vertical split ', 't': "tabe " }
+        let CMD = { 's': 'sp ', 'v': 'vertical split ', 't': "tabe " , 'z': "pedit" }
         let g:default_jump_cmd = CMD[a:key]
         call s:searcher.DelUserItem(before_pos)
         let tmp_ret = popup_filter_menu(a:winid, "\<Enter>")
@@ -421,7 +456,7 @@ function! UserSearcher(searcher, input_text)
     return results
 endfunction
 
-function! CtagSearcher(searcher, input_text)
+function! CtagSearcher(input_text)
     if a:input_text=="" | return[] | endif
     let items = taglist(a:input_text)
     " filter the partial match, exact match is valid
@@ -439,20 +474,20 @@ function! CtrlPSearcher(searcher, input_text)
 endfunction
 
 let g:ycm_cache = cache#New()
-function! s:YCM_dosearch(searcher, input_text)
+function! s:YCM_dosearch(input_text)
     let item = TryYcmJumpAndReturnLocation(a:input_text)
     if item[1] == -1
         return []
     endif
-    return [{"filename": item[0], "lnum": item[1], "cmd": printf(":%d", item[1]), "other":"", "source":"YCM", "text":item[2]}]
+    return [{"filename": item[0], "lnum": item[1], "cmd": printf("%d", item[1]), "other":"", "source":"YCM", "text":item[2]}]
 endfunction
 
-function! YCMSearcher(searcher, input_text)
-    let g:ycm_cache.proc = function("s:YCM_dosearch", [a:searcher, a:input_text])
+function! YCMSearcher(input_text)
+    let g:ycm_cache.proc = function("s:YCM_dosearch", [a:input_text])
     return g:ycm_cache.Get(a:input_text)
 endf
 
-function! GrepSearcher(searcher, input_text)
+function! GrepSearcher(input_text)
     let pattern = (a:input_text)
     call SilentGrep(pattern)
     let qflist = getqflist()	
@@ -537,7 +572,9 @@ function! TryYcmJumpAndReturnLocation(identifier)
 endfun
 
 function! UniverseCtrl()
-    call g:universe_searcher.search_and_render(expand("<cword>"), g:nerd_search_path)
+    let pattern = '\<'.expand("<cword>").'\>'
+    execute printf("py3 Xiongkun.UniverseSearchEngine.singleton().search(\"%s\", \"%s\")", escape(pattern, "\\\"'"), g:nerd_search_path)
+    execute "py3 Xiongkun.UniverseSearchEngine.singleton().render()"
 endfunction
 
 function! UniverseSearch()
@@ -547,7 +584,8 @@ function! UniverseSearch()
     let input_text = trim(input("US>>>"))
     " bacause ycm can only search a tag in current cursor, so disable it.
     let g:enable_ycm=0 
-    call g:universe_searcher.search_and_render(input_text, g:nerd_search_path)
+    execute printf("py3 Xiongkun.UniverseSearchEngine.singleton().search(\"%s\", \"%s\", [0,1,0,0,1])", escape(input_text, "\\\"'"), g:nerd_search_path)
+    execute "py3 Xiongkun.UniverseSearchEngine.singleton().render()"
     let g:enable_ycm=1
 endfunction
 "
@@ -556,7 +594,6 @@ endfunction
 "
 function! SearchFunctionWhileInsert()
     if trim(getline('.')) == ""
-        call s:previewer.reset()
         return
     endif
     let cur_pos = getcurpos()
@@ -568,30 +605,10 @@ function! SearchFunctionWhileInsert()
       let tag = expand("<cword>")
     endif 
     "echom tag
-    call s:previewer.tag_atcursor(tag)
+    execute "py3 Xiongkun.GlobalPreviewWindow.find(\"".tag."\")"
     call setpos('.', cur_pos)
 endfunction
 
 function! TagPreviewTrigger() 
     call s:tag_preview_trigger.Trigger([expand("<cword>")])
 endf
-
-"------------
-"  test case
-"------------
-
-if 0
-    "let line_nr = PeekLineNumberFromSearch("/sss", "/void func")
-    "call assert_true(line_nr, 24
-    "let ret = GrepSearcher(s:searcher, "xk")
-    "call assert_true(line_nr, 24)
-    "
-    "
-    "call TryYcmJumpAndReturnLocation("insert")
-    "
-    "
-    "let cur_s = s:searcher
-    "let ttt = cur_s.search("insert")
-    "call cur_s.render(ttt, "insert")
-    call s:previewer.tag_atcursor("insert")
-endif 

@@ -1,8 +1,8 @@
 import vim
 import sys
 import os
-def func():
-    return 0
+from .func_register import *
+from .vim_utils import *
 
 def GetGitComment(filepath, line_nr):
     """GetGitComment from filepath and line number
@@ -29,3 +29,32 @@ def ShowGitComment(filepath, line_nr):
     
     except:
         vim.command('echoerr ' + '"Not Commit Yet"')
+
+def GitDiffFiles(commit_id=None, filename=None):
+    """ if args is None: diff current file with HEAD
+        else if: len(args) == 1:
+            diff currentfile with args[0](COMMIT_ID)
+        else if: len(args) == 2:
+            diff currentfile with args[0](COMMIT_ID):args[1]FILENAME
+    """
+    if filename is None: filename = CurrentEditFile()
+    if commit_id is None: commit_id = "HEAD"
+    suffix = os.path.splitext(filename)[-1]
+    tmp = TmpName() + suffix
+    os.system("git show %s:%s > %s" % (commit_id, filename, tmp))
+    vim.command("wincmd T")
+    vim.command("vertical diffs %s" % tmp)
+    vim.command("wincmd R")
+    vim.command("wincmd w")
+
+@vim_register(command="Diff", with_args=True)
+def DiffCurrentFile(args):
+    commit_id = None
+    filename = None
+    if len(args) == 1 : 
+        commit_id = args[0]
+        filename = None
+    elif len(args) == 2 : 
+        commit_id = args[0]
+        filename = args[1]
+    GitDiffFiles(commit_id, filename)
