@@ -733,13 +733,13 @@ class UniverseSearchEngine(Searcher):# {{{
         from threading import Lock
         self.last_results = []
         self.sync = []
-        self.async = []
+        self.async_ = []
         self.all = []
         self.query_id = 0 # indicate the current query id.
         for s_cls, is_async in zip(self.opts['searchers'], self.opts['async_mask']):
             s = s_cls(opts)
             if not is_async: self.sync.append(s)
-            else :           self.async.append(s)
+            else :           self.async_.append(s)
             self.all.append(s)
         self.window = self.opts.get('window', None)
 
@@ -766,7 +766,7 @@ class UniverseSearchEngine(Searcher):# {{{
         def onclose(window):
             self.kill_async()
         self.window.on_create(self.last_input, box_items, callback={"on_close": onclose})
-        if len(self.async) == 0: 
+        if len(self.async_) == 0: 
             self.window.on_done()
 
     def clear_history(self):
@@ -813,7 +813,7 @@ class UniverseSearchEngine(Searcher):# {{{
                 if id(s) in map(id, self.sync): 
                     for single_worker in w:
                         results = results + single_worker(self.query_id)
-                if id(s) in map(id, self.async): 
+                if id(s) in map(id, self.async_): 
                     workers = workers + w
             self.start_async(workers)
             # [modity the results.]
