@@ -145,7 +145,6 @@ class UIDispatcher(Model):# {{{
         self.queue = Queue()
         self.reply = Queue()
         self.main_id = currentThread().ident
-        self.mutex = Lock()
 
     def is_main(self):
         return self.main_id == currentThread().ident

@@ -730,6 +730,7 @@ USEngine = None
 class UniverseSearchEngine(Searcher):# {{{
     def __init__(self, opts):
         self.opts = opts
+        self.pcm = None
         from threading import Lock
         self.last_results = []
         self.sync = []

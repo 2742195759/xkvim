@@ -18,8 +18,8 @@ make distclean  # 如果您以前构建Vim
 --disable-netbeans \
 --with-compiledby="xxx@email.com" \
 --enable-fail-if-missing
-apt remove vim
 /bin/rm -r /usr/share/vim/vim81
 make install
 make VIMRCLOC=/etc/vim/ VIMRUNTIMEDIR=/usr/share/vim MAKE="make -e -j 20"
 ln -sf /usr/share/vim/vim82 /usr/share/vim/vim81
+alias vim=/usr/bin/vim
