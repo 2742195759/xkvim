@@ -73,7 +73,7 @@ function! MakePaddle2()
 endfunction
 
 function! MakeXelatex()
-    let &makeprg="python3 ~/xkvim/cmd_script/xelatex.py --file=".expand("%:p")
+    echo system("python3 ~/xkvim/cmd_script/xelatex.py --file=".expand("%:p"))
 endfunction
 
 function! ThreadDispatchExecutor(timer_id)
@@ -86,6 +86,7 @@ packadd cfilter
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
 com! -n=0 GG cal s:ShowGitComment()
+com! -n=0 Latex cal MakeXelatex()
 """""""""""""""" }}}
 
 function! IMAP_EXECUTE_PY3(py3_stmt)"{{{
