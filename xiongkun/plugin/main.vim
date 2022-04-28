@@ -106,6 +106,7 @@ inoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
 inoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_window()<cr>
 inoremap <M-f> <C-R>=ClangdServerComplete([])<cr>
 vnoremap // y/\V<C-R>=escape(@",'/\')<CR><CR>
+nnoremap <expr> gp '`[' . strpart(getregtype(), 0, 1) . '`]'
 """ copy the visual into a tempname file. to view a part of a file
 vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetype=tmp<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>

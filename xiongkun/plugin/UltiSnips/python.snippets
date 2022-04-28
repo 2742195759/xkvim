@@ -96,6 +96,13 @@ $0
 endsnippet
 #}}}
 
+# {{{
+snippet Exception "Create Customized Exception."
+class NetworkError(Exception):
+    pass
+endsnippet
+# }}}
+
 #{{{unittest
 snippet unittest "add unittest for python code"
 class ${1:TestCaseName}(unittest.TestCase):
@@ -107,7 +114,9 @@ class ${1:TestCaseName}(unittest.TestCase):
 
     def test_${3:add}(self):
         self.assertEqual(1, 1)
-
+        with self.assertRaisesRegex(AssertionError,
+                                    ('the context of the exception')):
+            pass
 $0
 endsnippet
 #}}}
@@ -240,19 +249,40 @@ endsnippet
 
 #{{{ # pd.nvprofile
 snippet pd_profile_cuda "cuda profile"
-import paddle.fluid.core as core
-global_step += 1
-if is_nsys and global_step == 100:
-    core.nvprof_start()
-    core.nvprof_enable_record_event()
-    core.nvprof_nvtx_push(str(global_step))
-if is_nsys and global_step == 110:
-    core.nvprof_nvtx_pop()
-    core.nvprof_stop()
-    sys.exit()
-if is_nsy and global_step > 100 and global_step < 110:
-    core.nvprof_nvtx_pop()
-    core.nvprof_nvtx_push(str(global_step))
+class PaddleProfiler:
+    def __init__(self, start, end):
+        self.s = start
+        self.e = end
+        self.cur = 0
+
+    def step(self):
+        self.cur += 1
+        if self.cur == self.s:
+            self.profile_start()
+        if self.cur == self.e:
+            self.profile_stop()
+        if self.cur > self.s and self.cur < self.e:
+            self.profile_step()
+
+    def profile_start(self):
+        from paddle.framework import core
+        core.nvprof_start()
+        core.nvprof_enable_record_event()
+        core.nvprof_nvtx_push(str(self.cur))
+
+    def profile_step(self):
+        from paddle.framework import core
+        core.nvprof_nvtx_pop()
+        core.nvprof_nvtx_push(str(self.cur))
+
+    def profile_stop(self):
+        from paddle.framework import core
+        core.nvprof_nvtx_pop()
+        core.nvprof_stop()
+        os._exit(0)
+pp = PaddleProfiler(100, 110)
+for batch in batches:
+    pp.step()
 endsnippet
 #}}}
 
@@ -262,7 +292,6 @@ if _in_eager_mode():
     return _C_ops.final_state_allclose()
 endsnippet
 #}}}
-
 
 snippet pd.mode_import "non_static_mode"  #{{{
 from paddle.fluid.framework import in_dygraph_mode, non_static_mode, _in_legacy_dygraph
@@ -492,6 +521,15 @@ endsnippet
 snippet default_dict "default_dict" #{{{
 import collections
 ddict = collections.defaultdict(lambda: [])
+endsnippet
+#}}}
+
+snippet counter "counter example from collections" #{{{
+import collections
+a = "11222333"
+cnt = collections.Counter(a)
+list(cnt.elements()) # ['1', '2', '3']
+cnt.get("1") # 2
 endsnippet
 #}}}
 
