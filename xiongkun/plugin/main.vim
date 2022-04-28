@@ -76,6 +76,13 @@ function! MakeXelatex()
     echo system("python3 ~/xkvim/cmd_script/xelatex.py --file=".expand("%:p"))
 endfunction
 
+function! MakeNvcc()
+    let file = expand("%:p")
+    call system("~/xkvim/cmd_script/remove.sh nvcc_file")
+    call system("python3 ~/xkvim/cmd_script/upload.py --file " . file . " --rename nvcc_file ")
+    echo system("python3 ~/xkvim/cmd_script/converse_execute.py --name xkweb --cmd " . "/home/ssd3/start_nvcc.sh")
+endfunction
+
 function! ThreadDispatchExecutor(timer_id)
     py3 Xiongkun.vim_dispatcher.ui_thread_worker()
 endfunction
@@ -87,6 +94,7 @@ com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
 com! -n=0 GG cal s:ShowGitComment()
 com! -n=0 Latex cal MakeXelatex()
+com! -n=0 Nvcc cal MakeNvcc()
 """""""""""""""" }}}
 
 function! IMAP_EXECUTE_PY3(py3_stmt)"{{{
@@ -111,6 +119,7 @@ inoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
 inoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_window()<cr>
 inoremap <M-f> <C-R>=ClangdServerComplete([])<cr>
 vnoremap // y/\V<C-R>=escape(@",'/\')<CR><CR>
+nnoremap <expr> gp '`[' . strpart(getregtype(), 0, 1) . '`]'
 """ copy the visual into a tempname file. to view a part of a file
 vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetype=tmp<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
