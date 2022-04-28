@@ -76,6 +76,13 @@ function! MakeXelatex()
     echo system("python3 ~/xkvim/cmd_script/xelatex.py --file=".expand("%:p"))
 endfunction
 
+function! MakeNvcc()
+    let file = expand("%:p")
+    call system("~/xkvim/cmd_script/remove.sh nvcc_file")
+    call system("python3 ~/xkvim/cmd_script/upload.py --file " . file . " --rename nvcc_file ")
+    echo system("python3 ~/xkvim/cmd_script/converse_execute.py --name xkweb --cmd " . "/home/ssd3/start_nvcc.sh")
+endfunction
+
 function! ThreadDispatchExecutor(timer_id)
     py3 Xiongkun.vim_dispatcher.ui_thread_worker()
 endfunction
@@ -87,6 +94,7 @@ com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
 com! -n=0 GG cal s:ShowGitComment()
 com! -n=0 Latex cal MakeXelatex()
+com! -n=0 Nvcc cal MakeNvcc()
 """""""""""""""" }}}
 
 function! IMAP_EXECUTE_PY3(py3_stmt)"{{{

@@ -11,7 +11,8 @@ args = parameter_parser()
 import json
 import requests
 headers = {"Content-Type":"application/json"}
-headers['type'] = 'snd'
-headers['name'] = args.name
+headers['Type'] = 'snd'
+headers['Name'] = args.name
 ret = requests.post("http://10.255.125.22:8084", data=json.dumps({'cmd':args.cmd, 'password':'807377414'}), headers=headers)
 print (ret.status_code, ret.reason)
+print (ret.text)
