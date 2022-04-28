@@ -38,6 +38,7 @@ Make    ===>   get clangd diags. 10x speed up for Paddle Compile and Modifty.
 <F5>    ===>   File tree.
 <F6>    ===>   Toggle tag list.
 <F9>    ===>   Restart the UltiSnippet and YCM Server.
+Latex   ===>   compile the current edit latex file, and popup in your Mac. Need WebServerCenter.
 IFuzzy|IFind ===> Fuzzy Match By Clangd Indexer.  [ useful for code complete and preview. ]
 <TODO>  ===>   Code Complete by clangd. clangd is slower but more stable, more accurary than YCM. Use my own compile tools.
 """)

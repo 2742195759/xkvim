@@ -256,3 +256,5 @@ endfunction
 nmap <F9> :call UniverseReflesh()<cr>
 let g:ctrlp_by_filename = 1  "default by filename mode for speed."
 nmap <leader><M-m> :tabe<cr>\M
+
+let NERDTreeIgnore = ['\.pyc$', 'user_tag', '\.aux', '\.out', '\.log', '\.pdf']  " 过滤所有.pyc文件不显示

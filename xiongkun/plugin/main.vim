@@ -72,6 +72,10 @@ function! MakePaddle2()
     let &makeprg="python3 /home/data/cmd_client2.py && cat /home/data/error2"
 endfunction
 
+function! MakeXelatex()
+    echo system("python3 ~/xkvim/cmd_script/xelatex.py --file=".expand("%:p"))
+endfunction
+
 function! ThreadDispatchExecutor(timer_id)
     py3 Xiongkun.vim_dispatcher.ui_thread_worker()
 endfunction
@@ -82,6 +86,7 @@ packadd cfilter
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
 com! -n=0 GG cal s:ShowGitComment()
+com! -n=0 Latex cal MakeXelatex()
 """""""""""""""" }}}
 
 function! IMAP_EXECUTE_PY3(py3_stmt)"{{{
@@ -114,11 +119,14 @@ vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetyp
 
 """""""""""""" AutoCmd {{{
 let g:vim_thread_timer = 0
-augroup VimThreadDispatcher
-    autocmd!
-    autocmd VimEnter * let g:vim_thread_timer = timer_start(200, "ThreadDispatchExecutor", {"repeat": -1})
-    autocmd VimLeave * let g:vim_thread_timer = timer_stop(g:vim_thread_timer)
-augroup END
+let g:enable_uidispatcher=1
+if g:enable_uidispatcher == 1
+    augroup VimThreadDispatcher
+        autocmd!
+        autocmd VimEnter * let g:vim_thread_timer = timer_start(200, "ThreadDispatchExecutor", {"repeat": -1})
+        autocmd VimLeave * let g:vim_thread_timer = timer_stop(g:vim_thread_timer)
+    augroup END
+endif
 
 augroup UniverseCtrlGroup
     autocmd!
@@ -144,7 +152,8 @@ augroup PopupPreview
     "autocmd CursorHoldI * cal TryOpenPreview()
 augroup END
 
-if match(getcwd(), "/home/data/") == 0
+let g:enable_clangd=0
+if match(getcwd(), "/home/data/") == 0 && g:enable_clangd
     echo "Enable Clangd Server"
     "start auto cmd
     py3 Xiongkun.clangd_client._StartAutoCompile() 

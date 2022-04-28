@@ -24,7 +24,8 @@ augroup ClangdServer
     autocmd BufWritePost *.cc,*.h,*.cpp cal ClangdServerReparse([expand('%:p')])
 augroup END
 """
-    vim_utils.commands(cmd)# }}}
+    if int(vim.eval("g:enable_clangd")): 
+        vim_utils.commands(cmd)# }}}
 
 def _EndAutoCompile():# {{{
     cmd = """
@@ -32,7 +33,8 @@ augroup ClangdServer
     autocmd!
 augroup END
 """
-    vim_utils.commands(cmd)# }}}
+    if int(vim.eval("g:enable_clangd")): 
+        vim_utils.commands(cmd)# }}}
 
 @contextmanager
 def StopAutoCompileGuard():# {{{
