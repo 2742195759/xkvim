@@ -659,6 +659,9 @@ class GrepSearcher(Searcher):# {{{
         for file in files: 
             abspath = osp.abspath(file)
             workers.append(GrepSearchWorker(inp, abspath))
+
+        # insert FILE as file with depth=1 file search
+        workers.append(GrepSearchWorker(inp, "FILE:" + d))
         return workers
     
     @staticmethod
@@ -671,7 +674,11 @@ class GrepSearcher(Searcher):# {{{
                 lines = [ l.strip() for l in lines ]
                 extra_args = lines
 
-        sh_cmd = "egrep -H -n %s -r \"%s\" %s" % (" ".join(extra_args), escape(inp), directory)
+        if directory.startswith("FILE:"): 
+            directory = directory.split("FILE:")[1].strip()
+            sh_cmd = "find %s -maxdepth 1 -type f | xargs egrep -H -I -n %s \"%s\"" % (directory, " ".join(extra_args), escape(inp))
+        else: 
+            sh_cmd = "egrep -I -H -n %s -r \"%s\" %s" % (" ".join(extra_args), escape(inp), directory)
         worker.child = subprocess.Popen(sh_cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
         results = []
         for idx, line in enumerate(worker.child.stdout.readlines()):
