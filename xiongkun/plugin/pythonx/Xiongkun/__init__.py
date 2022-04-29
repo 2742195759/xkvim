@@ -10,6 +10,7 @@ from .windows import *
 from .multiprocess_utils import *
 from .multi_location_ops import *
 from .indexer import *
+from .converse_plugin import *
 
 __all__ = [
     'GetGitComment',

@@ -107,6 +107,12 @@ def GetCurrentLine():
     """
     return vimeval("getline('.')")
 
+def GetCurrentWord():
+    """
+    get the line of current cursor.
+    """
+    return vimeval("expand('<cword>')")
+
 
 def GetCursorXY():
     """

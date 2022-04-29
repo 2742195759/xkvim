@@ -11,3 +11,9 @@ def log(*args):
             fp.writelines([out])
             fp.write("\n")
 
+def log_google(*args):
+    with mutex:
+        out = " ".join([a.__str__() for a in args])
+        with open("/home/data/google.txt", "a") as fp :
+            fp.writelines([out])
+            fp.write("\n")
