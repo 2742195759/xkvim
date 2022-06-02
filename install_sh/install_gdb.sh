@@ -11,3 +11,4 @@ apt install -y libncurses5-dev libpython-dev texinfo libgmp3-dev
 ../configure --with-python --enable-tui
 make -j 48 
 make install
+cp ~/xkvim/install_sh/gdbinit ~/.gdbinit
