@@ -162,6 +162,54 @@ snippet RecordEvent "RecordEvent usage example in paddle."   #{{{
   platform::NPUMemcpyAsync(dst, src, num, ACL_MEMCPY_HOST_TO_DEVICE,
                              reinterpret_cast<aclrtStream>(stream));
 }
+
+snippet timer "a ms timer for C++11" #{{{
+#include<chrono>
+#include<iostream>
+using namespace std;
+using namespace std::chrono;
+class TimerClock
+{
+public:
+ TimerClock()
+ {
+  update();
+ }
+
+ ~TimerClock()
+ {
+ }
+
+ void update()
+ {
+  _start = high_resolution_clock::now();
+ }
+ //获取秒
+ double getTimerSecond()
+ {
+  return getTimerMicroSec() * 0.000001;
+ }
+ //获取毫秒
+ double getTimerMilliSec()
+ {
+  return getTimerMicroSec()*0.001;
+ }
+ //获取微妙
+ long long getTimerMicroSec()
+ {
+  //当前时钟减去开始时钟的count
+  return duration_cast<microseconds>(high_resolution_clock::now() - _start).count();
+ }
+private:
+ time_point<high_resolution_clock>_start;
+};
+
+int main(){
+    TimerClock TC;
+    TC.update();
+    // do your work here.
+    cout << "cost time:" << TC.getTimerMilliSec() <<"ms"<< endl;
+}
 endsnippet
 #}}}
 
