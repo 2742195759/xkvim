@@ -1,0 +1,7 @@
+set environment PYTHONPATH=/home/data/Paddle/build_svd/python/
+python
+import sys
+sys.path.insert(0, '/home/data/gdb')
+from pretty_print import register_libstdcxx_printers 
+register_libstdcxx_printers (None)
+end
