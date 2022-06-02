@@ -27,8 +27,8 @@ set <M-j>=j  "next Index search results.
 set <M-k>=k  "prev Index search results.
 set <M-e>=e  "<ESC>"
 "set <M->=  "换行，但是会执行
-nnoremap  <M-o> <C-o>
-nnoremap  <M-i> <C-i>
+nnoremap  <M-o> <C-o>zv
+nnoremap  <M-i> <C-i>zv
 
 """ commandline map  {{{
 cnoremap <M-a> <Home>

@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 import os
 import json
@@ -107,14 +108,19 @@ class Indexer(Worker):# {{{
         pass 
     
     def initialize(self):
-        self.proc = subprocess.Popen("/home/data/clang/llvm-project/build/bin/clangd-demo --index_path=%s " % self.path, 
-            shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
+        """ NOTE: subprocess is shell==True, then the subprocess is the shell, and the .terminate() will terminate the shell but not the application.
+            so the core will dumped by clangd-demo.
+
+            set the shell=False, and the command is the shlex.split("SHELL_CMD"), we can avoid the dumped core.
+        """
+        self.proc = subprocess.Popen(shlex.split("/home/data/clang/llvm-project/build/bin/clangd-demo --index_path=%s " % self.path), 
+            shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
 
     def getprocess(self):
         return self.proc
 
     def finish(self):
-        self.proc.terminate() 
+        self.proc.terminate()
         self.proc.wait()
         self.proc = None
 #}}}

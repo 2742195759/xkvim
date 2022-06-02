@@ -46,7 +46,7 @@ def StopAutoCompileGuard():# {{{
     finally:
         _StartAutoCompile()# }}}
 
-def send_by_python(json_req=None, cmd=None, url="http://10.255.129.13:10003", timeout=(2,2), **args):# {{{
+def send_by_python(json_req=None, cmd=None, url="http://10.255.129.13:10000", timeout=(2,2), **args):# {{{
     """ 
     """
     import json
@@ -366,6 +366,11 @@ def ClangdComplete(args):# {{{
         l = ClangdCompleteInterface(args)
         vim_l = vim_utils.VimVariable().assign(l)
         vim.eval('complete(%d, %s)' % (find_start_pos(), vim_l))# }}}
+
+@vim_register(name="ClangdClose", command="ClangdStop")
+def ClangdClose(args):# {{{
+    if clangd:
+        _EndAutoCompile()
 
 def _clangd_to_location(result):# {{{
     loc = []

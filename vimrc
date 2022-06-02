@@ -68,19 +68,11 @@ set mouse=
 
 " option for foldmethod
 set fdm=marker
-set foldcolumn=1
+set foldcolumn=2
 
 colorscheme molokai
 "source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc  # move to metakey.vim
 source ~/Important/MyVim/_MY_VIM_/WindowTabeSwitch.vimrc
-if (or(&filetype == 'c',&filetype=='cpp'))
-	source ~/Important/MyVim/_MY_VIM_/VimCpp.vimrc
-elseif (&filetype == 'vim')
-	set commentstring=\"%s
-elseif (&filetype == 'python')
-    set commentstring=#%s
-    source ~/Important/MyVim/_MY_VIM_/VimPython.vimrc
-end
 
 " xiongkun added in 2021 year
 map gs :update<cr>
@@ -238,7 +230,6 @@ set tags+=/root/cpp_src/stl.tags
 hi CursorLine cterm=Underline ctermbg=None ctermfg=None
 
 
-
 """ configure for quick-peek plugin 
 let g:quickpeek_auto = v:true
 set completeopt=menu,preview
@@ -258,3 +249,12 @@ let g:ctrlp_by_filename = 1  "default by filename mode for speed."
 nmap <leader><M-m> :tabe<cr>\M
 
 let NERDTreeIgnore = ['\.pyc$', 'user_tag', '\.aux', '\.out', '\.log', '\.pdf']  " 过滤所有.pyc文件不显示
+let g:netrw_ftp_list_cmd = "ls"
+let g:netrw_ftp_cmd="ftp -p "
+
+abbre fftp ftp://10.255.129.13:8081/
+
+" add branch information. 2022/5/19
+let g:airline_section_b = trim(system("git symbolic-ref --short HEAD"))
+set foldopen=hor,search,jump,block,mark,quickfix
+set foldclose=all

@@ -83,8 +83,37 @@ function! MakeNvcc()
     echo system("python3 ~/xkvim/cmd_script/converse_execute.py --name xkweb --cmd " . "/home/ssd3/start_nvcc.sh")
 endfunction
 
+function! ProfileSingleScript(start_cmd)
+    let file = expand("%:p")
+    call system("~/xkvim/cmd_script/remove.sh profile")
+    let cmd = "~/xkvim/cmd_script/send_profile_task.sh " . file . " " . '"' . a:start_cmd . '"'
+    echo cmd
+    echom system(cmd)
+    let tmp_filename = "tmp_" . string(rand()) . ".qdrep"
+    echo system(printf("python3 ~/xkvim/cmd_script/converse_execute.py --name mac --cmd " . "\"cd ~/my_report/ && curl http://10.255.125.22:8082/my_report.qdrep --output %s && open ./%s\"", tmp_filename, tmp_filename))
+endfunction
+
 function! ThreadDispatchExecutor(timer_id)
     py3 Xiongkun.vim_dispatcher.ui_thread_worker()
+endfunction
+
+function! FileTypeBranch()
+    filetype detect
+    if (or(&filetype == 'c',&filetype=='cpp'))
+        "source ~/Important/MyVim/_MY_VIM_/VimCpp.vimrc
+        setlocal tabstop=2 "in paddle, Default 2 for tabstop"
+        setlocal shiftwidth=2 "in paddle, Default 2 for shift"
+        setlocal foldmethod=marker
+        setlocal foldmarker={,}
+        setlocal foldlevel=2
+    elseif (&filetype == 'vim')
+        setlocal commentstring=\"%s
+    elseif (&filetype == 'python')
+        setlocal commentstring=#%s
+        setlocal foldmethod=indent
+        setlocal foldlevel=2
+        source ~/Important/MyVim/_MY_VIM_/VimPython.vimrc
+    end
 endfunction
 
 packadd cfilter
@@ -95,6 +124,7 @@ com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
 com! -n=0 GG cal s:ShowGitComment()
 com! -n=0 Latex cal MakeXelatex()
 com! -n=0 Nvcc cal MakeNvcc()
+com! -n=1 Profile cal ProfileSingleScript(<args>)
 """""""""""""""" }}}
 
 function! IMAP_EXECUTE_PY3(py3_stmt)"{{{
@@ -160,10 +190,15 @@ augroup PopupPreview
     "autocmd CursorHoldI * cal TryOpenPreview()
 augroup END
 
-let g:enable_clangd=0
+let g:enable_clangd=1
 if match(getcwd(), "/home/data/") == 0 && g:enable_clangd
     echo "Enable Clangd Server"
     "start auto cmd
     py3 Xiongkun.clangd_client._StartAutoCompile() 
 endif
+
+augroup FileIndentAutoCommand
+    autocmd!
+    autocmd BufEnter * call FileTypeBranch()
+augroup END
 """"""""""""""}}}

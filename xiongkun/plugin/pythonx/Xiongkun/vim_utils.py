@@ -98,8 +98,10 @@ def GoToLocation(location, method):
     """
     if method == '.':
         vimcommand("e +%d %s"%(location.getline(), location.getfile()))
+        vimcommand("normal zv")
     elif method == 'p':
         vimcommand("pedit! +%d %s"%(location.getline(), location.getfile()))
+        vimcommand("normal zv")
 
 def GetCurrentLine():
     """

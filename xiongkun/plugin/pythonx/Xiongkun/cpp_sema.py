@@ -28,8 +28,21 @@ class Tokenizer:# {{{
         self.cur_pos = 0
         self.code = code
 
+    def is_keyword(self):
+        keywords = ['const', 'static']
+        for kw in keywords:
+            if self.code[self.cur_pos:self.cur_pos+len(kw)] == kw: 
+                return kw
+        return None
+
     def next(self):
         while True:
+            # consume keywork
+            kw = self.is_keyword()
+            if kw: 
+                self.consume(len(kw))
+                return ("kw", kw)
+            # peek id / operator
             c = self.peek(1)
             if c.isalpha() or c == "_" or self.peek(2) == "::": return ("id", self.consume_identifier())
             if c in ['(', "{", "<", "["]: return ("open", self.consume(1))
@@ -109,9 +122,11 @@ class CppParser:# {{{
             self.tokenizer.skip_to_close()
 
     def parse_body(self):
-        tok = self.tokenizer.next()
-        if tok[1] == '{': return 
-        raise RuntimeError("Not Definition.")
+        while True:
+            tok = self.tokenizer.next()
+            if tok[1] in ['const'] : continue 
+            if tok[1] in ['{'] : return 
+            raise RuntimeError("Not Definition.")
 
     def parse_return_and_name(self):
         ids = []

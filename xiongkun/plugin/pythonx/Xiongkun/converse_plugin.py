@@ -13,6 +13,11 @@ import os.path as osp
 from .log import log, log_google
 from urllib.parse import quote
 
+def open_url_on_mac(url):
+    cmd = """open "%s" """ % url
+    ExecuteCommand("mac", cmd, silent=True)
+    
+
 def ExecuteCommand(name, cmd, silent=True):
     import json
     import requests
@@ -38,3 +43,39 @@ def Google(args):
     cmd = """open "https://www.google.com.hk/search?q=%s" """ % url_text
     log(cmd)
     ExecuteCommand("mac", cmd, silent=True)
+
+@vim_register(command="Paper", with_args=True)
+def RandomReadPaper(args):
+    papers = [
+        'Selected the Conference:',
+        '1. 计算机自动化: Automated Software Engineering', 
+        '2. 离散算法: TALG', 
+        '3. CCF 排名',
+    ]
+    link = [
+        'place_holder',
+        'https://www.springer.com/journal/10515', 
+        'https://dl.acm.org/toc/talg/2022/18/1', 
+        'https://www.ccf.org.cn/Academic_Evaluation/TCS/',
+    ]
+    lis = vim_utils.VimVariable(papers)
+    selected = int(vim.eval(f"inputlist({lis.name()})"))
+    open_url_on_mac(link[selected])
+    #open_url_on_mac("https://www.ccf.org.cn/Academic_Evaluation/TCS/")
+    #"http://acm-stoc.org/stoc2021/accepted-papers.html"
+
+@vim_register(command="ProfileProject", with_args=True)
+def ProfileProject(args):
+    """ --args0: project root path, directory
+        --args1: project start command
+    """
+    assert len(args) >= 2, "Must have 2 arguments:  <ROOT> <CMD>"
+    assert osp.isdir(args[0])
+    abs_path = osp.abspath(args[0])
+    dir_name = osp.basename(abs_path)
+    cmd = f"cd {dir_name} && " + " ".join(args[1:])
+    print(dir_name, abs_path, cmd)
+    random_name = "tmp_" + vim.eval("rand()") + ".qdrep"
+    os.system(f"~/xkvim/cmd_script/remove.sh profile")
+    os.system(f"~/xkvim/cmd_script/send_profile_task.sh {abs_path} \"{cmd}\"")
+    os.system(f"python3 ~/xkvim/cmd_script/converse_execute.py --name mac --cmd " + f"\"cd ~/my_report/ && curl http://10.255.125.22:8082/my_report.qdrep --output {random_name} && open ./{random_name}\"")

@@ -141,15 +141,27 @@ llvm::IntrusiveRefCntPtr<DiagnosticsEngine> CommandLineDiagsEngine =
     CompilerInstance::createDiagnostics(new DiagnosticOptions, &D, false);
 endsnippet
 #}}}
-
+#
 #{{{
 snippet str "std::string" i 
 std::string 
 endsnippet
 #}}}
-
-#{{{
+#
+#{{{  
 snippet vec "std::vec<XXX>" i 
 std::vector<${1:int}> $0
 endsnippet
 #}}}
+
+snippet RecordEvent "RecordEvent usage example in paddle."   #{{{
+{
+  include "paddle/fluid/platform/profiler.h"
+  platform::RecordEvent record_event(
+      "NpuMemcpyAsync:CPU->NPU", platform::TracerEventType::UserDefined, 1);
+  platform::NPUMemcpyAsync(dst, src, num, ACL_MEMCPY_HOST_TO_DEVICE,
+                             reinterpret_cast<aclrtStream>(stream));
+}
+endsnippet
+#}}}
+

@@ -249,6 +249,7 @@ endsnippet
 
 #{{{ # pd.nvprofile
 snippet pd_profile_cuda "cuda profile"
+import os
 class PaddleProfiler:
     def __init__(self, start, end):
         self.s = start
@@ -554,3 +555,72 @@ from functools import lru_cache
 function = lru_cache(maxsize=128)(function)
 endsnippet
 #}}}
+
+snippet print_to_file "print into a file." #{{{
+with open(${2:"./output.txt"}, "w") as fp:
+    import sys
+    saved = sys.stdout
+    sys.stdout = fp
+    print (${1:"hello world"})
+    sys.stdout = saved
+endsnippet
+#}}}
+
+snippet fake_data "paddle fake dataloader for model." #{{{
+# method 1: fake data_loader .
+BATCH_SIZE = 128
+BATCH_NUM = 665
+IMAGE_SIZE = (3, 224, 224)
+class RandomDataset(paddle.io.Dataset):
+    def __init__(self, num_samples):
+        self.num_samples = num_samples
+
+    def __getitem__(self, idx):
+        image = np.random.random(IMAGE_SIZE).astype('float32')
+        label = np.random.randint(0, 1, 1).astype('int64')
+        return image, label
+
+    def __len__(self):
+        return self.num_samples
+
+dataset = RandomDataset(665 * BATCH_SIZE)
+data_loader = paddle.io.DataLoader(dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=True,
+            drop_last=True,
+            num_workers=2)
+endsnippet
+#}}}
+
+snippet fake_data "paddle fake data for training." #{{{
+# method 2: fake data directly.
+inputs_node = paddle.rand((args.batch_size, args.msa_length // args.dap_size, args.res_length, args.cm))
+inputs_pair = paddle.rand((args.batch_size, args.res_length // args.dap_size, args.res_length, args.cz))
+
+node_mask = paddle.ones((args.batch_size, args.msa_length, args.res_length))
+pair_mask = paddle.ones((args.batch_size, args.res_length, args.res_length))
+
+endsnippet
+#}}}
+
+snippet tensorflow_static "tensorflow static example" #{{{
+# import tensorflow as tf
+
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
+# m0 = tf.reshape(tf.random.normal(shape=[2, 3]), [2, -1])
+# m1 = tf.reshape(tf.random.normal(shape=[3, 5]), [3, -1])
+m0 = tf.placeholder(tf.float32, (None, 2, None), name='Xs')
+m1 = tf.placeholder(tf.float32, (None, None, 3), name='ys')
+print(m0, m1)
+
+e = tf.einsum('ijk, ijk->ijk', m0, m1)
+# output[i,k] = sum_j m0[i,j] * m1[j, k]
+print(e.shape)
+print(e)
+print(tf.get_default_graph())
+
+endsnippet
+#}}}
+
+

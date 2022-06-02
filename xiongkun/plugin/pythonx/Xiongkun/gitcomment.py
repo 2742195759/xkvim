@@ -1,8 +1,20 @@
 import vim
 import sys
 import os
+import os.path as osp
 from .func_register import *
 from .vim_utils import *
+
+def get_git_related_path(abspath):
+    def is_git_director(current):
+        return osp.isdir(current) and osp.isdir(osp.join(current, ".git"))
+    abspath = osp.abspath(abspath)
+    origin = abspath
+    while not is_git_director(abspath): 
+        abspath = osp.dirname(abspath)
+    if abspath in ['/', '~']: 
+        print ("Can find git in father directory.")
+    return origin[len(abspath):].strip("/")
 
 def GetGitComment(filepath, line_nr):
     """GetGitComment from filepath and line number
@@ -39,6 +51,8 @@ def GitDiffFiles(commit_id=None, filename=None):
     """
     if filename is None: filename = CurrentEditFile()
     if commit_id is None: commit_id = "HEAD"
+    filename = get_git_related_path(filename)
+    #print("Filename:", filename)
     suffix = os.path.splitext(filename)[-1]
     tmp = TmpName() + suffix
     os.system("git show %s:%s > %s" % (commit_id, filename, tmp))
