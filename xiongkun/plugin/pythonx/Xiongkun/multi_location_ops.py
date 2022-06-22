@@ -1,18 +1,6 @@
 from .vim_utils import *
+import vim
 from .func_register import *
-from contextlib import contextmanager 
-
-@contextmanager
-def NotChangeRegisterGuard(regs):
-    saved = []
-    for reg in regs:
-        saved.append(vim.eval('getreginfo("%s")'%escape(reg)))
-    yield
-    v = VimVariable()
-    for save, reg in zip(saved, regs):
-        v.assign(save)
-        vim.eval('setreg("%s", %s)'%(escape(reg), v))
-    v.delete()
 
 @vim_register(keymap="<space>s")
 def SwapWord():
@@ -23,3 +11,10 @@ def SwapWord():
 def test_NotChange():
     with NotChangeRegisterGuard("q"):
         vim.eval('setreg("q", "changed")')
+
+"""
+change the value of current word by register (@") 
+"""
+@vim_register(keymap="<space>w")
+def ChangeWordByYank(args):
+    vim.command('execute "normal cw\<C-R>0\<esc>"')

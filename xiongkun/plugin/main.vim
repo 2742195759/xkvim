@@ -97,6 +97,19 @@ function! ThreadDispatchExecutor(timer_id)
     py3 Xiongkun.vim_dispatcher.ui_thread_worker()
 endfunction
 
+function! ReloadPythonPlugin()
+    py3 from importlib import reload
+    py3 << endpython
+import sys
+from types import ModuleType
+ls = [[name, mod] for name, mod in sys.modules.items()]
+for name, mod in ls[::-1]:
+    if name.startswith('Xiongkun'):
+        m = (eval(name))
+        if isinstance(m, ModuleType): reload(m)
+endpython
+endfunction
+
 function! FileTypeBranch()
     filetype detect
     if (or(&filetype == 'c',&filetype=='cpp'))
@@ -121,10 +134,10 @@ packadd cfilter
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
-com! -n=0 GG cal s:ShowGitComment()
 com! -n=0 Latex cal MakeXelatex()
 com! -n=0 Nvcc cal MakeNvcc()
 com! -n=1 Profile cal ProfileSingleScript(<args>)
+com! -n=0 Reload cal ReloadPythonPlugin()
 """""""""""""""" }}}
 
 function! IMAP_EXECUTE_PY3(py3_stmt)"{{{

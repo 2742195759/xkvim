@@ -35,8 +35,17 @@ import sys
 import os
 
 def vim_register(name="", keymap="", command="", with_args=False):
+    """
+    keymap: i:MAP | MAP
+    """
     def decorator(func):
         # register in vim
+        nonlocal keymap
+        keymap_mode = "noremap"
+        if keymap.startswith("i:"):
+            keymap_mode = "inoremap"
+            keymap = keymap[2:]
+
         vim_name = name
         if not vim_name : 
             vim_name = func.__name__.capitalize()
@@ -51,15 +60,15 @@ endfunction
 """%(vim_name, func.__name__))
 
         if keymap != "": 
-            vim.command( """
-noremap %s :call %s ([])
-""" % (keymap, vim_name))
+            vim.command( f"""
+{keymap_mode} {keymap} :call {vim_name} ([])<cr>
+""")
 
         if command != "": 
             # split by space,  and pass as string
             arg_num = '0'
             if with_args: arg_num = '*'
-            vim.command( """ command -n=%s %s cal %s(split("<args>", " ")) """%(arg_num, command, vim_name))
+            vim.command( """ command! -n=%s %s cal %s(split("<args>", " ")) """%(arg_num, command, vim_name))
         return func
     return decorator
 

@@ -1,0 +1,57 @@
+" rainbow.vim: highlights different levels of () with different colors
+"  Lisp language version
+"  Author: Charles E. Campbell, Jr.
+"  Date:   Oct 19, 2012
+"  Version:	2
+" ---------------------------------------------------------------------
+" non-compatible only: {{{1
+if &cp
+ finish
+endif
+let keepcpo= &cpo
+let s:work = ''
+set cpo&vim
+
+" ---------------------------------------------------------------------
+" syntax: {{{1
+syn region lispParen0           transparent matchgroup=hlLevel0 start="(" end=")" contains=@lispListCluster,lispParen1 
+syn region lispParen1 contained transparent matchgroup=hlLevel1 start="(" end=")" contains=@lispListCluster,lispParen2 
+syn region lispParen2 contained transparent matchgroup=hlLevel2 start="(" end=")" contains=@lispListCluster,lispParen3 
+syn region lispParen3 contained transparent matchgroup=hlLevel3 start="(" end=")" contains=@lispListCluster,lispParen4 
+syn region lispParen4 contained transparent matchgroup=hlLevel4 start="(" end=")" contains=@lispListCluster,lispParen5 
+syn region lispParen5 contained transparent matchgroup=hlLevel5 start="(" end=")" contains=@lispListCluster,lispParen6 
+syn region lispParen6 contained transparent matchgroup=hlLevel6 start="(" end=")" contains=@lispListCluster,lispParen7 
+syn region lispParen7 contained transparent matchgroup=hlLevel7 start="(" end=")" contains=@lispListCluster,lispParen8 
+syn region lispParen8 contained transparent matchgroup=hlLevel8 start="(" end=")" contains=@lispListCluster,lispParen9 
+syn region lispParen9 contained transparent matchgroup=hlLevel9 start="(" end=")" contains=@lispListCluster,lispParen0
+
+" ---------------------------------------------------------------------
+" highlighting: {{{1
+if &bg == "dark"
+ hi   hlLevel0 ctermfg=red         guifg=red1
+ hi   hlLevel1 ctermfg=yellow      guifg=orange1      
+ hi   hlLevel2 ctermfg=green       guifg=yellow1      
+ hi   hlLevel3 ctermfg=cyan        guifg=greenyellow  
+ hi   hlLevel4 ctermfg=magenta     guifg=green1       
+ hi   hlLevel5 ctermfg=red         guifg=springgreen1 
+ hi   hlLevel6 ctermfg=yellow      guifg=cyan1        
+ hi   hlLevel7 ctermfg=green       guifg=slateblue1   
+ hi   hlLevel8 ctermfg=cyan        guifg=magenta1     
+ hi   hlLevel9 ctermfg=magenta     guifg=purple1
+else
+ hi   hlLevel0 ctermfg=red         guifg=red3
+ hi   hlLevel1 ctermfg=darkyellow  guifg=orangered3
+ hi   hlLevel2 ctermfg=darkgreen   guifg=orange2
+ hi   hlLevel3 ctermfg=blue        guifg=yellow3
+ hi   hlLevel4 ctermfg=darkmagenta guifg=olivedrab4
+ hi   hlLevel5 ctermfg=red         guifg=green4
+ hi   hlLevel6 ctermfg=darkyellow  guifg=paleturquoise3
+ hi   hlLevel7 ctermfg=darkgreen   guifg=deepskyblue4
+ hi   hlLevel8 ctermfg=blue        guifg=darkslateblue
+ hi   hlLevel9 ctermfg=darkmagenta guifg=darkviolet
+endif
+
+" ---------------------------------------------------------------------
+"  Modelines: {{{1
+let &cpo= keepcpo
+" vim: fdm=marker ft=vim ts=4

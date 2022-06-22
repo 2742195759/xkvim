@@ -4,21 +4,31 @@ import os
 import os.path as osp
 from .func_register import *
 from .vim_utils import *
+from .converse_plugin import open_url_on_mac
 
-def get_git_related_path(abspath):
-    def is_git_director(current):
-        return osp.isdir(current) and osp.isdir(osp.join(current, ".git"))
-    abspath = osp.abspath(abspath)
-    origin = abspath
-    while not is_git_director(abspath): 
-        abspath = osp.dirname(abspath)
-    if abspath in ['/', '~']: 
-        print ("Can find git in father directory.")
-    return origin[len(abspath):].strip("/")
+def OpenPR(pr_str):
+    pr_str = str(pr_str)
+    url = None
+    url_first = None
+    for line in str(os.popen("git remote -v").read()).split("\n"): 
+        line = line.split(' ')[0].strip()
+        field = line.split("\t")
+        if field[0] == 'upstream': 
+            url_first = field[1]
+            break
+    if url_first is None: 
+        print("git remote -v can't found upsteam.")
+        return
+    url = f'{url_first}/pull/{pr_str}'
+    open_url_on_mac(url)
+
+def _ParsePR(filepath, line_nr):
+    commit_id, info, content, comment = GetGitComment(filepath, line_nr)
+    import re
+    return re.search("\(#(\d+)\)", comment).group(1)
 
 def GetGitComment(filepath, line_nr):
     """GetGitComment from filepath and line number
-
     """
     gitblame = os.popen('git blame ' + filepath)
     lines = gitblame.readlines()
@@ -32,13 +42,25 @@ def GetGitComment(filepath, line_nr):
     comment = str(comment.read())
     return commit_id, info, content, comment
 
-def ShowGitComment(filepath, line_nr):
+@vim_register(command="GG")
+def ShowGitComment(args):
     try:
+        filepath = CurrentEditFile()
+        line_nr = GetCursorXY()[0]
         commit_id, info, content, comment = GetGitComment(filepath, line_nr)
         comment = comment.split('\n')
         for line in comment:
             vim.command('echom "' + line + '"')
-    
+    except:
+        vim.command('echoerr ' + '"Not Commit Yet"')
+
+@vim_register(command="GO")
+def GitOpenInBrowser(args):
+    try:
+        filepath = CurrentEditFile()
+        line_nr = GetCursorXY()[0]
+        pr_str = _ParsePR(filepath, line_nr)
+        OpenPR(pr_str)
     except:
         vim.command('echoerr ' + '"Not Commit Yet"')
 

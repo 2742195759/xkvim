@@ -193,8 +193,10 @@ def SyncCurrentFile():
     vimcommand("e")
 
 def CurrentEditFile(abs=False):
-    if abs: return vimeval("expand('%:p')")
-    return vimeval("expand('%')")
+    abs_path = vimeval("expand('%:p')")
+    if not abs:
+        abs_path = get_git_related_path(abs_path)
+    return abs_path
 
 def CurrentWord():
     return vimeval("expand('<cword>')")
@@ -368,3 +370,38 @@ def Unique(list_like, sig_fn):
         after.append(r)
         s.add(sig)
     return after
+
+def get_git_related_path(abspath):
+    def is_git_director(current):
+        return osp.isdir(current) and osp.isdir(osp.join(current, ".git"))
+    abspath = osp.abspath(abspath)
+    origin = abspath
+    def is_root(path):
+        return path in ['/', '~']
+    while not is_root(abspath) and not is_git_director(abspath): 
+        abspath = osp.dirname(abspath)
+    if is_root(abspath):
+        print ("Can't find git in father directory.")
+        return origin
+    return origin[len(abspath):].strip("/")
+
+from contextlib import contextmanager 
+@contextmanager
+def NotChangeRegisterGuard(regs):
+    saved = []
+    for reg in regs:
+        saved.append(vim.eval('getreginfo("%s")'%escape(reg)))
+    yield
+    v = VimVariable()
+    for save, reg in zip(saved, regs):
+        v.assign(save)
+        vim.eval('setreg("%s", %s)'%(escape(reg), v))
+    v.delete()
+
+@contextmanager
+def CursorGuard():
+    saved = vim.eval('getcurpos()')
+    yield
+    v = VimVariable()
+    v.assign(saved)
+    vim.eval(f'setpos(".", {v.name()})')

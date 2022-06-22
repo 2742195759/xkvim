@@ -1,5 +1,4 @@
-from .gitcomment import GetGitComment, DiffCurrentFile
-from .gitcomment import ShowGitComment
+from .gitcomment import *
 from .vim_parser import *
 from .func_register import echo
 from .pten_transfer import *
@@ -11,12 +10,8 @@ from .multiprocess_utils import *
 from .multi_location_ops import *
 from .indexer import *
 from .converse_plugin import *
-
-__all__ = [
-    'GetGitComment',
-    'ShowGitComment',
-    'global_variable',
-]
+from .insert_keymap import *
+from .fold_plugin import *
 
 pro = None; 
 
@@ -41,7 +36,19 @@ Make    ===>   get clangd diags. 10x speed up for Paddle Compile and Modifty.
 <F9>    ===>   Restart the UltiSnippet and YCM Server.
 Latex   ===>   compile the current edit latex file, and popup in your Mac. Need WebServerCenter.
 IFuzzy|IFind ===> Fuzzy Match By Clangd Indexer.  [ useful for code complete and preview. ]
+ProfileProject  ===> ProfileProeject ./ FLAGS_new_einsum=1 python3.7 main.py
+Reload  ===>   reload Xiongkun python plugin, make all the changes work.
 <TODO>  ===>   Code Complete by clangd. clangd is slower but more stable, more accurary than YCM. Use my own compile tools.
+""")
+
+@vim_register( command="HI")
+def HelpInsert(args):
+    print (
+"""
+Insert Key Map:
+<ctrl>( : insert ( CURRENT_LINE )
+<ctrl>{ : insert { CURRENT_LINE }
+<ctrl>[ : insert [ CURRENT_LINE ]
 """)
 
 @vim_register(command="Start")
