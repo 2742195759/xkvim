@@ -64,14 +64,6 @@ function! s:ShowGitComment()
     execute 'py3' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
 endf
 
-function! MakePaddle()
-    let &makeprg="python3 /home/data/cmd_client.py && cat /home/data/error"
-endfunction
-
-function! MakePaddle2()
-    let &makeprg="python3 /home/data/cmd_client2.py && cat /home/data/error2"
-endfunction
-
 function! MakeXelatex()
     echo system("python3 ~/xkvim/cmd_script/xelatex.py --file=".expand("%:p"))
 endfunction
@@ -116,14 +108,14 @@ function! FileTypeBranch()
         "source ~/Important/MyVim/_MY_VIM_/VimCpp.vimrc
         setlocal tabstop=2 "in paddle, Default 2 for tabstop"
         setlocal shiftwidth=2 "in paddle, Default 2 for shift"
-        setlocal foldmethod=marker
-        setlocal foldmarker={,}
+        "setlocal foldmethod=marker
+        "setlocal foldmarker={,}
         setlocal foldlevel=2
     elseif (&filetype == 'vim')
         setlocal commentstring=\"%s
     elseif (&filetype == 'python')
         setlocal commentstring=#%s
-        setlocal foldmethod=indent
+        "setlocal foldmethod=indent
         setlocal foldlevel=2
         source ~/Important/MyVim/_MY_VIM_/VimPython.vimrc
     end

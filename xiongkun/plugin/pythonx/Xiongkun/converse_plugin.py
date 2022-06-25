@@ -79,3 +79,18 @@ def ProfileProject(args):
     os.system(f"~/xkvim/cmd_script/remove.sh profile")
     os.system(f"~/xkvim/cmd_script/send_profile_task.sh {abs_path} \"{cmd}\"")
     os.system(f"python3 ~/xkvim/cmd_script/converse_execute.py --name mac --cmd " + f"\"cd ~/my_report/ && curl http://10.255.125.22:8082/my_report.qdrep --output {random_name} && open ./{random_name}\"")
+
+@vim_register(command="Make")
+def PaddleMake(args):
+    def send(cmd="", password=""):
+        import json
+        import requests
+        headers = {"Content-Type":"application/json", "port": '1000'}
+        return requests.post("http://10.255.129.13:10000", data=json.dumps({'cmd':cmd, 'password':password}), headers=headers)
+    project_path = vim_utils.get_git_prefix(vim_utils.CurrentEditFile())
+    build_path = os.path.join(project_path, "build/")
+    error_file = os.path.join(build_path, "error.txt")
+    vim_utils.Notification("Compiling...Please wait.")
+    send(f"cd {build_path} && ./rebuild.sh >{error_file} 2>&1", "807377414")
+    vim.command(f"cfile {error_file}")
+

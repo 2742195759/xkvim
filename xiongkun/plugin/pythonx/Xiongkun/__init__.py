@@ -12,6 +12,7 @@ from .indexer import *
 from .converse_plugin import *
 from .insert_keymap import *
 from .fold_plugin import *
+from .buf_app import *
 
 pro = None; 
 
@@ -29,7 +30,8 @@ Impl    ===>   create_impl_file for cpu / gpu reuse.
 Helper  ===>   create_helper for cpu / gpu reuse.
 Start   ===>   start project and goto stage1.  [deleted]
 FN      ===>   Copy File Name of current file into @" and copy_file.sh.
-Make    ===>   get clangd diags. 10x speed up for Paddle Compile and Modifty.
+Compile ===>   Get clangd diags. 10x speed up for Paddle Compile and Modifty.
+Make    ===>   Paddle make and cfile the error.
 <F4>    ===>   Reflesh the screen.
 <F5>    ===>   File tree.
 <F6>    ===>   Toggle tag list.

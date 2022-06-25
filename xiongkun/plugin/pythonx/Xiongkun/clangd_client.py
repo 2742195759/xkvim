@@ -326,7 +326,7 @@ def ClangdRestart(args):# {{{
 def ClangdReparseCurFile(args):
     if clangd: clangd.reparse_currentfile()
 
-@vim_register(name="ClangdServerDiags", command="Make")
+@vim_register(name="ClangdServerDiags", command="Compile")
 def ClangdGetDiags(args):
     if clangd: 
         clangd.reparse_currentfile(True) # make sure file is the newest.

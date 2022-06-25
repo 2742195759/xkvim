@@ -1,0 +1,17 @@
+
+layout 
+    - create windows arrange the order of windows.
+    - reorder
+    - autocmd between windows
+    - window flags between windows.[diff]
+    
+buffer: 
+    - buffer keymap, control and : (widget)
+    - self-keymap: self action
+    - comm-keymap: can set callback function.
+
+application: 
+    - layout + buffers
+    - create layout -> create buffers in layout -> set key map callback for buffers
+
+

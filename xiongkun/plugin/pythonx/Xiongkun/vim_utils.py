@@ -19,6 +19,7 @@ from contextlib import contextmanager
 from threading import Lock
 from .multiprocess_utils import *
 from .log import log
+import os
 
 vim_dispatcher = UIDispatcher() # main thread dispatcher, execute a function in main-thread(vim-thread / ui-thread)
 
@@ -206,6 +207,9 @@ def Input(promote=""):
 
 def GetPwd():
     return vimeval("getcwd()")
+
+def GetAllLines(bufnr):
+    return vimeval(f"getbufline({bufnr}, 1, '$')")
     
 def SetVimRegister(reg, content):
     vimcommand('let @%s="%s"' % (reg, content))
@@ -371,11 +375,11 @@ def Unique(list_like, sig_fn):
         s.add(sig)
     return after
 
-def get_git_related_path(abspath):
+def get_git_prefix(abspath):
+    origin = abspath
     def is_git_director(current):
         return osp.isdir(current) and osp.isdir(osp.join(current, ".git"))
     abspath = osp.abspath(abspath)
-    origin = abspath
     def is_root(path):
         return path in ['/', '~']
     while not is_root(abspath) and not is_git_director(abspath): 
@@ -383,6 +387,11 @@ def get_git_related_path(abspath):
     if is_root(abspath):
         print ("Can't find git in father directory.")
         return origin
+    return abspath
+
+def get_git_related_path(abspath):
+    origin = abspath
+    abspath = get_git_prefix(abspath)
     return origin[len(abspath):].strip("/")
 
 from contextlib import contextmanager 
@@ -405,3 +414,46 @@ def CursorGuard():
     v = VimVariable()
     v.assign(saved)
     vim.eval(f'setpos(".", {v.name()})')
+
+@contextmanager
+def CurrentBufferGuard(bufnr):
+    saved_buf = vim.eval("bufnr()")
+    vim.command(f'b {bufnr}')
+    yield
+    vim.command(f'b {saved_buf}')
+
+@contextmanager
+def CurrentWindowGuard(win_id=None):
+    saved_id = vim.eval("win_getid()")
+    if win_id is not None: 
+        vim.eval(f'win_gotoid({win_id})')
+    yield
+    vim.eval(f'win_gotoid({saved_id})')
+
+def ExecuteCommandInBuffer(bufnr, command):
+    # TODO
+    #vim.command("set bh=hide")
+    with CurrentBufferGuard(bufnr):
+        vim.command(command)
+    #vim.command("set bh=hide")
+
+def Bufname2Bufnr(name):
+    return vim.eval(f"bufnr({name})")
+
+def Notification(msg):
+    vim.eval( """ popup_notification("%s", {'line':0, 'col':0}) """ % msg
+    )
+
+def memory_buffer():
+    vim.command("setlocal nomodifiable")
+    vim.command("setlocal buftype=nofile")
+    vim.command("setlocal nofoldenable")
+    
+def GetFileTypeByName(name):
+    suffix = os.path.splitext(name)[-1].split('.')[-1]
+    dic = {
+        "py": "python",
+        "cc": "cpp",
+        "h": "cpp",
+    }
+    return dic.get(suffix, "")

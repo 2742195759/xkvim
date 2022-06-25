@@ -5,8 +5,10 @@ import os.path as osp
 from .func_register import *
 from .vim_utils import *
 from .converse_plugin import open_url_on_mac
+from .buf_app import *
+import re
 
-def OpenPR(pr_str):
+def OpenPR(pr_str):#{{{
     pr_str = str(pr_str)
     url = None
     url_first = None
@@ -19,15 +21,16 @@ def OpenPR(pr_str):
     if url_first is None: 
         print("git remote -v can't found upsteam.")
         return
+    if url_first.endswith('.git'): url_first = url_first[:-4]
     url = f'{url_first}/pull/{pr_str}'
-    open_url_on_mac(url)
+    open_url_on_mac(url)#}}}
 
-def _ParsePR(filepath, line_nr):
+def _ParsePR(filepath, line_nr):#{{{
     commit_id, info, content, comment = GetGitComment(filepath, line_nr)
     import re
-    return re.search("\(#(\d+)\)", comment).group(1)
+    return re.search("\(#(\d+)\)", comment).group(1)#}}}
 
-def GetGitComment(filepath, line_nr):
+def GetGitComment(filepath, line_nr):#{{{
     """GetGitComment from filepath and line number
     """
     gitblame = os.popen('git blame ' + filepath)
@@ -40,10 +43,10 @@ def GetGitComment(filepath, line_nr):
     content = ')'.join(others.split(')')[1:])
     comment = os.popen("git show %s -q" % commit_id)
     comment = str(comment.read())
-    return commit_id, info, content, comment
+    return commit_id, info, content, comment#}}}
 
 @vim_register(command="GG")
-def ShowGitComment(args):
+def ShowGitComment(args):#{{{
     try:
         filepath = CurrentEditFile()
         line_nr = GetCursorXY()[0]
@@ -52,39 +55,55 @@ def ShowGitComment(args):
         for line in comment:
             vim.command('echom "' + line + '"')
     except:
-        vim.command('echoerr ' + '"Not Commit Yet"')
+        vim.command('echoerr ' + '"Not Commit Yet"')#}}}
 
 @vim_register(command="GO")
-def GitOpenInBrowser(args):
+def GitOpenInBrowser(args):#{{{
     try:
         filepath = CurrentEditFile()
         line_nr = GetCursorXY()[0]
         pr_str = _ParsePR(filepath, line_nr)
         OpenPR(pr_str)
     except:
-        vim.command('echoerr ' + '"Not Commit Yet"')
+        vim.command('echoerr ' + '"Not Commit Yet"')#}}}
 
-def GitDiffFiles(commit_id=None, filename=None):
+def GitDiffFiles(commit_id=None, filename=None):#{{{
     """ if args is None: diff current file with HEAD
         else if: len(args) == 1:
             diff currentfile with args[0](COMMIT_ID)
         else if: len(args) == 2:
             diff currentfile with args[0](COMMIT_ID):args[1]FILENAME
     """
-    if filename is None: filename = CurrentEditFile()
+    if filename is None: filename = CurrentEditFile(abs=True)
     if commit_id is None: commit_id = "HEAD"
     filename = get_git_related_path(filename)
-    #print("Filename:", filename)
     suffix = os.path.splitext(filename)[-1]
     tmp = TmpName() + suffix
     os.system("git show %s:%s > %s" % (commit_id, filename, tmp))
     vim.command("wincmd T")
     vim.command("vertical diffs %s" % tmp)
     vim.command("wincmd R")
-    vim.command("wincmd w")
+    vim.command("wincmd w")#}}}
+
+def GitDiffRecentChangesGivenWindows(commit_ids, window_ids, filename):#{{{
+    """ Diff commit_ids[0]:filename and commit_ids[1]:filename in windows.
+    """
+    filetype = GetFileTypeByName(filename)
+    for wid, cid in zip(window_ids, commit_ids):
+        with CurrentWindowGuard(wid):
+            vim.command('setlocal modifiable')
+            cmd = "0read! git show %s:%s" % (cid, filename)
+            vim.command(f"echom '{cmd}'")
+            vim.eval("win_execute({wid}, \"{cmd}\", \"silent!\")".format(
+                wid=wid, cmd=cmd
+            ))
+            if filetype: vim.command(f'setlocal filetype={filetype}')
+            vim.command("setlocal foldmethod=diff")
+            memory_buffer()
+            vim.command('diffthis')#}}}
 
 @vim_register(command="Diff", with_args=True)
-def DiffCurrentFile(args):
+def DiffCurrentFile(args):#{{{
     commit_id = None
     filename = None
     if len(args) == 1 : 
@@ -93,4 +112,158 @@ def DiffCurrentFile(args):
     elif len(args) == 2 : 
         commit_id = args[0]
         filename = args[1]
-    GitDiffFiles(commit_id, filename)
+    GitDiffFiles(commit_id, filename)#}}}
+
+class GitDiffLayout(Layout):#{{{
+    """
+    create windows for diff: ['files', 'first', 'second'] and show diff between first and second.
+    """
+    # ------------------------
+    # |       files          |
+    # ------------------------
+    # | first     |  second  |
+    # ------------------------
+    def __init__(self, new_tabe=False, file_tab=True):
+        super().__init__("first")
+        self.new_tabe = new_tabe
+        self.file_tab = file_tab
+        
+    def _create_windows(self):
+        if self.new_tabe: 
+            vim.command("tabe")
+            vim.command(f"new ")
+            vim.command(f"resize 8")
+            vim.command("wincmd j") # close all other windows
+            vim.command(f"vne ")
+        filewin = vim.eval("win_getid(1)")
+        wins = [vim.eval("win_getid(2)"), vim.eval("win_getid(3)")]
+        ret = {"files": filewin, "first": wins[0], "second": wins[1]}
+        if not self.file_tab:
+            with CurrentWindowGuard(filewin): 
+                vim.command("q")
+            del ret['files']
+        return ret#}}}
+
+class GitFileCommitLogBuffer(BashCommandResultBuffer): #{{{
+    def __init__(self, filename, ondiff): 
+        """ ondiff: callback when diff is triggled.
+                    => function(commit0, commit1)
+        """
+        self.filename = filename
+        super().__init__(f"git log {self.filename}" , "git")
+        self.ondiff = ondiff
+
+    def _open(self):
+        cur_pr, prev_commit = self._parse_info()
+        if cur_pr: OpenPR(cur_pr)
+        else: 
+            print("Don't find PR information")
+
+    def _next(self, forward=True):
+        if forward: 
+            vim.command('execute "normal /^commit\<cr>zz"')
+        else: 
+            vim.command('execute "normal ?^commit\<cr>zz"')
+
+    def keymap_func(self, key):
+        if key == "j": self._next(True)
+        if key == "k": self._next(False)
+        if key == 'd': self._diff()
+        if key == 'o': self._open()
+
+    def get_keymap(self):
+        sets = [ 'j', 'k', 'd', 'o' ]
+        ret = {}
+        for s in sets:
+            ret[s] = GitFileCommitLogBuffer.keymap_func
+        return ret
+
+    def _parse_info(self):
+        lines = GetAllLines(self.bufnr)
+        cur = GetCursorXY()[0] - 1
+        prev_commit = None
+        pr = None
+        for i in range(cur+1, len(lines)):
+            if lines[i].startswith("commit"): 
+                prev_commit = lines[i].strip().split(' ')[1]
+                break
+            try:
+                pr = re.search("\(#(\d+)\)", lines[i]).group(1)
+            except:
+                pass
+        return pr, prev_commit
+
+    def _diff(self):
+        commit = GetCurrentLine().split(' ')[1]
+        cur_pr, prev_commit = self._parse_info()
+        name = "--" + self.filename.split("/")[-1]
+        if prev_commit is None: return 
+        self.ondiff(commit, prev_commit)
+#}}}
+
+class GitFileSelector(BashCommandResultBuffer): #{{{
+    def __init__(self, cmd, onenter): 
+        """ function(line: str)
+        """
+        super().__init__(cmd, "nerdtree")
+        self.onenter = onenter
+
+    def get_keymap(self):
+        sets = [ 'g' ]
+        ret = {'g': lambda x, y: self.onenter(GetCurrentLine().strip())}
+        return ret
+#}}}
+
+class GitPreviewApp(Application):#{{{
+    def __init__(self, filename):
+        """
+        """
+        super().__init__()
+        self.filename = filename
+
+        def ondiff(commit0, commit1): 
+            """ while press "d" in the git file log buffer.
+            """
+            if self.git_diff_layout is None: 
+                self.git_diff_layout = GitDiffLayout(True, True)
+                self.git_diff_layout.create()
+
+            def onenter(file):
+                diff_files_cmd = f"git diff {commit0} {commit1} | grep 'diff --git' | cut -d' ' -f3 | cut -c3- | uniq -u"
+                self.git_diff_files.create(GitFileSelector(diff_files_cmd, onenter))
+
+                filetype = GetFileTypeByName(file)
+                bufs = [self.git_diff_0, self.git_diff_1]
+                commits = [commit0, commit1]
+                for buf, commit in zip(bufs, commits): 
+                    cmd = "git show %s:%s" % (commit, file)
+                    buf.create(BashCommandResultBuffer(cmd, filetype))
+
+                self.git_diff_layout.reset_buffers({
+                    'files': self.git_diff_files.get(), 
+                    'first': self.git_diff_0.get(), 
+                    'second': self.git_diff_1.get(),
+                })
+                self.git_diff_layout.windiff(['first', 'second'])
+
+            onenter(self.filename)
+
+        self.git_diff_layout = None
+        self.git_log_layout = TabeLayout('win')
+        self.git_log_buf = GitFileCommitLogBuffer(self.filename, ondiff)
+
+        self.git_diff_0 = BufferSmartPoint()
+        self.git_diff_1 = BufferSmartPoint()
+        self.git_diff_files = BufferSmartPoint()
+
+    def start(self):
+        self.git_log_buf.create()
+        self.git_log_layout.create({'win': self.git_log_buf})
+#}}}
+
+@vim_register(command="GF")
+def GitFileHistory(args):#{{{
+    file = CurrentEditFile()
+    vim.command(f"echom '{file}'")
+    app = GitPreviewApp(file)
+    app.start()#}}}
