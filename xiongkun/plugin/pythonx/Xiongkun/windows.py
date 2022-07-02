@@ -506,6 +506,20 @@ class GlobalPreviewWindow:# {{{
         GPW.go()
 
     @staticmethod
+    def page_down():
+        print("yes")
+        if GPW.pwin is not None:
+            GPW.pwin._execute_normal("")
+            GPW.pwin._execute_normal("zz")
+
+    @staticmethod
+    def page_up():
+        print("yes")
+        if GPW.pwin is not None:
+            GPW.pwin._execute_normal("")
+            GPW.pwin._execute_normal("zz")
+
+    @staticmethod
     def next():
         if GPW.candidate_idx < len(GPW.candidate_locs) - 1:
             GPW.candidate_idx += 1
@@ -562,7 +576,7 @@ class GlobalPreviewWindow:# {{{
     
     @staticmethod
     def open_in_preview_window():
-        GoToLocation(GPW.cur_loc(), "p") 
+        GoToLocation(GPW.cur_loc(), "v") 
         GPW.hide()
 
     @classmethod

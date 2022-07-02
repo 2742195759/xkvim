@@ -147,10 +147,14 @@ noremap <M-f> <Cmd>call UniverseSearch()<cr>
 nnoremap <M-p> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.find()<cr>
 nnoremap <M-j> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.next()<cr>
 nnoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
+nnoremap <M-h> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.page_up()<cr>
+nnoremap <M-l> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.page_down()<cr>
 nnoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_window()<cr>
 inoremap <M-p> <C-o>:call SearchFunctionWhileInsert()<cr>
 inoremap <M-j> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.next()<cr>
 inoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
+inoremap <M-h> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.page_up()<cr>
+inoremap <M-l> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.page_down()<cr>
 inoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_window()<cr>
 inoremap <M-f> <C-R>=ClangdServerComplete([])<cr>
 vnoremap // y/\V<C-R>=escape(@",'/\')<CR><CR>

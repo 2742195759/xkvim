@@ -28,6 +28,8 @@ set <M-j>=j  "next Index search results.
 set <M-k>=k  "prev Index search results.
 set <M-e>=e  "<ESC>"
 set <M-/>=/  "<ESC>"
+set <M-h>=h  
+set <M-l>=l  
 "set <M->=  "换行，但是会执行
 nnoremap  <M-o> <C-o>zv
 nnoremap  <M-i> <C-i>zv

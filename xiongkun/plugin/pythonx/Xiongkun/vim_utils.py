@@ -103,6 +103,12 @@ def GoToLocation(location, method):
     elif method == 'p':
         vimcommand("pedit! +%d %s"%(location.getline(), location.getfile()))
         vimcommand("normal zv")
+    elif method == 't':
+        vimcommand("tabe! +%d %s"%(location.getline(), location.getfile()))
+        vicommand("normal zv")
+    elif method == 's':
+        vimcommand("vne! +%d %s"%(location.getline(), location.getfile()))
+        vicommand("normal zv")
 
 def GetCurrentLine():
     """
@@ -122,6 +128,9 @@ def GetCursorXY():
     get the [int, int] position of cursor.
     """
     return [ int(i) for i in vimeval("getpos('.')")[1:3]]
+
+def SetCursorXY(x, y):
+    vimeval(f"setpos('.', [0, {x}, {y}, 0])")
 
 def SetCurrentLine(text):
     """
@@ -208,7 +217,9 @@ def Input(promote=""):
 def GetPwd():
     return vimeval("getcwd()")
 
-def GetAllLines(bufnr):
+def GetAllLines(bufnr=None):
+    if bufnr == None: 
+        bufnr = vimeval("bufnr()")
     return vimeval(f"getbufline({bufnr}, 1, '$')")
     
 def SetVimRegister(reg, content):

@@ -25,6 +25,7 @@ def Help(args):
     print (
 """
 HH      ===>   help page.
+FF      ===>   File Finder simulate CtrlP with faster speed. hotkey: <C-P><C-P>.
 NN      ===>   next stage.
 Impl    ===>   create_impl_file for cpu / gpu reuse.
 Helper  ===>   create_helper for cpu / gpu reuse.

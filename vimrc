@@ -227,7 +227,7 @@ set shell=bash
 set path+='./'
 set cursorline
 set tags+=/root/cpp_src/stl.tags
-hi CursorLine cterm=Underline ctermbg=None ctermfg=None
+"hi CursorLine cterm=Underline ctermbg=None ctermfg=None
 
 
 """ configure for quick-peek plugin 
@@ -258,3 +258,4 @@ abbre fftp ftp://10.255.129.13:8081/
 let g:airline_section_b = trim(system("git symbolic-ref --short HEAD"))
 set foldopen=hor,search,jump,block,mark,quickfix
 set foldclose=all
+hi CursorLine term=bold ctermbg=24 guibg=#13354A

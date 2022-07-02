@@ -168,11 +168,11 @@ class GitFileCommitLogBuffer(BashCommandResultBuffer): #{{{
     def keymap_func(self, key):
         if key == "j": self._next(True)
         if key == "k": self._next(False)
-        if key == 'd': self._diff()
+        if key == '<enter>': self._diff()
         if key == 'o': self._open()
 
     def get_keymap(self):
-        sets = [ 'j', 'k', 'd', 'o' ]
+        sets = [ 'j', 'k', '<enter>', 'o' ]
         ret = {}
         for s in sets:
             ret[s] = GitFileCommitLogBuffer.keymap_func
@@ -196,21 +196,21 @@ class GitFileCommitLogBuffer(BashCommandResultBuffer): #{{{
     def _diff(self):
         commit = GetCurrentLine().split(' ')[1]
         cur_pr, prev_commit = self._parse_info()
-        name = "--" + self.filename.split("/")[-1]
+        prev_commit = vim.eval("system(\"git log {commit}^ -1 | head -n1 | cut -d' ' -f2\")".format(commit=commit)).strip()
         if prev_commit is None: return 
         self.ondiff(commit, prev_commit)
 #}}}
 
 class GitFileSelector(BashCommandResultBuffer): #{{{
     def __init__(self, cmd, onenter): 
-        """ function(line: str)
+        """ function(line: str, files=boolean)
         """
         super().__init__(cmd, "nerdtree")
         self.onenter = onenter
 
     def get_keymap(self):
-        sets = [ 'g' ]
-        ret = {'g': lambda x, y: self.onenter(GetCurrentLine().strip())}
+        sets = [ '<enter>' ]
+        ret = {'<enter>': lambda x, y: self.onenter(GetCurrentLine().strip(), False)}
         return ret
 #}}}
 
@@ -228,7 +228,7 @@ class GitPreviewApp(Application):#{{{
                 self.git_diff_layout = GitDiffLayout(True, True)
                 self.git_diff_layout.create()
 
-            def onenter(file):
+            def onenter(file, files=False):
                 diff_files_cmd = f"git diff {commit0} {commit1} | grep 'diff --git' | cut -d' ' -f3 | cut -c3- | uniq -u"
                 self.git_diff_files.create(GitFileSelector(diff_files_cmd, onenter))
 
@@ -238,18 +238,19 @@ class GitPreviewApp(Application):#{{{
                 for buf, commit in zip(bufs, commits): 
                     cmd = "git show %s:%s" % (commit, file)
                     buf.create(BashCommandResultBuffer(cmd, filetype))
-
-                self.git_diff_layout.reset_buffers({
+                bufdict = {
                     'files': self.git_diff_files.get(), 
                     'first': self.git_diff_0.get(), 
                     'second': self.git_diff_1.get(),
-                })
+                }
+                if not files: del bufdict['files']
+                self.git_diff_layout.reset_buffers(bufdict)
                 self.git_diff_layout.windiff(['first', 'second'])
 
-            onenter(self.filename)
+            onenter(self.filename, files=True)
 
         self.git_diff_layout = None
-        self.git_log_layout = TabeLayout('win')
+        self.git_log_layout = CreateWindowLayout(active_win='win')
         self.git_log_buf = GitFileCommitLogBuffer(self.filename, ondiff)
 
         self.git_diff_0 = BufferSmartPoint()
