@@ -122,6 +122,7 @@ function! FileTypeBranch()
 endfunction
 
 packadd cfilter
+packadd termdebug
 
 
 """""""""""""""": HighLight Group {{{
