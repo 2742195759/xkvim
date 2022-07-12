@@ -1,3 +1,5 @@
+# TODO: conda deactivate
+~/xkvim/install.sh
 cd ..
 apt update
 apt install libncurses-dev -y
@@ -9,7 +11,7 @@ make distclean  # 如果您以前构建Vim
 ./configure --prefix=/usr --with-features=huge \
 --enable-multibyte \
 --enable-python3interp \
---with-python3-config-dir=`python3 ./find_pythonlib.py` \
+--with-python3-config-dir=`python3 ~/xkvim/find_pythonlib.py` \
 --enable-cscope \
 --enable-gui=auto \
 --enable-gtk2-check \
@@ -22,4 +24,5 @@ make distclean  # 如果您以前构建Vim
 make install
 make VIMRCLOC=/etc/vim/ VIMRUNTIMEDIR=/usr/share/vim MAKE="make -e -j 20"
 ln -sf /usr/share/vim/vim82 /usr/share/vim/vim81
-alias vim=/usr/bin/vim
+rm -rf /usr/bin/vim
+source ~/.bashrc
