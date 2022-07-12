@@ -123,6 +123,12 @@ endfunction
 
 packadd cfilter
 
+
+"""""""""""""""": HighLight Group {{{
+hi ListBoxKeyword term=bold ctermfg=208 ctermbg=24
+hi ListBoxLine term=bold ctermbg=24
+""""""""""""""}}}
+
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))

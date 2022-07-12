@@ -259,3 +259,12 @@ let g:airline_section_b = trim(system("git symbolic-ref --short HEAD"))
 set foldopen=hor,search,jump,block,mark,quickfix
 set foldclose=all
 hi CursorLine term=bold ctermbg=24 guibg=#13354A
+
+function! MyPlugin(...)
+    if &filetype == 'filefinder'
+      let w:airline_section_a = 'FileFinder'
+      let w:airline_section_b = getwinvar(winnr(), "filefinder_mode")
+      let w:airline_section_c = "Author: @xiongkun"
+    endif
+  endfunction
+call airline#add_statusline_func('MyPlugin')

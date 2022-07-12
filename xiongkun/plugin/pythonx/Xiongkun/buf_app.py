@@ -365,6 +365,7 @@ class Widget():
         if keyword: 
             items.append(keyword)
         cmd = r"\\&".join(items)
+        cmd += r"\\c"
         mid = vim.eval("matchadd(\"{}\", \"{}\", {})".format(
             high, 
             cmd, 
@@ -657,10 +658,11 @@ class ListBoxWidget(Widget):
         self.cur = 0
         self.height = height
         self.cur_match_id = None
-        self.highlight_group = "Directory"
+        self.highlight_group = "ListBoxLine"
         self.search_match_id = None
-        self.search_highlight = "CursorLineNr"
+        self.search_highlight = "ListBoxKeyword"
         self.search_keyword = None
+        self.tmp_mid = None
     
     def cur_item(self):
         if self.cur >= len(self.items): return None
@@ -680,21 +682,25 @@ class ListBoxWidget(Widget):
         self.search_keyword = keyword
 
     def ondraw(self, draw_context, position): 
+        width = draw_context.screen_size[1]
+        def padded(text):
+            return str(text) + (width - len(str(text))) * ' '
         self.position = position
         start, end = position
         buffer = draw_context.string_buffer
         if not len(self.items): 
-            buffer[start] = "Not Found"
+            buffer[start] = padded("Not Found")
         else: 
             for text in self.items:
                 if start >= end: break
-                buffer[start] = str(text)
+                buffer[start] = padded(str(text))
                 start += 1
 
         # line highlight to indicate current selected items.
         self._rematch("cur_match_id", self.highlight_group, (self.cur, self.cur+2), None)
         if self.search_keyword: 
-            self._rematch("search_match_id", self.search_highlight, (0, self.height+1), self.search_keyword)
+            self._rematch("search_match_id", "CursorLineNr", (0, self.height+1), self.search_keyword)
+        self._rematch("tmp_mid", self.search_highlight, (self.cur, self.cur+2), self.search_keyword, 10)
         
     def get_widgets(self): 
         return [[self.wopt.name, self]]
@@ -702,9 +708,32 @@ class ListBoxWidget(Widget):
     def get_height(self):
         return self.height
 
+class MruList:
+    def __init__(self):
+        self.items = []
+
+    def push(self, item):
+        if item in self.items: 
+            idx = self.items.index(item)
+            del self.items[idx]
+        self.items.append(item)
+
+    def get_as_list(self):
+        return self.items
+
+    def save(self, file):
+        import pickle
+        pickle.dump(self.items, open(file, "wb"))
+
+    def load(self, file):
+        import pickle
+        if os.path.isfile(file):
+            self.items = pickle.load(open(file, "rb"))
+
 class FileFinderPGlobalInfo: 
     files = None
-
+    mru = MruList()
+    mru_path = "/home/data/.vim_mru"
     @classmethod
     def preprocess(self):
         self.files = []
@@ -712,6 +741,17 @@ class FileFinderPGlobalInfo:
             line = line.strip()
             if line and os.path.isfile(line):
                 self.files.append(line)
+        self.mru.load(self.mru_path)
+
+    @classmethod
+    def get_mru(self):
+        return self.mru.get_as_list()
+
+    @classmethod
+    def update_mru(self, filepath):
+        absp = os.path.abspath(filepath)
+        self.mru.push(absp)
+        self.mru.save(self.mru_path)
     
 class FileFinderBuffer(WidgetBuffer):
     def __init__(self, name="FileFinder", history=None, options=None):
@@ -724,7 +764,9 @@ class FileFinderBuffer(WidgetBuffer):
         if FileFinderPGlobalInfo.files is None: 
             FileFinderPGlobalInfo.preprocess()
         self.last_window_id = vim.eval("win_getid()")
+        self.saved_cursor = GetCursorXY()
         self.files = FileFinderPGlobalInfo.files
+        self.mode = "file"
 
     def on_search(self):
         """ 
@@ -748,7 +790,6 @@ class FileFinderBuffer(WidgetBuffer):
             if p.startswith("+") or p.startswith("-"): qualifier.append(p)
             else: search_base = p
 
-        if search_base is None: return
         def filt(filepath): 
             basename = os.path.basename(filepath).lower()
             filepath = filepath.lower()
@@ -765,13 +806,18 @@ class FileFinderBuffer(WidgetBuffer):
             basename = os.path.basename(filepath).lower()
             filepath = filepath.lower()
             return len(basename) - len(search_base)
-            
-        res = sorted(list(filter(filt, self.files)), key=lambda x: score(x))
-        self.widgets['result'].set_items(res)
-        self.widgets['result'].set_keyword(search_base)
+
+        if search_base is None: 
+            self.widgets['result'].set_items(self.files)
+            self.widgets['result'].set_keyword(None)
+        else:
+            res = sorted(list(filter(filt, self.files)), key=lambda x: score(x))
+            self.widgets['result'].set_items(res)
+            self.widgets['result'].set_keyword(search_base)
         self.redraw()
 
     def goto(self, filepath, cmd=None):
+        FileFinderPGlobalInfo.update_mru(filepath)
         self.on_exit()
         if filepath:
             vim.command(f"{cmd} {filepath}")
@@ -782,6 +828,7 @@ class FileFinderBuffer(WidgetBuffer):
         vim.command("q")
         self.delete()
         vim.eval(f"win_gotoid({self.last_window_id})")
+        SetCursorXY(*self.saved_cursor)
 
     def on_cursor_hold(self):
         self.on_search()
@@ -794,6 +841,11 @@ class FileFinderBuffer(WidgetBuffer):
     def on_input_end(self):
         super().on_input_end()
         self.on_search()
+
+    def oninit(self):
+        super().oninit()
+        vim.command(f'let w:filefinder_mode="{self.mode}"')
+        vim.command('set filetype=filefinder')
 
     def on_item_up(self):
         self.widgets['result'].cur_up()
@@ -809,9 +861,13 @@ class FileFinderBuffer(WidgetBuffer):
         m = super().get_keymap()
         m.update({
             "i:<up>": lambda x,y: self.on_item_up(),
-            "i:<down>": lambda x,y: self.on_item_down(),
             "<up>": lambda x,y: self.on_item_up(),
+            "i:<down>": lambda x,y: self.on_item_down(),
             "<down>": lambda x,y: self.on_item_down(),
+            'i:<c-k>': lambda x,y: self.on_item_up(),
+            'i:<c-j>': lambda x,y: self.on_item_down(),
+            '<c-k>': lambda x,y: self.on_item_up(),
+            '<c-j>': lambda x,y: self.on_item_down(),
             'i:<enter>': lambda x,y: self.on_enter("e"),
             '<enter>': lambda x,y: self.on_enter("e"),
             'i:<c-s>': lambda x,y: self.on_enter("vne"),
@@ -820,8 +876,21 @@ class FileFinderBuffer(WidgetBuffer):
             'i:<c-t>': lambda x,y: self.on_enter("tabe"),
             '<c-p><c-p>': lambda x,y: x,
             '<c-p>': lambda x,y: x,
+            'i:<tab>': lambda x,y: self.on_change_database(),
+            '<tab>': lambda x,y: self.on_change_database(),
         })
         return m
+
+    def on_change_database(self):
+        if not hasattr(self, "mode") or self.mode == "file":
+            setattr(self, "mode", "mru")
+            self.files = FileFinderPGlobalInfo.get_mru()[::-1]
+        else: 
+            setattr(self, "mode", "file")
+            self.files = FileFinderPGlobalInfo.files
+        vim.command(f"let w:filefinder_mode = \"{self.mode}\"")
+        vim.command("AirlineRefresh")
+        
 
 class FileFinderApp(Application):
     """ 
