@@ -7,7 +7,7 @@ cd gdb-12.1/
 mkdir build
 cd build
 apt update
-apt install -y libncurses5-dev libpython-dev texinfo libgmp3-dev
+apt install -y libncurses5-dev libpython-dev texinfo libgmp3-dev lzma-dev
 ../configure --with-python --enable-tui
 make -j 48 
 make install

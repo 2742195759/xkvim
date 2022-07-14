@@ -106,9 +106,9 @@ def GoToLocation(location, method):
     elif method == 't':
         vimcommand("tabe! +%d %s"%(location.getline(), location.getfile()))
         vicommand("normal zv")
-    elif method == 's':
+    elif method == 'v':
         vimcommand("vne! +%d %s"%(location.getline(), location.getfile()))
-        vicommand("normal zv")
+        vimcommand("normal zv")
 
 def GetCurrentLine():
     """

@@ -910,6 +910,10 @@ class FileFinderApp(Application):
         vim.command("setlocal modifiable")
         vim.command("startinsert")
 
+@vim_register(command="FR")
+def FileFinderReflesh(args):
+    FileFinderPGlobalInfo.preprocess()
+
 @vim_register(command="FF")
 def FileFinder(args):
     ff = FileFinderApp()
