@@ -124,7 +124,6 @@ endfunction
 packadd cfilter
 packadd termdebug
 
-
 """""""""""""""": HighLight Group {{{
 hi ListBoxKeyword term=bold ctermfg=208 ctermbg=24
 hi ListBoxLine term=bold ctermbg=24
@@ -146,8 +145,8 @@ endfunction"}}}
 
 """""""""""""""": Map below {{{
 noremap <silent> <space>m :Mt<cr>
-noremap K :!clear && dict <C-R>=expand("<cword>")<cr><cr>
-vnoremap K "dy:!clear && dict <C-R>d<cr>
+"noremap K :!clear && dict <C-R>=expand("<cword>")<cr><cr>
+"vnoremap K "dy:!clear && dict <C-R>d<cr>
 
 noremap <C-]> <Cmd>call UniverseCtrl()<cr>
 noremap <M-f> <Cmd>call UniverseSearch()<cr>

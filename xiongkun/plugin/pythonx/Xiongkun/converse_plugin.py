@@ -94,3 +94,28 @@ def PaddleMake(args):
     send(f"cd {build_path} && ./rebuild.sh >{error_file} 2>&1", "807377414")
     vim.command(f"cfile {error_file}")
 
+def baidu_translate(sentence):
+    import subprocess
+    cmd = "python3 ~/xkvim/cmd_script/baidu_fanyi.py --query \"{sentence}\"".format(
+        sentence = sentence,
+    )
+    child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+    info = child.stdout.readline().strip()
+    vim.command("echom '百度翻译结果：'")
+    print(info)
+
+@vim_register(keymap="K")
+def Translate(args):
+    word = vim_utils.GetCurrentWord()
+    baidu_translate(word)
+
+@vim_register_visual(keymap="K")
+def VisualTranslate(args):
+    """ `< and `>
+    """
+    with vim_utils.CursorGuard():
+        with vim_utils.NotChangeRegisterGuard('r'):
+            vim.command('normal gv"ry')
+            text = vim.eval("@r")
+            text.replace("\r", "")
+    baidu_translate(text)
