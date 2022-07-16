@@ -1,7 +1,8 @@
-set environment PYTHONPATH=/home/data/Paddle/build_svd/python/
+set environment PYTHONPATH=/home/ssd2/xiongkun/Paddle/build_debug/python
+set environment CUDA_VISIBLE_DEVICES=2
 python
 import sys
-sys.path.insert(0, '/home/data/gdb')
+sys.path.insert(0, '/root/xkvim/install_sh/pretty_print.py')
 from pretty_print import register_libstdcxx_printers 
 register_libstdcxx_printers (None)
 end
