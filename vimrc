@@ -64,26 +64,18 @@ set backspace=indent,eol,start whichwrap+=<,>,[,]
 set ofu=syntaxcomplete#Complete
 
 
-set mouse=a
+set mouse=
 
 " option for foldmethod
 set fdm=marker
-set foldcolumn=1
+set foldcolumn=2
 
 colorscheme molokai
 "source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc  # move to metakey.vim
 source ~/Important/MyVim/_MY_VIM_/WindowTabeSwitch.vimrc
-if (or(&filetype == 'c',&filetype=='cpp'))
-	source ~/Important/MyVim/_MY_VIM_/VimCpp.vimrc
-elseif (&filetype == 'vim')
-	set commentstring=\"%s
-elseif (&filetype == 'python')
-    set commentstring=#%s
-    source ~/Important/MyVim/_MY_VIM_/VimPython.vimrc
-end
 
 " xiongkun added in 2021 year
-map gs :w<cr>
+map gs :update<cr>
 nn <up> <C-u>
 nn <down> <C-d>
 " nmap o  i<cr>
@@ -213,8 +205,7 @@ autocmd BufEnter * source ~/.vim/after/keymap.vim
 
 augroup NERDTREE
     autocmd!
-    autocmd VimEnter * NERDTreeToggle
-    "autocmd TabNew * NERDTreeMirror
+    autocmd VimEnter * NERDTreeToggle | wincmd w
 augroup END
 
 if filereadable(expand("~/.xkconfig.vim"))
@@ -236,13 +227,44 @@ set shell=bash
 set path+='./'
 set cursorline
 set tags+=/root/cpp_src/stl.tags
-hi CursorLine cterm=Underline ctermbg=None ctermfg=None
-
+"hi CursorLine cterm=Underline ctermbg=None ctermfg=None
 
 
 """ configure for quick-peek plugin 
 let g:quickpeek_auto = v:true
-set completeopt=menu,
+set completeopt=menu,preview
 " Open filetype plugin, you can use the quickpeek plugin
 filetype plugin on 
 
+""" configure for g:UltiSnippetEdit
+let g:UltiSnipsSnippetStorageDirectoryForUltiSnipsEdit="/root/xkvim/xiongkun/plugin/UltiSnips/"
+
+""" universe reflesh
+function! UniverseReflesh()
+    call UltiSnips#RefreshSnippets()
+    YcmRestartServer
+endfunction
+nmap <F9> :call UniverseReflesh()<cr>
+let g:ctrlp_by_filename = 1  "default by filename mode for speed."
+nmap <leader><M-m> :tabe<cr>\M
+
+let NERDTreeIgnore = ['\.pyc$', 'user_tag', '\.aux', '\.out', '\.log', '\.pdf']  " 过滤所有.pyc文件不显示
+let g:netrw_ftp_list_cmd = "ls"
+let g:netrw_ftp_cmd="ftp -p "
+
+abbre fftp ftp://10.255.129.13:8081/
+
+" add branch information. 2022/5/19
+let g:airline_section_b = trim(system("git symbolic-ref --short HEAD"))
+set foldopen=hor,search,jump,block,mark,quickfix
+set foldclose=all
+hi CursorLine term=bold ctermbg=24 guibg=#13354A
+
+function! MyPlugin(...)
+    if &filetype == 'filefinder'
+      let w:airline_section_a = 'FileFinder'
+      let w:airline_section_b = getwinvar(winnr(), "filefinder_mode")
+      let w:airline_section_c = "Author: @xiongkun"
+    endif
+  endfunction
+call airline#add_statusline_func('MyPlugin')

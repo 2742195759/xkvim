@@ -5,10 +5,10 @@ function! s:RegisterSyncRead(timer_id)
     let filepath = expand('~/.vim_yank.txt')
     let last_ftime = getftime(filepath)
     if last_ftime > g:last_ftime
-        let regname = '"'
         let lines = readfile(filepath, 'r')
+        let regname = lines[0]
         if len(lines)> 0
-            call setreg(regname, lines[1:], lines[0])
+            call setreg(regname, lines[2:], lines[1])
             let last_ftime = last_ftime
         endif
     endif
@@ -26,9 +26,12 @@ function! s:RegisterSyncWrite()
     " sync the register of yank.
     let filepath = expand('~/.vim_yank.txt')
     "if v:event['regname'] == '"'
+    "let reg_to_sync = getreginfo()['points_to']
     let lines =  copy(v:event['regcontents'])
     let lines = insert(lines, v:event['regtype'], 0)
+    let lines = insert(lines, '"')
     cal writefile(lines, filepath, 's')
+    let g:last_ftime = getftime(filepath) "prevent the self read.
     "endif
 endfunction
 

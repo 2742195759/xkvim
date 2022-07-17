@@ -96,6 +96,13 @@ $0
 endsnippet
 #}}}
 
+# {{{
+snippet Exception "Create Customized Exception."
+class NetworkError(Exception):
+    pass
+endsnippet
+# }}}
+
 #{{{unittest
 snippet unittest "add unittest for python code"
 class ${1:TestCaseName}(unittest.TestCase):
@@ -107,7 +114,9 @@ class ${1:TestCaseName}(unittest.TestCase):
 
     def test_${3:add}(self):
         self.assertEqual(1, 1)
-
+        with self.assertRaisesRegex(AssertionError,
+                                    ('the context of the exception')):
+            pass
 $0
 endsnippet
 #}}}
@@ -174,7 +183,7 @@ endsnippet
 #}}}
 
 #{{{fread
-snippet open "open file and read lines"
+snippet fread "open file and read lines"
 with open(${1:"output.txt"}, "r") as fp :
     ${2:lines} = fp.readlines()
 endsnippet
@@ -240,19 +249,53 @@ endsnippet
 
 #{{{ # pd.nvprofile
 snippet pd_profile_cuda "cuda profile"
-import paddle.fluid.core as core
-global_step += 1
-if is_nsys and global_step == 100:
-    core.nvprof_start()
-    core.nvprof_enable_record_event()
-    core.nvprof_nvtx_push(str(global_step))
-if is_nsys and global_step == 110:
-    core.nvprof_nvtx_pop()
-    core.nvprof_stop()
-    sys.exit()
-if is_nsy and global_step > 100 and global_step < 110:
-    core.nvprof_nvtx_pop()
-    core.nvprof_nvtx_push(str(global_step))
+import os
+class PaddleProfiler:
+    def __init__(self, start, end):
+        self.s = start
+        self.e = end
+        self.cur = 0
+
+    def step(self):
+        self.cur += 1
+        if self.cur == self.s:
+            self.profile_start()
+        if self.cur == self.e:
+            self.profile_stop()
+        if self.cur > self.s and self.cur < self.e:
+            self.profile_step()
+
+    def profile_start(self):
+        from paddle.framework import core
+        core.nvprof_start()
+        core.nvprof_enable_record_event()
+        core.nvprof_nvtx_push(str(self.cur))
+
+    def profile_step(self):
+        from paddle.framework import core
+        core.nvprof_nvtx_pop()
+        core.nvprof_nvtx_push(str(self.cur))
+
+    def profile_stop(self):
+        from paddle.framework import core
+        core.nvprof_nvtx_pop()
+        core.nvprof_stop()
+        os._exit(0)
+pp = PaddleProfiler(100, 110)
+for batch in batches:
+    pp.step()
+endsnippet
+#}}}
+
+#{{{ # pd.in_eager
+snippet pd.in_eager "is paddle in eager mode ? "
+if _in_eager_mode():
+    return _C_ops.final_state_allclose()
+endsnippet
+#}}}
+
+snippet pd.mode_import "non_static_mode"  #{{{
+from paddle.fluid.framework import in_dygraph_mode, non_static_mode, _in_legacy_dygraph
 endsnippet
 #}}}
 
@@ -341,3 +384,243 @@ with EventStorage() as storage:
 	storage.step()
 endsnippet
 #}}}
+
+###############
+#
+# Ply snippets
+#
+###############
+
+#{{{ # p_
+snippet p_ "p_function of ply. a syntax parser function"
+def p_${1:expr}(p):
+    '''
+    $1 : ${2:TODO}
+    '''
+    ${3:p[0] = p[1]}
+
+$0
+endsnippet
+#}}}
+
+###############
+#
+# Threading
+#
+###############
+
+snippet Lock "Threading Lock" #{{{
+from threading import Lock
+l = Lock() # normal lock
+l = RLock() # reusable lock. multi-acquire and multi-release
+l.acquire()
+l.release()
+endsnippet
+#}}}
+
+snippet subprocess "subprocess example in python" #{{{
+import subprocess
+# create subprocess
+child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+# write into the stdin: string
+child.stdin.write("write into.")
+# C-D
+child.stdin.close()
+# get output from stdout
+info = child.stdout.read(num_bytes)
+info = child.stdout.readline()
+
+endsnippet
+#}}}
+
+snippet Thread "create thread and run a function." #{{{
+import threading
+# exit after run
+threading.Thread(target=func, args=(a1,), daemon=True).start() 
+# exit manually
+threading.Thread(target=func, args=(a1,), daemon=False).start() 
+endsnippet
+#}}}
+
+snippet pd.speed_test "[dygraph] speed test example for evaluation of matmul." #{{{
+import time
+import paddle
+
+shape = (100 ,100)
+times = 10000
+average_time = 30
+
+paddle.set_device('gpu')
+x = paddle.to_tensor(np.random.rand(*shape))
+y = paddle.to_tensor(np.random.rand(*shape))
+
+time_list = []
+for _ in range(average_time):
+    start = time.time()
+    for i in range(times):
+        z = paddle.matmul(x, y)
+    time_list.append( time.time() - start )
+
+print ("AvgTime: ", sum(time_list) * 1.0 / len(time_list))
+endsnippet
+#}}}
+
+snippet pd.static_example "[static] a static graph example" #{{{
+# TODO( Snippet paddle import. )
+paddle.set_device('cpu')
+paddle.enable_static()
+main_prg, startup_prg = Program(), Program()
+with program_guard(main_prg, startup_prg):
+    var_a = paddle.static.data(name='a', shape=[2,2], dtype='float32')
+    var_b = paddle.static.data(name='b', shape=[1], dtype='int64')
+    var_a.stop_gradient = False
+    var_c = paddle.unsqueeze(var_a, var_b)
+    print("CompileTimeShape:", var_c.shape)
+    exe = paddle.static.Executor()
+    exe.run(startup_prg)
+    out = exe.run(main_prg, 
+                  feed={'a': np.array([[1.0,2],[3,4]], dtype='float32'), 
+                        'b': np.array([0])}, 
+                  fetch_list=[var_c])
+    print("RuntimeShape", out[0].shape)
+endsnippet
+#}}}
+
+snippet doc "create doc for python function." #{{{
+    '''
+    Description of function.
+
+    Parameters
+    ----------
+    parameter_name:
+        description of parameter.
+    
+    Returns
+    -------
+    A tuple of g_labels, g_view, g_nout, g_count
+    g_labels:
+        the layout of all labels in a string
+    g_view:
+        the index table
+    g_nout:
+        the number of output dimensions
+    g_count:
+        the counter array for dimension contractions
+    '''
+endsnippet
+#}}}
+
+snippet string_example "string method example." #{{{
+x = "abcdefg".replace("abc", "xxx") # "xxxdefg
+x = "bbcaaadd".count('a') # 3
+x, *y = "xxxx".split("->") # x: "xxxx", y: []
+res = map(lambda x: x.strip(), "x , y ".split(",")) # res = ['x', 'y']
+x = "a".isalpha() # True
+endsnippet
+#}}}
+
+snippet default_dict "default_dict" #{{{
+import collections
+ddict = collections.defaultdict(lambda: [])
+endsnippet
+#}}}
+
+snippet counter "counter example from collections" #{{{
+import collections
+a = "11222333"
+cnt = collections.Counter(a)
+list(cnt.elements()) # ['1', '2', '3']
+cnt.get("1") # 2
+endsnippet
+#}}}
+
+snippet prod "prod of a list" #{{{
+import numy as np
+np.prod([1,2,3,], dtype=np.int64)  # 6
+endsnippet
+#}}}
+
+snippet filter "filter a list or map" #{{{
+list = [None, 1, 2, 3]
+# while function == True, we keep it.
+filter(None, list) # [1,2,3]
+filter(lambda x: x == 1, list) # [1]
+endsnippet
+#}}}
+
+snippet func_cache "function cache provided by functools" #{{{
+from functools import lru_cache
+# function is a function. the lru_cache is a wrapper.
+# so we call the lru_cache and reset the function with wrapped function.
+function = lru_cache(maxsize=128)(function)
+endsnippet
+#}}}
+
+snippet print_to_file "print into a file." #{{{
+with open(${2:"./output.txt"}, "w") as fp:
+    import sys
+    saved = sys.stdout
+    sys.stdout = fp
+    print (${1:"hello world"})
+    sys.stdout = saved
+endsnippet
+#}}}
+
+snippet fake_data "paddle fake dataloader for model." #{{{
+# method 1: fake data_loader .
+BATCH_SIZE = 128
+BATCH_NUM = 665
+IMAGE_SIZE = (3, 224, 224)
+class RandomDataset(paddle.io.Dataset):
+    def __init__(self, num_samples):
+        self.num_samples = num_samples
+
+    def __getitem__(self, idx):
+        image = np.random.random(IMAGE_SIZE).astype('float32')
+        label = np.random.randint(0, 1, 1).astype('int64')
+        return image, label
+
+    def __len__(self):
+        return self.num_samples
+
+dataset = RandomDataset(665 * BATCH_SIZE)
+data_loader = paddle.io.DataLoader(dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=True,
+            drop_last=True,
+            num_workers=2)
+endsnippet
+#}}}
+
+snippet fake_data "paddle fake data for training." #{{{
+# method 2: fake data directly.
+inputs_node = paddle.rand((args.batch_size, args.msa_length // args.dap_size, args.res_length, args.cm))
+inputs_pair = paddle.rand((args.batch_size, args.res_length // args.dap_size, args.res_length, args.cz))
+
+node_mask = paddle.ones((args.batch_size, args.msa_length, args.res_length))
+pair_mask = paddle.ones((args.batch_size, args.res_length, args.res_length))
+
+endsnippet
+#}}}
+
+snippet tensorflow_static "tensorflow static example" #{{{
+# import tensorflow as tf
+
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
+# m0 = tf.reshape(tf.random.normal(shape=[2, 3]), [2, -1])
+# m1 = tf.reshape(tf.random.normal(shape=[3, 5]), [3, -1])
+m0 = tf.placeholder(tf.float32, (None, 2, None), name='Xs')
+m1 = tf.placeholder(tf.float32, (None, None, 3), name='ys')
+print(m0, m1)
+
+e = tf.einsum('ijk, ijk->ijk', m0, m1)
+# output[i,k] = sum_j m0[i,j] * m1[j, k]
+print(e.shape)
+print(e)
+print(tf.get_default_graph())
+
+endsnippet
+#}}}
+
+

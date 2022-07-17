@@ -34,21 +34,68 @@ import vim
 import sys
 import os
 
-def vim_register(name="", keymap=""):
+def vim_register(name="", keymap="", command="", with_args=False):
+    """
+    keymap: i:MAP | MAP
+    """
     def decorator(func):
         # register in vim
+        nonlocal keymap
+        keymap_mode = "noremap"
+        if keymap.startswith("i:"):
+            keymap_mode = "inoremap"
+            keymap = keymap[2:]
+
         vim_name = name
-        if not vim_name : vim_name = func.__name__.capitalize()
+        if not vim_name : 
+            vim_name = func.__name__.capitalize()
+            vim_name = "Py%s" % vim_name
+
         vim.command(
 """
-function! Py%s(list_of_args)
+function! %s(list_of_args)
     execute 'py3' 'Xiongkun.%s(vim.eval("a:list_of_args"))'
+    return ""
 endfunction
-"""%(vim_name, func.__name__)
-        )
+"""%(vim_name, func.__name__))
+
+        if keymap != "": 
+            vim.command( f"""
+{keymap_mode} {keymap} :call {vim_name} ([])<cr>
+""")
+
+        if command != "": 
+            # split by space,  and pass as string
+            arg_num = '0'
+            if with_args: arg_num = '*'
+            vim.command( """ command! -n=%s %s cal %s(split("<args>", " ")) """%(arg_num, command, vim_name))
         return func
     return decorator
 
+def vim_register_visual(keymap):
+    """
+    keymap: MAP
+    """
+    def decorator(func):
+        # register in vim
+        nonlocal keymap
+        keymap_mode = "vnoremap"
+        vim_name = func.__name__.capitalize()
+        vim_name = "Py_visual_%s" % vim_name
+        vim.command(
+"""
+function! %s(list_of_args)
+    execute 'py3' 'Xiongkun.%s(vim.eval("a:list_of_args"))'
+    return ""
+endfunction
+"""%(vim_name, func.__name__))
+
+        assert keymap != "", "Error"
+        vim.command(f"""
+{keymap_mode} {keymap} <esc><Cmd>call {vim_name} ([])<cr>
+""")
+        return func
+    return decorator
 
 """
 for test, create a PyEcho function in vim environment. echo the first args.

@@ -16,3 +16,6 @@ apt install -y python3-pip
 pip3 install dict-cli
 
 apt install -y language-pack-zh-hans
+python3 -m pip install requests
+python3 -m pip install ply
+
