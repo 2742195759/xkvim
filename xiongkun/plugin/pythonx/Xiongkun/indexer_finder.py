@@ -113,7 +113,7 @@ class Indexer(Worker):# {{{
 
             set the shell=False, and the command is the shlex.split("SHELL_CMD"), we can avoid the dumped core.
         """
-        self.proc = subprocess.Popen(shlex.split("/home/data/clang/llvm-project/build/bin/clangd-demo --index_path=%s " % self.path), 
+        self.proc = subprocess.Popen(shlex.split("/root/xkvim/cmd_script/clangd-index-finder --index_path=%s " % self.path), 
             shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
 
     def getprocess(self):
