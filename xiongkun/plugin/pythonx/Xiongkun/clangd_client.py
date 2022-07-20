@@ -11,6 +11,18 @@ from contextlib import contextmanager
 from .windows import GlobalPreviewWindow
 import time
 
+def do_path_map(path, fr="clangd", to="vim"):
+    """
+    prefix = None to disable the path map.
+    """
+    prefix = {"vim": "/home/ssd2", "clangd": "/home/data/xiongkun"}
+    prefix = None
+    if prefix is None:
+        return path
+    if not path.startswith(prefix[fr]): 
+        raise RuntimeError(f"Got `{fr}` path: `{path}`, which is not found in vim client.")
+    return prefix[to] + path[len(prefix[fr]):]
+
 client_id = str(random.randint(1, 10000))
 clangd = None
 
@@ -46,7 +58,7 @@ def StopAutoCompileGuard():# {{{
     finally:
         _StartAutoCompile()# }}}
 
-def send_by_python(json_req=None, cmd=None, url="http://10.255.129.13:10000", timeout=(2,2), **args):# {{{
+def send_by_python(json_req=None, cmd=None, url="http://10.255.125.22:10003", timeout=(2,2), **args):# {{{
     """ 
     """
     import json
@@ -85,7 +97,7 @@ def clangd_add_document(filepath="/home/data/hello_world.cpp"):# {{{
         "method": "textDocument/didOpen",
         "params": {
             "textDocument": {
-                "uri": "file:" + filepath,
+                "uri": "file://" + do_path_map(filepath, "vim", "clangd"),
                 "languageId": "cpp",
                 "text": content,
             },
@@ -103,7 +115,7 @@ def clangd_goto(id, filepath="/home/data/hello_world.cpp", method="definition", 
         #"method": "textDocument/implementation",
         "params": {
             "textDocument": {
-                "uri": "file:" + filepath,
+                "uri": "file://" + do_path_map(filepath, "vim", "clangd"),
             },
             "position": {
                 "line": pos[0], 
@@ -124,7 +136,7 @@ def clangd_complete(id, filepath, pos=(0,0)):# {{{
                 "triggerKind": 1, # invoke trigger.
             },
             "textDocument": {
-                "uri": "file:" + filepath,
+                "uri": "file://" + do_path_map(filepath, "vim", "clangd"),
             },
             "position": {
                 "line": pos[0], 
@@ -170,7 +182,7 @@ class Clangd():# {{{
     def _construct_reparse_request(self, filepath, content, want_diag=True):
         param = {
             "textDocument": {
-                "uri": "file:" + filepath,
+                "uri": "file://" + do_path_map(filepath, "vim", "clangd"),
             },
             "contentChanges": [self.getContentChanges(filepath, content)],
             "wantDiagnostics": want_diag,
@@ -192,7 +204,7 @@ class Clangd():# {{{
         self.did_open(filepath)
         json = {
             "method": "get_diags",
-            "file": "file://" + osp.abspath(filepath),
+            "file": "file://" + do_path_map(osp.abspath(filepath), 'vim', 'clang'),
         }
         def get_diags(json):
             """
@@ -300,14 +312,14 @@ def Clangd_GoToRef(args):# {{{
 
 @vim_register(name="ClangdServerStart")
 def ClangdStart(args):# {{{
-    send_by_python(cmd='create', directory=vim_utils.GetPwd())
+    send_by_python(cmd='create', directory=do_path_map(vim_utils.GetPwd(), "vim", "clangd"))
     global clangd
     if not clangd: clangd = Clangd()# }}}
 
 @vim_register(name="ClangdServerExit")
 def ClangdExit(args):# {{{
     clangd = None
-    send_by_python(cmd='remove', directory=vim_utils.GetPwd())# }}}
+    send_by_python(cmd='remove', directory=do_path_map(vim_utils.GetPwd(), "vim", "clangd"))# }}}
 
 @vim_register(name="ClangdDidOpen")
 def ClangdDidOpen(files):# {{{
@@ -317,7 +329,7 @@ def ClangdDidOpen(files):# {{{
 
 @vim_register(name="ClangdServerRestart", command="ClangdRestart")
 def ClangdRestart(args):# {{{
-    send_by_python(cmd='restart', directory=vim_utils.GetPwd())
+    send_by_python(cmd='restart', directory=do_path_map(vim_utils.GetPwd(), "vim", "clangd"))
     global clangd
     clangd = None
     ClangdStart([])# }}}
@@ -349,7 +361,7 @@ def ClangdCompleteInterface(args):# {{{
 # }}}
 
 def uri2abspath(uri):
-    return uri[7:]
+    return do_path_map(uri[7:], "clangd", "vim")
 
 @vim_register(name="ClangdServerComplete")
 def ClangdComplete(args):# {{{
