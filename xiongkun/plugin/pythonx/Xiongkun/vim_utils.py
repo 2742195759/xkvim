@@ -21,6 +21,16 @@ from .multiprocess_utils import *
 from .log import log
 import os
 
+def absolute_import(module_name, path):
+    import importlib.util
+    import sys
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    foo = importlib.util.module_from_spec(spec)
+    sys.modules["module.name"] = foo
+    spec.loader.exec_module(foo)
+    return foo
+
+
 vim_dispatcher = UIDispatcher() # main thread dispatcher, execute a function in main-thread(vim-thread / ui-thread)
 
 class NameGenerator:
@@ -478,3 +488,4 @@ def GetBufferList(pattern=None):
         if int(vim.eval(f"buflisted({i})")):  
             ret.append(vim.eval(f"bufname({i})"))
     return ret
+

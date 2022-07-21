@@ -205,13 +205,6 @@ augroup PopupPreview
     "autocmd CursorHoldI * cal TryOpenPreview()
 augroup END
 
-let g:enable_clangd=0
-if (match(getcwd(), "/home/data/") == 0 || match(getcwd(), "/home/ssd2/") == 0)&& g:enable_clangd
-    echo "Enable Clangd Server"
-    "start auto cmd
-    py3 Xiongkun.clangd_client._StartAutoCompile() 
-endif
-
 augroup FileIndentAutoCommand
     autocmd!
     autocmd BufEnter * call FileTypeBranch()

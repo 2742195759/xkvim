@@ -11,21 +11,6 @@ from contextlib import contextmanager
 from .windows import GlobalPreviewWindow
 import time
 
-def do_path_map(path, fr="clangd", to="vim"):
-    """
-    prefix = None to disable the path map.
-    """
-    prefix = {"vim": "/home/ssd2", "clangd": "/home/data/xiongkun"}
-    prefix = None
-    if prefix is None:
-        return path
-    if not path.startswith(prefix[fr]): 
-        raise RuntimeError(f"Got `{fr}` path: `{path}`, which is not found in vim client.")
-    return prefix[to] + path[len(prefix[fr]):]
-
-client_id = str(random.randint(1, 10000))
-clangd = None
-
 def _StartAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
@@ -36,8 +21,7 @@ augroup ClangdServer
     autocmd BufWritePost *.cc,*.h,*.cpp cal ClangdServerReparse([expand('%:p')])
 augroup END
 """
-    if int(vim.eval("g:enable_clangd")): 
-        vim_utils.commands(cmd)# }}}
+    vim_utils.commands(cmd)# }}}
 
 def _EndAutoCompile():# {{{
     cmd = """
@@ -45,20 +29,63 @@ augroup ClangdServer
     autocmd!
 augroup END
 """
-    if int(vim.eval("g:enable_clangd")): 
-        vim_utils.commands(cmd)# }}}
+    vim_utils.commands(cmd)# }}}
 
 @contextmanager
 def StopAutoCompileGuard():# {{{
     """ with this guard, all autocmd `ClangdServer` will not compile. 
     """
-    try:
-        _EndAutoCompile()
+    if clangd_config.enable:
+        try:
+            _EndAutoCompile()
+            yield
+        finally:
+            _StartAutoCompile()# }}}
+    else:
+        pass
         yield
-    finally:
-        _StartAutoCompile()# }}}
+        pass
 
-def send_by_python(json_req=None, cmd=None, url="http://10.255.129.13:10001", timeout=(2,2), **args):# {{{
+def init_clangd_config():
+    pwd = vim_utils.GetPwd()
+    path = os.path.join(pwd, "./.vim_clangd.py")
+    if os.path.isfile(path): 
+        config = vim_utils.absolute_import("vim_clangd", path)
+        clangd_config.path_map = config.path_map
+        clangd_config.enable = config.enable
+        clangd_config.url = config.url
+    if clangd_config.enable:
+        print ("Enable Clangd:")
+        print ("      URL    :", config.url)
+        print ("   path_map  :", config.path_map)
+        _StartAutoCompile()
+
+class ClangdConfig:
+    def __init__(self):
+        self.path_map = None
+        self.url = None
+        self.enable = False
+
+clangd_config = ClangdConfig()
+init_clangd_config()
+
+def do_path_map(path, fr="clangd", to="vim"):
+    """
+    prefix = None to disable the path map.
+    """
+    prefix = clangd_config.path_map
+    prefix = None
+    if prefix is None:
+        return path
+    if not path.startswith(prefix[fr]): 
+        raise RuntimeError(f"Got `{fr}` path: `{path}`, which is not found in vim client.")
+    return prefix[to] + path[len(prefix[fr]):]
+
+client_id = str(random.randint(1, 10000))
+clangd = None
+
+
+def send_by_python(json_req=None, cmd=None, url=clangd_config.url, timeout=(2,2), **args):# {{{
     """ 
     """
     import json
