@@ -14,6 +14,7 @@ from .insert_keymap import *
 from .fold_plugin import *
 from .buf_app import *
 from .quick_note import *
+from .remote_terminal import *
 
 pro = None; 
 
