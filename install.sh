@@ -18,4 +18,7 @@ pip3 install dict-cli
 apt install -y language-pack-zh-hans
 python3 -m pip install requests
 python3 -m pip install ply
+# for clangd-index finder
+wget -O /root/xkvim/cmd_script/clangd-index-finder http://10.255.125.22:8082/software/clangd-index-finder 
+chmod +x /root/xkvim/cmd_script/clangd-index-finder
 

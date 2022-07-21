@@ -72,6 +72,30 @@ endfunction
         return func
     return decorator
 
+def vim_register_visual(keymap):
+    """
+    keymap: MAP
+    """
+    def decorator(func):
+        # register in vim
+        nonlocal keymap
+        keymap_mode = "vnoremap"
+        vim_name = func.__name__.capitalize()
+        vim_name = "Py_visual_%s" % vim_name
+        vim.command(
+"""
+function! %s(list_of_args)
+    execute 'py3' 'Xiongkun.%s(vim.eval("a:list_of_args"))'
+    return ""
+endfunction
+"""%(vim_name, func.__name__))
+
+        assert keymap != "", "Error"
+        vim.command(f"""
+{keymap_mode} {keymap} <esc><Cmd>call {vim_name} ([])<cr>
+""")
+        return func
+    return decorator
 
 """
 for test, create a PyEcho function in vim environment. echo the first args.

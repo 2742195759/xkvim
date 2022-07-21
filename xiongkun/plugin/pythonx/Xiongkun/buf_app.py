@@ -787,13 +787,22 @@ class FileFinderBuffer(WidgetBuffer):
         search_text = "".join(join)
         pieces = search_text.split("|")
         qualifier = []
+        qualifier_name_set = set()
         search_base = None
         buffer_names = GetBufferList()
         for p in pieces: 
             p = p.strip()
             if not p: continue
-            if p.startswith("+") or p.startswith("-"): qualifier.append(p)
+            if p.startswith("+") or p.startswith("-"): 
+                qualifier.append(p)
+                qualifier_name_set.add(p)
             else: search_base = p
+        if "git/" not in qualifier_name_set: 
+            qualifier.append("-git/")
+        if "/build" not in qualifier_name_set: 
+            qualifier.append("-/build")
+        if "cmake/" not in qualifier_name_set: 
+            qualifier.append("-cmake/")
 
         def filt(filepath): 
             basename = os.path.basename(filepath).lower()

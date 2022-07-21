@@ -124,7 +124,6 @@ endfunction
 packadd cfilter
 packadd termdebug
 
-
 """""""""""""""": HighLight Group {{{
 hi ListBoxKeyword term=bold ctermfg=208 ctermbg=24
 hi ListBoxLine term=bold ctermbg=24
@@ -146,8 +145,8 @@ endfunction"}}}
 
 """""""""""""""": Map below {{{
 noremap <silent> <space>m :Mt<cr>
-noremap K :!clear && dict <C-R>=expand("<cword>")<cr><cr>
-vnoremap K "dy:!clear && dict <C-R>d<cr>
+"noremap K :!clear && dict <C-R>=expand("<cword>")<cr><cr>
+"vnoremap K "dy:!clear && dict <C-R>d<cr>
 
 noremap <C-]> <Cmd>call UniverseCtrl()<cr>
 noremap <M-f> <Cmd>call UniverseSearch()<cr>
@@ -206,7 +205,7 @@ augroup PopupPreview
     "autocmd CursorHoldI * cal TryOpenPreview()
 augroup END
 
-let g:enable_clangd=1
+let g:enable_clangd=0
 if (match(getcwd(), "/home/data/") == 0 || match(getcwd(), "/home/ssd2/") == 0)&& g:enable_clangd
     echo "Enable Clangd Server"
     "start auto cmd
