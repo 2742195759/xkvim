@@ -468,3 +468,13 @@ def GetFileTypeByName(name):
         "h": "cpp",
     }
     return dic.get(suffix, "")
+
+def GetBufferList(pattern=None):
+    """ get name list by pattern
+    """
+    last_buf = int(vim.eval("bufnr('$')"))
+    ret = []
+    for i in range(1, last_buf+1):
+        if int(vim.eval(f"buflisted({i})")):  
+            ret.append(vim.eval(f"bufname({i})"))
+    return ret

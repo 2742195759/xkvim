@@ -46,7 +46,7 @@ def StopAutoCompileGuard():# {{{
     finally:
         _StartAutoCompile()# }}}
 
-def send_by_python(json_req=None, cmd=None, url="http://10.255.129.13:10000", timeout=(2,2), **args):# {{{
+def send_by_python(json_req=None, cmd=None, url="http://10.255.129.13:10001", timeout=(2,2), **args):# {{{
     """ 
     """
     import json

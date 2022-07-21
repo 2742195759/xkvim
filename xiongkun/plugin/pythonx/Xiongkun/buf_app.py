@@ -66,9 +66,13 @@ class Buffer:
         with CurrentBufferGuard(self.bufnr):
             vim.command("execute 'normal! ggdG'")
     
-    def _put_string(self, text):
+    def _put_string(self, text, pos=1):
         text = escape(text)
-        vim.eval(f"setbufline({self.bufnr}, 1, \"{text}\")")
+        vim.eval(f"setbufline({self.bufnr}, {pos}, \"{text}\")")
+
+    def _put_strings(self, texts):
+        for idx, text in enumerate(texts):
+            self._put_string(text, idx+1)
 
     def onredraw(self):
         pass
@@ -752,7 +756,7 @@ class FileFinderPGlobalInfo:
         absp = os.path.abspath(filepath)
         self.mru.push(absp)
         self.mru.save(self.mru_path)
-    
+
 class FileFinderBuffer(WidgetBuffer):
     def __init__(self, name="FileFinder", history=None, options=None):
         widgets = [
@@ -784,6 +788,7 @@ class FileFinderBuffer(WidgetBuffer):
         pieces = search_text.split("|")
         qualifier = []
         search_base = None
+        buffer_names = GetBufferList()
         for p in pieces: 
             p = p.strip()
             if not p: continue
@@ -890,7 +895,6 @@ class FileFinderBuffer(WidgetBuffer):
             self.files = FileFinderPGlobalInfo.files
         vim.command(f"let w:filefinder_mode = \"{self.mode}\"")
         vim.command("AirlineRefresh")
-        
 
 class FileFinderApp(Application):
     """ 
@@ -916,5 +920,23 @@ def FileFinderReflesh(args):
 
 @vim_register(command="FF")
 def FileFinder(args):
+    """ Find a file / buffer by regular expression.
+
+        sort the files by the following order: 
+        1. buffer with name
+        2. mru files
+        3. normal files
+        4. with build / build_svd
+    """
     ff = FileFinderApp()
     ff.start()
+
+@vim_register(command="B", with_args=True)
+def BufferFinder(args):
+    ff = FileFinderApp()
+    ff.start()
+    ff.mainbuf.files = GetBufferList()
+    input = "" if len(args)==0 else " ".join(args)
+    ff.mainbuf.widgets['input'].text = input
+    ff.mainbuf.redraw()
+    ff.mainbuf.on_last_input()

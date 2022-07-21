@@ -13,6 +13,7 @@ from .converse_plugin import *
 from .insert_keymap import *
 from .fold_plugin import *
 from .buf_app import *
+from .quick_note import *
 
 pro = None; 
 

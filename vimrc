@@ -268,3 +268,5 @@ function! MyPlugin(...)
     endif
   endfunction
 call airline#add_statusline_func('MyPlugin')
+" Go to the last position.
+" autocmd BufEnter * silent! normal! g`"zz

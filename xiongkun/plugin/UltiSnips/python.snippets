@@ -623,4 +623,15 @@ print(tf.get_default_graph())
 endsnippet
 #}}}
 
+snippet example_tf_to_static "tensorflow dygraph to static example" #{{{
+import tensorflow as tf
+@tf.function  # The decorator converts `add` into a `Function`.
+def add(a, b):
+  return a + b
+
+import pdb
+pdb.set_trace() 
+add(tf.ones([2, 2]), tf.ones([2, 2]))  #  [[2., 2.], [2., 2.]]
+endsnippet
+#}}}
 
