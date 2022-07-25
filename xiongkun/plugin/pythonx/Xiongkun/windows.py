@@ -661,7 +661,8 @@ class GrepSearcher(Searcher):# {{{
                 self.force_cancel()
                 self.child = None
             def force_cancel(self):
-                if self.child: self.child.terminate()
+                if self.child.poll() is None: 
+                    self.child.terminate()
 
         import glob 
         files = glob.glob(d + "/*")

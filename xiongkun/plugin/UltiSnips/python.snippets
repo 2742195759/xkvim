@@ -635,3 +635,21 @@ add(tf.ones([2, 2]), tf.ones([2, 2]))  #  [[2., 2.], [2., 2.]]
 endsnippet
 #}}}
 
+snippet example_pd_to_static "paddle dygraph to static example, for quick verifing" #{{{
+import paddle
+def vlist_of_dict(x):
+    a = []
+    for i in range(x):       
+        pp = {"config": x}
+        a.append(pp)          
+    return a 
+
+b = paddle.to_tensor([True, False, True])
+x = paddle.to_tensor([3])
+z = paddle.to_tensor([6])
+y = paddle.rand((100, 2, 2))
+
+print(paddle.jit.to_static(vlist_of_dict).code)
+print(paddle.jit.to_static(vlist_of_dict)(x))
+endsnippet
+#}}}

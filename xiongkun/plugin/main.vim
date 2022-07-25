@@ -168,6 +168,29 @@ nnoremap <expr> gp '`[' . strpart(getregtype(), 0, 1) . '`]'
 """ copy the visual into a tempname file. to view a part of a file
 vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:let &filetype=tmp<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
+"
+
+" tnoremap below.
+" go back to the normal mode
+tnoremap <M-n> <C-w>N  
+" copy and paste by the vim register
+tnoremap <M-p> <C-w>""  
+" forcefully exit the ternimal mode
+tnoremap <M-c> <C-w><C-c>
+" switch between tab pages.
+tnoremap <M-1> <C-w>gT
+tnoremap <M-2> <C-w>gt
+" insert command
+" tnoremap <M-f> <C-w>:
+" insert command
+tnoremap <F1> <C-w>:BashHelp<cr>
+" abbre in terminal mode
+tnoremap <M-a>xk  xiongkun
+tnoremap <M-a>pdb import pdb; pdb.set_trace()
+tnoremap <M-a>pro export http_proxy=http://172.19.57.45:3128<cr>export https_proxy=http://172.19.57.45:3128<cr>
+tnoremap <M-a>nop unset http_proxy<cr>unset https_proxy
+tnoremap <M-a>pp PYTHONPATH="/home/data/Paddle2/Paddle/build/python"
+
 """""""""""""""" }}}
 
 """""""""""""" AutoCmd {{{
