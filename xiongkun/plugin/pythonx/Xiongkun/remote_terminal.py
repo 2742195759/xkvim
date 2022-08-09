@@ -21,6 +21,8 @@ def TerminalStart(args):
     path = os.path.join(pwd, "./.vim_clangd.py")
     if os.path.isfile(path): 
         config = absolute_import("vim_clangd", path)
+        if hasattr(config, "wd"): 
+            pwd = config.wd
     else: 
         print ("Not found .vim_clangd.py in your project directory.")
         return
