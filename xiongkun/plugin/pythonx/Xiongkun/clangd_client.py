@@ -73,6 +73,7 @@ def do_path_map(path, fr="clangd", to="vim"):
     """
     prefix = None to disable the path map.
     """
+    if not len(path.strip()): return path
     prefix = clangd_config.path_map
     if prefix is None:
         return path

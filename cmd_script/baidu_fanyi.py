@@ -12,6 +12,7 @@ pwd = "QwxZORdqlhpJvyAehyj9"
 app_id = "20220715001273779"
 salt = "123123123"
 query = args.query
+query = query.strip("# ")
 if query.isascii():
     fr = "en"
     to = "zh"

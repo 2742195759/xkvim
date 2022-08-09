@@ -29,13 +29,15 @@ def TerminalStart(args):
 
     vim.command("tabe")
     vim.command("terminal")
-    vim.command("file ssh")
+    #vim.command("file ssh")
     vim.command("wincmd o")
     bufnr = vim.eval("bufnr()")
     send_keys(bufnr, f"ssh {config.ssh_url}\n")
     import time
     time.sleep(0.5)
     send_keys(bufnr, f"{config.ssh_passwd}\r\n")
+    time.sleep(0.4)
+    send_keys(bufnr, f"\r\n")
     time.sleep(0.4)
     send_keys(bufnr, f"{config.docker_cmd}\r\n")
     time.sleep(0.4)

@@ -489,3 +489,15 @@ def GetBufferList(pattern=None):
             ret.append(vim.eval(f"bufname({i})"))
     return ret
 
+def GetVisualWords():
+    with CursorGuard():
+        with NotChangeRegisterGuard('r'):
+            vim.command('normal gv"ry')
+            text = vim.eval("@r")
+            text.replace("\r", "")
+    return text
+
+def SetVisualWords(strs):
+    vim.command('normal gvc{}'.format(
+        escape(strs, "'")
+    ))

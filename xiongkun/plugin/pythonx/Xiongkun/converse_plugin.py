@@ -96,26 +96,34 @@ def PaddleMake(args):
 
 def baidu_translate(sentence):
     import subprocess
+    sentence = sentence.replace("\n", "")
     cmd = "python3 ~/xkvim/cmd_script/baidu_fanyi.py --query \"{sentence}\"".format(
         sentence = sentence,
     )
     child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
     info = child.stdout.readline().strip()
-    vim.command("echom '百度翻译结果：'")
-    print(info)
+    return info
+
+@vim_register(command="Trans")
+def TranslateAndReplace(args):
+    """ translate and replace the current visual highlight sentence.
+    """
+    word = vim_utils.GetVisualWords()
+    info = baidu_translate(word)
+    vim_utils.SetVisualWords(info)
 
 @vim_register(keymap="K")
 def Translate(args):
     word = vim_utils.GetCurrentWord()
-    baidu_translate(word)
+    info = baidu_translate(word)
+    vim.command("echom '百度翻译结果：'")
+    print(info)
 
 @vim_register_visual(keymap="K")
 def VisualTranslate(args):
     """ `< and `>
     """
-    with vim_utils.CursorGuard():
-        with vim_utils.NotChangeRegisterGuard('r'):
-            vim.command('normal gv"ry')
-            text = vim.eval("@r")
-            text.replace("\r", "")
-    baidu_translate(text)
+    text = vim_utils.GetVisualWords()
+    info = baidu_translate(text)
+    vim.command("echom '百度翻译结果：'")
+    print(info)

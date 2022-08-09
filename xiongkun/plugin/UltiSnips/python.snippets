@@ -632,6 +632,7 @@ def add(a, b):
 import pdb
 pdb.set_trace() 
 add(tf.ones([2, 2]), tf.ones([2, 2]))  #  [[2., 2.], [2., 2.]]
+print(tf.autograph.to_code(add.python_function))
 endsnippet
 #}}}
 
@@ -651,5 +652,27 @@ y = paddle.rand((100, 2, 2))
 
 print(paddle.jit.to_static(vlist_of_dict).code)
 print(paddle.jit.to_static(vlist_of_dict)(x))
+endsnippet
+#}}}
+#
+snippet example_pd_simple_net "a simple net with linear as parameters" #{{{
+import paddle
+class SimpleNet(paddle.nn.Layer):             
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.linear1 = paddle.nn.Linear(10, 3)  
+        self.linear2 = paddle.nn.Linear(3, 1)  
+
+    def forward(self, x):
+        out1 = self.linear1(x)
+        out2 = self.linear2(out1)
+        return [out1, out2]
+
+net = SimpleNet()
+#net = paddle.jit.to_static(net)
+inp = paddle.rand((10,))
+loss = net(inp)
+loss[0].backward()
+print (net.linear1.weight.grad)
 endsnippet
 #}}}

@@ -68,7 +68,7 @@ endfunction
             # split by space,  and pass as string
             arg_num = '0'
             if with_args: arg_num = '*'
-            vim.command( """ command! -n=%s %s cal %s(split("<args>", " ")) """%(arg_num, command, vim_name))
+            vim.command( """ command! -n=%s -range %s cal %s(split("<args>", " ")) """%(arg_num, command, vim_name))
         return func
     return decorator
 
