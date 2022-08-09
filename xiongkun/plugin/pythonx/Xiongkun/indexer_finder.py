@@ -120,7 +120,7 @@ class Indexer(Worker):# {{{
         return self.proc
 
     def finish(self):
-        if self.child.poll() is None:
+        if self.proc.poll() is None:
             self.proc.terminate()
         self.proc = None
 #}}}

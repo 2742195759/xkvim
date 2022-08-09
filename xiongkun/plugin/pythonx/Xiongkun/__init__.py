@@ -1,7 +1,6 @@
 from .gitcomment import *
 from .vim_parser import *
 from .func_register import echo
-from .pten_transfer import *
 from .interface import *
 from .vim_utils import *
 from .clangd_client import *

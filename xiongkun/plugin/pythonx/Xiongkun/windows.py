@@ -687,6 +687,7 @@ class GrepSearcher(Searcher):# {{{
             with open("search_config", "r") as fp :
                 lines = fp.readlines()
                 lines = [ l.strip() for l in lines ]
+                lines = list(filter(lambda x: x and not x.strip().startswith("#"), lines))
                 extra_args = lines
 
         if directory.startswith("FILE:"): 
