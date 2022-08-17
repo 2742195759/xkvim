@@ -79,7 +79,7 @@ def do_path_map(path, fr="clangd", to="vim"):
         return path
     if not isinstance(prefix[fr], list): 
         prefix[fr] = [prefix[fr]]
-    if not isinstance(prefix[fr], list): 
+    if not isinstance(prefix[to], list): 
         prefix[to] = [prefix[to]]
     optional = list(filter(lambda x: path.startswith(x), prefix[fr]))
     if len(optional) > 0:
