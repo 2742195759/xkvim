@@ -77,9 +77,15 @@ def do_path_map(path, fr="clangd", to="vim"):
     prefix = clangd_config.path_map
     if prefix is None:
         return path
-    if not path.startswith(prefix[fr]): 
+    if not isinstance(prefix[fr], list): 
+        prefix[fr] = [prefix[fr]]
+    if not isinstance(prefix[fr], list): 
+        prefix[to] = [prefix[to]]
+    optional = list(filter(lambda x: path.startswith(x), prefix[fr]))
+    if len(optional) > 0:
+        return prefix[to][0] + path[len(optional[0]):]
+    else:
         raise RuntimeError(f"Got `{fr}` path: `{path}`, which is not found in vim client.")
-    return prefix[to] + path[len(prefix[fr]):]
 
 client_id = str(random.randint(1, 10000))
 clangd = None
