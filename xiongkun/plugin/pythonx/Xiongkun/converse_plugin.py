@@ -17,7 +17,6 @@ def open_url_on_mac(url):
     cmd = """open "%s" """ % url
     ExecuteCommand("mac", cmd, silent=True)
     
-
 def ExecuteCommand(name, cmd, silent=True):
     import json
     import requests
@@ -127,3 +126,25 @@ def VisualTranslate(args):
     info = baidu_translate(text)
     vim.command("echom '百度翻译结果：'")
     print(info)
+
+@vim_register(command="Copyfile")
+def PaddleCopyfile(args):
+    """ In paddlepaddle, we call /home/data/web/scripts/copy_file.sh under each build* directory.
+    """
+    import glob
+    import os
+    for d in glob.glob("./build*"): 
+        d = os.path.abspath(d)
+        os.system(f"cd {d} && /home/data/web/scripts/copy_file.sh")
+    print ("You paddlepaddle is updated.")
+
+@vim_register(command="Pdoc", with_args=True)
+def PaddleDocumentFile(args):
+    """ In paddlepaddle, search the offical docuement and show the api usage.
+    """
+    text = " ".join(args)
+    if not text: 
+        text = vim_utils.GetCurrentWord()
+    url_text = quote(text)
+    url = f"https://www.paddlepaddle.org.cn/searchall?q={url_text}&language=zh&version=2.3"
+    open_url_on_mac(url)
