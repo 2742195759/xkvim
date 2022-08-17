@@ -192,6 +192,7 @@ tnoremap <M-a>nop unset http_proxy<cr>unset https_proxy
 tnoremap <M-a>pp PYTHONPATH="/home/data/Paddle2/Paddle/build/python"
 tnoremap <M-a>vd CUDA_VISIBLE_DEVICES=3
 tnoremap <M-a>up /home/data/web/scripts/copy_file.sh
+tnoremap <M-a>def paddle.static.default_main_program()
 
 """""""""""""""" }}}
 

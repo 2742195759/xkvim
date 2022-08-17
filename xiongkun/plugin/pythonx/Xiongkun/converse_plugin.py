@@ -104,6 +104,16 @@ def baidu_translate(sentence):
     info = child.stdout.readline().strip()
     return info
 
+def gast_dump(sentence):
+    import subprocess
+    sentence = sentence.replace("\n", "")
+    cmd = "python3 ~/xkvim/cmd_script/dump_gast.py --code \"{sentence}\"".format(
+        sentence = sentence,
+    )
+    child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+    info = child.stdout.readline().strip()
+    return info
+
 @vim_register(command="Trans")
 def TranslateAndReplace(args):
     """ translate and replace the current visual highlight sentence.
@@ -126,4 +136,12 @@ def VisualTranslate(args):
     text = vim_utils.GetVisualWords()
     info = baidu_translate(text)
     vim.command("echom '百度翻译结果：'")
+    print(info)
+
+@vim_register(command="Gast")
+def GastDump(args):
+    """ `< and `>
+    """
+    text = vim_utils.GetVisualWords()
+    info = gast_dump(text)
     print(info)
