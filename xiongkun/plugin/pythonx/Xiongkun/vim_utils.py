@@ -188,11 +188,11 @@ def GetTheLocationOfInclude(filepath):
     if find_id is None: return None
     return Location(filepath, find_id+2, 1)
 
-###########
+###############
 #
 #  Cpp related
 #
-###########
+###############
 
 def InsertIncludeStatementAtLast(filepath, include_text):
     loc = GetTheLocationOfInclude(filepath)
@@ -247,14 +247,28 @@ def GetPreviewWinFile():
     wins = tab_info['windows']
     preview_winnr = -1
     for winid in wins:
-        win_type = vimeval("win_gettype(win_id2win(%d))" % win)
+        win_type = vimeval("win_gettype(win_id2win(%d))" % winid)
         if win_type == "preview": 
-            preview_winnr = vimeval("(win_id2win(%d))" % win)
+            preview_winnr = vimeval("(win_id2win(%d))" % winid)
     if preview_winnr == -1 : 
         print ("Error: not found preview window")
         return 
     else : 
         return vimeval("bufname(winbufnr(winnr()))")
+
+def FindWindowInCurrentTabIf(prediction):
+    tab_info = vimeval('gettabinfo(win_id2tabwin(win_getid(winnr()))[0])')[0]
+    wins = tab_info['windows']
+    finded = -1
+    for winid in wins:
+        winnr = int(vimeval("(win_id2win(%s))" % winid))
+        if prediction(winnr): 
+            finded = winnr
+    if finded == -1 : 
+        print ("Error: not found preview window")
+        raise NotImplementedError()
+    else : 
+        return vimeval(f"winbufnr({finded})")
 
 def YcmJumpFromFunctionCall(call_text, jump_word):
     SetVimRegister("b", call_text)

@@ -59,3 +59,17 @@ def TerminalHelper(args):
     print ("  proxy -> set proxy short cut")
     print ("  nopro -> set no proxy short cut")
     print ("  pdb   -> python pdb")
+
+@vim_register(command="Write", with_args=True)
+def TerminalWriteFile(args):
+    if (len(args) < 1): 
+        print ("Write python_obj -> write str(python_obj) into tmpfile, and open a new tabe to present it.")
+    obj = args[0]
+    def prediction(wnr):
+        return vim.eval(f"getwinvar({wnr}, '&buftype')") == "terminal"
+    bufnr = int(FindWindowInCurrentTabIf(prediction))
+    tmpfile = "/tmp/tmp.txt"
+    send_keys(bufnr, f"open('{tmpfile}', 'w').write(str({obj}))\n")
+    with CurrentWindowGuard(): 
+        vim.command("tabe")
+        vim.command(f"read {tmpfile}")
