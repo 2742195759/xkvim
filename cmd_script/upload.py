@@ -24,4 +24,6 @@ headers = {
     "referer": URL,
 }
 re = requests.post(URL, data=m, headers=headers)
-print(re)
+if re.status_code != 200:
+    print(re)
+    exit (1)

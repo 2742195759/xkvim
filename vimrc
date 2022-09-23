@@ -203,10 +203,12 @@ let g:ycm_python_binary_path = '/usr/bin/python3'
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
 
-augroup NERDTREE
-    autocmd!
-    autocmd VimEnter * NERDTreeToggle | wincmd w
-augroup END
+if !(&diff)
+    augroup NERDTREE
+        autocmd!
+        autocmd VimEnter * NERDTreeToggle | wincmd w
+    augroup END
+endif
 
 if filereadable(expand("~/.xkconfig.vim"))
     autocmd VimEnter * source ~/.xkconfig.vim
@@ -227,7 +229,6 @@ set shell=bash
 set path+='./'
 set cursorline
 set tags+=/root/cpp_src/stl.tags
-"hi CursorLine cterm=Underline ctermbg=None ctermfg=None
 
 
 """ configure for quick-peek plugin 
@@ -254,8 +255,10 @@ let g:netrw_ftp_cmd="ftp -p "
 
 abbre fftp ftp://10.255.129.13:8081/
 
-" add branch information. 2022/5/19
-let g:airline_section_b = trim(system("git symbolic-ref --short HEAD"))
+if !(&diff)
+    " add branch information. 2022/5/19
+    let g:airline_section_b = trim(system("git symbolic-ref --short HEAD"))
+endif
 set foldopen=hor,search,jump,block,mark,quickfix
 set foldclose=all
 hi CursorLine term=bold ctermbg=24 guibg=#13354A
@@ -271,3 +274,4 @@ call airline#add_statusline_func('MyPlugin')
 " Go to the last position.
 " autocmd BufEnter * silent! normal! g`"zz
 set noshowmode
+set termwinscroll=10000000

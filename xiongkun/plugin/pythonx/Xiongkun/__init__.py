@@ -1,8 +1,8 @@
 from .gitcomment import *
 from .vim_parser import *
 from .func_register import echo
-from .interface import *
 from .vim_utils import *
+from .ijump import *
 from .clangd_client import *
 from .windows import *
 from .multiprocess_utils import *
@@ -14,6 +14,7 @@ from .fold_plugin import *
 from .buf_app import *
 from .quick_note import *
 from .remote_terminal import *
+from .log_analysis_plugin import *
 
 pro = None; 
 
@@ -119,3 +120,4 @@ def CopyFileName(args):
     vim_utils.SetVimRegister('"', filename)
     cmd = "/bin/cp ../%s ./%s" % (filename, filename)
     os.system("echo %s >> /home/data/web/scripts/copy_file.sh" % cmd)
+

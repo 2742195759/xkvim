@@ -166,3 +166,12 @@ def PaddleDocumentFile(args):
     url_text = quote(text)
     url = f"https://www.paddlepaddle.org.cn/searchall?q={url_text}&language=zh&version=2.3"
     open_url_on_mac(url)
+
+@vim_register(command="Share")
+def ShareCode(args):
+    """ we share code into 0007 server.
+    """
+    word = vim_utils.GetVisualWords()
+    open("/tmp/share.txt", "w").write(word)
+    if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt"): 
+        print ("Your code is shared into http://10.255.125.22:8082/share.txt")

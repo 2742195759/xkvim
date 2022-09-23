@@ -237,7 +237,7 @@ class Clangd():# {{{
         self.did_open(filepath)
         json = {
             "method": "get_diags",
-            "file": "file://" + do_path_map(osp.abspath(filepath), 'vim', 'clang'),
+            "file": "file://" + do_path_map(osp.abspath(filepath), 'vim', 'clangd'),
         }
         def get_diags(json):
             """

@@ -68,8 +68,9 @@ def TerminalWriteFile(args):
     def prediction(wnr):
         return vim.eval(f"getwinvar({wnr}, '&buftype')") == "terminal"
     bufnr = int(FindWindowInCurrentTabIf(prediction))
-    tmpfile = "/tmp/tmp.txt"
+    tmpfile = "/home/data/tmp.txt"
     send_keys(bufnr, f"open('{tmpfile}', 'w').write(str({obj}))\n")
     with CurrentWindowGuard(): 
         vim.command("tabe")
+        time.sleep(1.0)
         vim.command(f"read {tmpfile}")

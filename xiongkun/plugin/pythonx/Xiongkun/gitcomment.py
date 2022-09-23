@@ -145,12 +145,12 @@ class GitDiffLayout(Layout):#{{{
         return ret#}}}
 
 class GitFileCommitLogBuffer(BashCommandResultBuffer): #{{{
-    def __init__(self, filename, ondiff): 
+    def __init__(self, command_getter, ondiff): 
         """ ondiff: callback when diff is triggled.
                     => function(commit0, commit1)
         """
-        self.filename = filename
-        super().__init__(f"git log {self.filename}" , "git")
+        cmd = command_getter()
+        super().__init__(cmd, "git")
         self.ondiff = ondiff
 
     def _open(self):
@@ -215,11 +215,11 @@ class GitFileSelector(BashCommandResultBuffer): #{{{
 #}}}
 
 class GitPreviewApp(Application):#{{{
-    def __init__(self, filename):
+    def __init__(self, command_getter):
         """
         """
         super().__init__()
-        self.filename = filename
+        self.command_getter = command_getter
 
         def ondiff(commit0, commit1): 
             """ while press "d" in the git file log buffer.
@@ -228,15 +228,15 @@ class GitPreviewApp(Application):#{{{
                 self.git_diff_layout = GitDiffLayout(True, True)
                 self.git_diff_layout.create()
 
-            def onenter(file, files=False):
+            def onenter(file=None, files=False):
                 diff_files_cmd = f"git diff {commit0} {commit1} | grep 'diff --git' | cut -d' ' -f3 | cut -c3- | uniq -u"
                 self.git_diff_files.create(GitFileSelector(diff_files_cmd, onenter))
 
-                filetype = GetFileTypeByName(file)
+                filetype = GetFileTypeByName(file) if file else None
                 bufs = [self.git_diff_0, self.git_diff_1]
                 commits = [commit0, commit1]
                 for buf, commit in zip(bufs, commits): 
-                    cmd = "git show %s:%s" % (commit, file)
+                    cmd = "git show %s:%s" % (commit, file) if file else "echo 'Please Specify a file'"
                     buf.create(BashCommandResultBuffer(cmd, filetype))
                 bufdict = {
                     'files': self.git_diff_files.get(), 
@@ -247,11 +247,12 @@ class GitPreviewApp(Application):#{{{
                 self.git_diff_layout.reset_buffers(bufdict)
                 self.git_diff_layout.windiff(['first', 'second'])
 
-            onenter(self.filename, files=True)
+            onenter(files=True)
 
         self.git_diff_layout = None
         self.git_log_layout = CreateWindowLayout(active_win='win')
-        self.git_log_buf = GitFileCommitLogBuffer(self.filename, ondiff)
+
+        self.git_log_buf = GitFileCommitLogBuffer(self.command_getter, ondiff)
 
         self.git_diff_0 = BufferSmartPoint()
         self.git_diff_1 = BufferSmartPoint()
@@ -262,9 +263,26 @@ class GitPreviewApp(Application):#{{{
         self.git_log_layout.create({'win': self.git_log_buf})
 #}}}
 
-@vim_register(command="GF")
+@vim_register(command="GF", with_args=True)
 def GitFileHistory(args):#{{{
-    file = CurrentEditFile()
-    vim.command(f"echom '{file}'")
-    app = GitPreviewApp(file)
-    app.start()#}}}
+    command_getter  = None
+    if len(args) == 0: 
+        """ show all git log which modified this file.
+        """
+        def file_log_command():
+            file = CurrentEditFile()
+            vim.command(f"echom '{file}'")
+            return f"git log {file}" 
+        command_getter = file_log_command
+    elif len(args) == 1: 
+        """ show all git log belongs to certain author.
+        """
+        author = args[0]
+        def author_log_command():
+            print (f"Author is {author}")
+            return f"git log --author {author}" 
+        command_getter = author_log_command
+
+    app = GitPreviewApp(command_getter )
+    app.start()
+#}}}

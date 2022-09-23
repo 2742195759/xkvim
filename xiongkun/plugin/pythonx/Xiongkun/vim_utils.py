@@ -465,6 +465,23 @@ def CurrentWindowGuard(win_id=None):
     yield
     vim.eval(f'win_gotoid({saved_id})')
 
+@contextmanager
+def RedirGuard(name, mode='w'):
+    """
+    mode in 'w'|'a' for write and append
+    if name is a path, redir to a file name.
+    if name is a char, redir to a register.
+    """
+    append = '>'
+    if mode == 'a': append = ">>"
+    if len(name) == 1: 
+        redir_cmd = f"redir @{name}{append}"
+    else: 
+        redir_cmd = f"redir! {append}{name}"
+    vim.command(redir_cmd)
+    yield
+    vim.command("redir END")
+
 def ExecuteCommandInBuffer(bufnr, command):
     # TODO
     #vim.command("set bh=hide")
@@ -490,6 +507,7 @@ def GetFileTypeByName(name):
         "py": "python",
         "cc": "cpp",
         "h": "cpp",
+        "cpp": "cpp",
     }
     return dic.get(suffix, "")
 
@@ -503,15 +521,29 @@ def GetBufferList(pattern=None):
             ret.append(vim.eval(f"bufname({i})"))
     return ret
 
-def GetVisualWords():
+def GetVisualWords(replace=True):
     with CursorGuard():
         with NotChangeRegisterGuard('r'):
             vim.command('normal gv"ry')
             text = vim.eval("@r")
-            text.replace("\r", "")
+            if replace: text.replace("\r", "")
     return text
 
 def SetVisualWords(strs):
     vim.command('normal gvc{}'.format(
         escape(strs, "'")
     ))
+
+def system(*args, **kwargs):
+    code = os.system(*args, **kwargs)
+    if code != 0: 
+        print(f"Error while execute system by arguments: {args}")
+        return False
+    return True
+
+def GetCommandOutput(command):
+    with NotChangeRegisterGuard('a'): 
+        with RedirGuard('a', 'w'): 
+            vim.command("silent " + command)
+            output = vim.eval("@a")
+    return output

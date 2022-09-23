@@ -27,3 +27,5 @@ ln -sf /usr/share/vim/vim82 /usr/share/vim/vim81
 #rm -rf /usr/bin/vim
 source ~/.bashrc
 rm -f ~/xkvim/xiongkun/xiongkun
+cp -f ~/xkvim/bash_scripts/vimdiff.sh /usr/bin/vimdiff
+python3 -m pip install requests_toolbelt
