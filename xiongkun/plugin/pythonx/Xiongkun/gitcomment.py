@@ -214,6 +214,21 @@ class GitFileSelector(BashCommandResultBuffer): #{{{
         return ret
 #}}}
 
+class DiffBuffer(BashCommandResultBuffer):
+    def __init__(self, cmd, filetype, file):
+        super().__init__(cmd,filetype)
+        self.file = file
+    def get_keymap(self):
+        """ some special key map for example.
+        """
+        def fff(x, y):
+            x, y = GetCursorXY()
+            vim.command(f"tabe {self.file}")
+            vim.command(f":{x}")
+        return {
+            '<enter>': lambda x,y: fff(x, y)
+        }
+
 class GitPreviewApp(Application):#{{{
     def __init__(self, command_getter):
         """
@@ -237,7 +252,7 @@ class GitPreviewApp(Application):#{{{
                 commits = [commit0, commit1]
                 for buf, commit in zip(bufs, commits): 
                     cmd = "git show %s:%s" % (commit, file) if file else "echo 'Please Specify a file'"
-                    buf.create(BashCommandResultBuffer(cmd, filetype))
+                    buf.create(DiffBuffer(cmd, filetype, file))
                 bufdict = {
                     'files': self.git_diff_files.get(), 
                     'first': self.git_diff_0.get(), 
