@@ -239,11 +239,44 @@ endsnippet
 
 #{{{ # pd.profile
 snippet pd_profile_cpu "add profile"
-import paddle.fluid.profiler as profiler
-if batch_id == 1:
-    profiler.start_profiler("All", "OpDetail")
-if batch_id == 10:
-    profiler.stop_profiler("total", "./profile_new_exe")
+"""
+profile 1: output a chrome timeline.
+"""
+prof = profiler.Profiler(scheduler=[10, 20],  #{{{
+                         targets=[profiler.ProfilerTarget.CPU, profiler.ProfilerTarget.GPU],
+                         on_trace_ready = profiler.export_chrome_tracing('./log'),
+                         ) 
+prof.start()  
+for i in range(30):
+    loss = net(inp)   
+    prof.step()
+prof.stop()
+prof.summary(op_detail=True)
+#}}}
+"""
+profile 2: output a terminal profile report
+"""
+prof = paddle.utils.profiler.Profiler()  #{{{
+"""
+self.options = {
+    'state': 'All',
+    'sorted_key': 'default',
+    'tracer_level': 'Default',
+    'batch_range': [0, sys.maxsize],
+    'output_thread_detail': False,
+    'profile_path': 'none',
+    'timeline_path': 'none',
+    'op_summary_path': 'none'
+}
+"""
+prof.profiler_options.options['profile_path'] = "./paddle_profile.txt"
+prof.profiler_options.options['batch_range'] = [10, 20] 
+prof.start()  
+with prof:
+    for i in range(30):
+        loss = net(inp)   
+        paddle.utils.get_profiler().record_step()
+#}}}
 endsnippet
 #}}}
 
@@ -788,3 +821,19 @@ def my_executor():
     print (results)
 endsnippet
 #}}}
+
+snippet example_torchscript "a example use torch script to dy2static" #{{{
+import torch
+import torch.nn as nn
+import numpy as np
+def func(grad):
+   return grad * 2
+
+@torch.jit.script
+def f(x):
+    x.requires_grad=True
+    x.register_hook(func)
+    return 2 * x
+    
+print(f(torch.randn(2, 2)))
+endsnippet

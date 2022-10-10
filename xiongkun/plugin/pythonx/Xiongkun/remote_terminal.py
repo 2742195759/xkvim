@@ -15,33 +15,45 @@ from collections import OrderedDict
 def send_keys(bufnr, keys):
     vim.eval(f"term_sendkeys({bufnr}, \"{keys}\")")
 
-@vim_register(command="Bash", with_args=True)
-def TerminalStart(args):
+def LoadConfig(config_path="./.vim_clangd.py"): 
     pwd = GetPwd()
-    path = os.path.join(pwd, "./.vim_clangd.py")
+    path = os.path.join(pwd, config_path)
     if os.path.isfile(path): 
         config = absolute_import("vim_clangd", path)
         if hasattr(config, "wd"): 
             pwd = config.wd
     else: 
-        print ("Not found .vim_clangd.py in your project directory.")
-        return
+        raise RuntimeError(f"Not found {config_path} in your project directory.")
+    setattr(config, "wd", pwd)
+    return config
 
+def TerminalStart(ssh_url, ssh_passwd, docker_cmd, work_dir=None):
+    """ provide keys with: 
+    """
+    if not work_dir: 
+        work_dir = GetPwd()
     vim.command("tabe")
     vim.command("terminal")
     #vim.command("file ssh")
     vim.command("wincmd o")
     bufnr = vim.eval("bufnr()")
-    send_keys(bufnr, f"ssh {config.ssh_url}\n")
+    send_keys(bufnr, f"ssh {ssh_url}\n")
     import time
     time.sleep(0.5)
-    send_keys(bufnr, f"{config.ssh_passwd}\r\n")
+    send_keys(bufnr, f"{ssh_passwd}\r\n")
     time.sleep(0.4)
     send_keys(bufnr, f"\r\n")
     time.sleep(0.4)
-    send_keys(bufnr, f"{config.docker_cmd}\r\n")
+    send_keys(bufnr, f"{docker_cmd}\r\n")
     time.sleep(0.4)
-    send_keys(bufnr, f"cd {pwd}\r\n")
+    send_keys(bufnr, f"cd {work_dir}\r\n")
+    return bufnr
+
+@vim_register(command="Bash", with_args=True)
+def BashStart(args=[]):
+    config = LoadConfig()
+    TerminalStart(config.ssh_url, config.ssh_passwd, config.docker_cmd, config.wd)
+
 
 @vim_register(command="BashHelp", with_args=True)
 def TerminalHelper(args):

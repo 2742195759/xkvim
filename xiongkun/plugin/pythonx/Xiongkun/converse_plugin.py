@@ -76,8 +76,11 @@ def ProfileProject(args):
     print(dir_name, abs_path, cmd)
     random_name = "tmp_" + vim.eval("rand()") + ".qdrep"
     os.system(f"~/xkvim/cmd_script/remove.sh profile")
+    from remote_terminal import TerminalStart, LoadConfig
+    config = LoadConfig()
+    bufnr = TerminalStart(config.profile.ssh_url, config.profile.ssh_passwd, config.profile.docker_cmd, config.profile.wd)
     os.system(f"~/xkvim/cmd_script/send_profile_task.sh {abs_path} \"{cmd}\"")
-    os.system(f"python3 ~/xkvim/cmd_script/converse_execute.py --name mac --cmd " + f"\"cd ~/my_report/ && curl http://10.255.125.22:8082/my_report.qdrep --output {random_name} && open ./{random_name}\"")
+    #os.system(f"python3 ~/xkvim/cmd_script/converse_execute.py --name mac --cmd " + f"\"cd ~/my_report/ && curl http://10.255.125.22:8082/my_report.qdrep --output {random_name} && open ./{random_name}\"")
 
 @vim_register(command="Make")
 def PaddleMake(args):

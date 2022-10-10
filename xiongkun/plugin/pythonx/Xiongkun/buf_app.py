@@ -797,7 +797,7 @@ class FileFinderBuffer(WidgetBuffer):
                 qualifier.append(p)
                 qualifier_name_set.add(p)
             else: search_base = p
-        if "git/" not in qualifier_name_set: 
+        if ".git/" not in qualifier_name_set: 
             qualifier.append("-git/")
         if "/build" not in qualifier_name_set: 
             qualifier.append("-/build")
