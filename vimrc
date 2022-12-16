@@ -199,6 +199,7 @@ let g:UltiSnipsJumpBackwardTrigger='<c-k>'
 
 """ YCM config
 let g:ycm_python_binary_path = '/usr/bin/python3'
+let g:ycm_server_python_interpreter = '/usr/bin/python2'
 
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
@@ -275,3 +276,4 @@ call airline#add_statusline_func('MyPlugin')
 " autocmd BufEnter * silent! normal! g`"zz
 set noshowmode
 set termwinscroll=10000000
+let delimitMate_matchpairs = "(:),[:],{:}"

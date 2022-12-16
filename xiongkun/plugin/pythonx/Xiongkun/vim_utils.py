@@ -67,8 +67,8 @@ class VimVariable:
 global_name_generator = NameGenerator()
 
 class Location: 
-    def __init__(self, name, line, col, base=1):
-        self.full_path = osp.abspath(name)
+    def __init__(self, file, line=1, col=1, base=1):
+        self.full_path = osp.abspath(file)
         self.line = line
         self.col = col
         self.base = base
@@ -104,27 +104,55 @@ def GoToLocation(location, method):
     1. 's': split
     2. 'v': vertical
     3. 't': tabe
-    4. '.': current window
+    4. '.' | 'e': current window
     5. 'p': preview open
     """
-    if method == '.':
-        vimcommand("e +%d %s"%(location.getline(), location.getfile()))
-        vimcommand("normal zv")
-    elif method == 'p':
-        vimcommand("pedit! +%d %s"%(location.getline(), location.getfile()))
-        vimcommand("normal zv")
-    elif method == 't':
-        vimcommand("tabe! +%d %s"%(location.getline(), location.getfile()))
-        vicommand("normal zv")
-    elif method == 'v':
-        vimcommand("vne! +%d %s"%(location.getline(), location.getfile()))
-        vimcommand("normal zv")
+    norm_methods = {
+        'e': 'e!',
+        '.': 'e!',
+        'p': 'pedit!',
+        't': 'tabe!',
+        'v': 'vne!',
+        's': 'split!',
+    }
+    view_methods = {
+        #'e': 'view',
+        #'.': 'view',
+        #'p': 'pview',
+        #'s': 'sview',
+        #'t': 'tab sview',
+        #'v': 'vertical sview',
+        'e': 'noswapfile e',
+        '.': 'noswapfile e',
+        'p': 'noswapfile pedit',
+        's': 'noswapfile split',
+        't': 'noswapfile tabe',
+        'v': 'noswapfile vne',
+    }
+    vim_method = norm_methods[method]
+    if HasSwapFile(location.getfile()): 
+        print ("Swap file found ! overriden. ")
+        vim_method = view_methods[method]
+    vimcommand("%s +%d %s"%(vim_method, location.getline(), location.getfile()))
+    vimcommand("normal zv")
+
+def HasSwapFile(path):
+    abspath = os.path.abspath(path)
+    basename = os.path.basename(abspath)
+    pattern = os.path.dirname(abspath) + "/." + basename + ".*"
+    import glob
+    if len(glob.glob(pattern)): 
+        return True
+    return False
 
 def GetCurrentLine():
     """
     get the line of current cursor.
     """
     return vimeval("getline('.')")
+
+def tempfile():
+    return vim.eval("tempname()")
 
 def GetCurrentWord():
     """
@@ -417,17 +445,23 @@ def get_git_prefix(abspath):
     abspath = osp.abspath(abspath)
     def is_root(path):
         return path in ['/', '~']
-    while not is_root(abspath) and not is_git_director(abspath): 
+    ans = []
+    while not is_root(abspath) :
+        if is_git_director(abspath): 
+            ans.append(abspath)
         abspath = osp.dirname(abspath)
-    if is_root(abspath):
-        print ("Can't find git in father directory.")
-        return origin
-    return abspath
+    if len(ans) == 0: 
+        #print ("Can't find git in father directory.")
+        #can't find a git path, so we return "" to represent no directory.
+        return ""
+    return ans[-1]
 
 def get_git_related_path(abspath):
     origin = abspath
     abspath = get_git_prefix(abspath)
-    return origin[len(abspath):].strip("/")
+    if abspath: 
+        return origin[len(abspath):].strip("/")
+    return origin
 
 from contextlib import contextmanager 
 @contextmanager
@@ -529,17 +563,32 @@ def GetVisualWords(replace=True):
             if replace: text.replace("\r", "")
     return text
 
+def WriteIntoTempfile(string):
+    fname = tempfile()
+    with open(fname, "w") as fp:
+        fp.write(string)
+    return fname
+
+def WriteVisualIntoTempfile():
+    text = GetVisualWords(False)
+    return WriteIntoTempfile(text)
+
 def SetVisualWords(strs):
     vim.command('normal gvc{}'.format(
         escape(strs, "'")
     ))
 
-def system(*args, **kwargs):
-    code = os.system(*args, **kwargs)
-    if code != 0: 
-        print(f"Error while execute system by arguments: {args}")
-        return False
-    return True
+def system(cmd, input=None):
+    import subprocess
+    child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+    stdout, stderr = child.communicate(input=input)
+    exit_code = child.wait()
+    if exit_code != 0: 
+        print(f"Error while execute system by arguments: {cmd}")
+        print("output: ", stdout)
+        print("errors: ", stderr)
+        return False, stdout, stderr
+    return True, stdout, stderr
 
 def GetCommandOutput(command):
     with NotChangeRegisterGuard('a'): 
@@ -547,3 +596,35 @@ def GetCommandOutput(command):
             vim.command("silent " + command)
             output = vim.eval("@a")
     return output
+
+class VimKeymap: 
+    def __init__(self):
+        self.km = {}
+
+    def init(self): 
+        def insert(value): 
+            self.km[vim.eval('"\{}"'.format(value))] = value.lower()
+
+        for letter in range(65,91):
+            letter = chr(letter)
+            insert('<c-' + letter + '>')
+            insert('<m-' + letter + '>')
+
+        for letter in range(0,10):
+            insert('<m-{}>'.format(letter))
+
+        insert ("<up>")
+        insert ("<down>")
+        insert ("<left>")
+        insert ("<right>")
+        insert ("<enter>")
+        insert ("<cr>")
+        insert ("<f1>")
+
+    def is_init(self):
+        return len(self.km) > 0
+
+vkm = VimKeymap()
+vkm.init()
+def GetKeyMap():
+    return vkm.km

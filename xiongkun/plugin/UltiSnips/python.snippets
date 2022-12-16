@@ -317,6 +317,9 @@ class PaddleProfiler:
 pp = PaddleProfiler(100, 110)
 for batch in batches:
     pp.step()
+
+with paddle.fluid.profiler._nvprof_range(i, 10, 20):
+    forward()
 endsnippet
 #}}}
 
@@ -692,7 +695,6 @@ snippet example_pd_simple_net "a simple net with linear as parameters" #{{{
 import paddle
 import numpy as np
 import random
-from paddle.fluid.dygraph.container import BufferList
 from numpy.testing import assert_array_equal
 
 class SimpleNet(paddle.nn.Layer):               
@@ -700,22 +702,15 @@ class SimpleNet(paddle.nn.Layer):
         super(SimpleNet, self).__init__()
         self.linear1 = paddle.nn.Linear(10, 3)    
         self.linear2 = paddle.nn.Linear(3, 1)    
-        self.hidden  = BufferList([
-            paddle.to_tensor([1.0]), 
-            paddle.to_tensor([2.0]),
-        ])
-        #self.hidden  = paddle.to_tensor([1.0])
         
     def forward(self, x):
         out1 = self.linear1(x)
-        out2 = self.linear2(out1) + self.hidden[0]
-        self.hidden.assign([
-            paddle.to_tensor([3.0]), 
-            paddle.to_tensor([4.0])
-        ])
+        out2 = self.linear2(out1) 
         return [out1, out2]
 
 def run_graph(inp, to_static):
+    """ dygraph only backward.
+    """
     paddle.seed(2021)
     np.random.seed(2021)
     random.seed(2021)
@@ -727,6 +722,24 @@ def run_graph(inp, to_static):
     #loss[0].backward()
     #print (net.linear1.weight.grad)
     return loss
+
+def run_dygraph_optimizer(inp, to_static):
+    """ dygraph train + SGD optimizer
+    """
+    paddle.seed(2021)
+    np.random.seed(2021)
+    random.seed(2021)
+    net = SimpleNet()
+    optimizer = paddle.optimizer.SGD(learning_rate=0.3,
+        parameters=net.parameters())
+    for i in range(10):
+        optimizer.clear_grad()
+        loss = net(inp)
+        print("XK: ", loss.item())
+        loss.backward()
+        optimizer.step()
+    return loss
+    
 
 inp = paddle.rand((10,))
 assert_array_equal(run_graph(inp, True)[0].numpy(), run_graph(inp, False)[0].numpy(), "Not Equal in dygraph and static graph", True)
@@ -803,7 +816,7 @@ endsnippet
 snippet debug_print_net_parameter "print all the net parameters" #{{{
 for name, param in net.named_parameters():
     if param is not None:
-        print (name, param.mean())
+        print (name, param.cast("float32").mean())
 endsnippet
 #}}}
 
@@ -836,4 +849,128 @@ def f(x):
     return 2 * x
     
 print(f(torch.randn(2, 2)))
-endsnippet
+endsnippet 
+#}}}
+
+snippet absolute_import "absolute_import by imp library." #{{{
+import imp
+ggg = imp.load_source("ggg", "/home/data/global.py")
+ggg.global_loss = x
+endsnippet 
+#}}}
+
+snippet debug_accurary "a example to debug network accuracy problem in dygraph." #{{{
+for i in range(30):
+    optimizer.clear_grad()
+    loss = net(src_word, src_pos)
+    loss = loss.sum()
+    print ("Step: ", i)
+    print ("    =======Loss=========")
+    print("XK: ", loss.item())
+    loss.backward()
+    print ("    =======GradAndWeights=========")
+    for name, param in net.named_parameters():
+        if param.grad is not None:
+            print (name+"_grad", param.grad.mean().item())
+        if param is not None:
+            print (name, param.mean().item())
+    optimizer.step()
+    print ("    =======Update=========")
+    for name, param in net.named_parameters():
+        if param is not None:
+            print (name, param.mean().item())
+endsnippet 
+#}}}
+
+snippet debug_print "print a tensor value in static graph" #{{{
+paddle.static.Print(${1}.mean(), message="Memory", print_phase="forward")
+endsnippet 
+#}}}
+
+snippet debug_accurary_dy2static "a example to debug network accuracy problem in dygraph." #{{{
+import paddle
+import numpy as np
+import random
+from numpy.testing import assert_array_equal
+
+paddle.set_printoptions(precision=31)
+
+def parameter_parser():
+    import argparse
+    parser = argparse.ArgumentParser(description="Support Args:")
+    parser.add_argument("--to_static",  type=str,   default="true",  help="data path")
+    return parser.parse_args()
+
+args = parameter_parser()
+
+class SimpleNet(paddle.nn.Layer):               
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.linear0 = paddle.nn.Linear(64, 64)    
+        self.linear1 = paddle.nn.Linear(64, 64)    
+        self.linear2 = paddle.nn.Linear(64, 64)    
+        self.linear3 = paddle.nn.Linear(64, 64)    
+        self.linear4 = paddle.nn.Linear(64, 64)    
+        
+    def forward(self, x):
+        x = self.linear0(x)
+
+        x1 = x + 0
+        x2 = x + 0
+        x3 = x + 0
+
+        #x1.register_hook(lambda x: print("x1.grad", x.mean()))
+        #x2.register_hook(lambda x: print("x2.grad", x.mean()))
+        #x3.register_hook(lambda x: print("x3.grad", x.mean()))
+
+        out1 = self.linear1(x1) # tmp0
+        out2 = self.linear2(x2) # tmp1
+        out3 = self.linear3(x3) # tmp2
+
+        s = out1.mean() + out2.mean() + out3.mean()
+        #s = out3.mean() + out1.mean() + out2.mean()
+        return s
+
+def run_dygraph_optimizer(to_static):
+    """ dygraph train + SGD optimizer
+    """
+    paddle.seed(2021)
+    np.random.seed(2021)
+    random.seed(2021)
+    net = SimpleNet()
+
+    if to_static: 
+        net = paddle.jit.to_static(net)
+
+    inp = paddle.rand((2, 2048, 64, 64))
+    optimizer = paddle.optimizer.SGD(learning_rate=0.03,
+        parameters=net.parameters())
+    for i in range(10):
+        print ("======== New Step =======")
+        optimizer.clear_grad()
+        loss = net(inp)
+        for name, param in net.named_parameters():
+            if param is not None:
+                print ("param: ", name, param.cast("float32").mean())
+        loss.backward()
+        for name, param in net.named_parameters():
+            if param.grad is not None:
+                print ("grad:  ", name, param.grad.cast("float32").mean())
+        print ("loss", loss.mean())
+        optimizer.step()
+    return loss
+    
+if args.to_static == "true":
+    run_dygraph_optimizer(True).numpy()
+else: 
+    run_dygraph_optimizer(False).numpy()
+    
+"""
+Start command: 
+PYTHONPATH="/home/data/Paddle/build/python" python3.7 /home/data/test/test_aggre.py --to_static=false > /home/data/log1.txt && PYTHONPATH="/home/data/Paddle/build/python" python3.7 /home/data/test/test_aggre.py --to_static=true > /home/data/log2.txt
+
+Vim diff command:
+diffsplit 
+"""
+endsnippet 
+#}}}

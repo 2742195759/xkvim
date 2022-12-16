@@ -169,7 +169,9 @@ class BoxListWindowManager:# {{{
         self = BoxListWindowManager.singleton()
         if winid not in self.wins: # means the  window is already deleted, ignore the key.
             return False
-        return self.wins[winid].on_key(key)
+        ret = self.wins[winid].on_key(key)
+        log(f"get key: {key}, processed: {ret}")
+        return ret
 
     @staticmethod
     def on_close(winid, code):
@@ -213,7 +215,11 @@ class BoxListWindow(Window):# {{{
             "cursorline": True,
             "highlight": "Normal",
             "borderhighlight": ["Grep"],
+            'mapping': False,  
         }
+        """
+        mapping = False is important, see 'h popup_create-arguments' for more details.
+        """
         self.callback = callback
         self.keymap = keymap
         self.options = args
@@ -239,10 +245,11 @@ class BoxListWindow(Window):# {{{
     def set_title(self, title):
         self._set_options("title", title)
 
-    def goto(self, item):
+    def goto(self, item, method):
         if item['filename'] == "": return 
-        cmd = vim_format('call ExecuteJumpCmd("%s", "%s")', item['filename'], item['cmd'])
-        vimcommand(cmd)
+        loc = Location(item['filename'])
+        GoToLocation(loc, method)
+        vimcommand(item['cmd'])
 
     @staticmethod
     def _parse(items):
@@ -368,11 +375,14 @@ class BoxListWindow(Window):# {{{
             return true: if processed.
             return false: to call default process function. (VimScript)
         """
+        if key == '<m-1>': 
+            return True
+
         key2jump = {# {{{
             '<cr>': 'e',
-            's': 'sp',
-            'v': 'vertical split',
-            't': 'tabe', 
+            's': 's',
+            'v': 'v',
+            't': 't', 
         }# }}}
         def close_boxlist(jump_method):# {{{
             wid = self.wid
@@ -380,7 +390,7 @@ class BoxListWindow(Window):# {{{
             if jump_method in key2jump: 
                 vimcommand("let g:default_jump_cmd = '%s'" % key2jump[jump_method])
                 if self._getcuritem():
-                    self.goto(self._getcuritem())# }}}
+                    self.goto(self._getcuritem(), key2jump[jump_method])# }}}
             
         if key in ['j', 'k', 'h', 'l', 'G', 'g', '<up>', '<down>']:
             self.cursor_move(key)

@@ -301,3 +301,14 @@ def GitFileHistory(args):#{{{
     app = GitPreviewApp(command_getter )
     app.start()
 #}}}
+
+@vim_register(command="Git", with_args=True)
+def GitCommand(args):#{{{
+    assert len(args) > 0, "Git push | commit"
+    assert args[0] in ['push', 'commit']
+    if args[0] == 'push':
+        system("~/xkvim/bash_scripts/git_push.sh")
+#}}}
+
+
+

@@ -75,12 +75,12 @@ def ProfileProject(args):
     cmd = f"cd {dir_name} && " + " ".join(args[1:])
     print(dir_name, abs_path, cmd)
     random_name = "tmp_" + vim.eval("rand()") + ".qdrep"
-    os.system(f"~/xkvim/cmd_script/remove.sh profile")
-    from remote_terminal import TerminalStart, LoadConfig
-    config = LoadConfig()
-    bufnr = TerminalStart(config.profile.ssh_url, config.profile.ssh_passwd, config.profile.docker_cmd, config.profile.wd)
     os.system(f"~/xkvim/cmd_script/send_profile_task.sh {abs_path} \"{cmd}\"")
-    #os.system(f"python3 ~/xkvim/cmd_script/converse_execute.py --name mac --cmd " + f"\"cd ~/my_report/ && curl http://10.255.125.22:8082/my_report.qdrep --output {random_name} && open ./{random_name}\"")
+    from .remote_terminal import TerminalStart, LoadConfig, send_keys
+    config = LoadConfig()
+    bufnr = TerminalStart(config.profile['ssh_url'], config.profile['ssh_passwd'], config.profile['docker_cmd'], "/home/ssd3/xiongkun")
+    send_keys(bufnr, f"/home/ssd3/xiongkun/prepare_profile.sh\n\r")
+    send_keys(bufnr, f"cd /home/ssd3/xiongkun/profile\n\r")
 
 @vim_register(command="Make")
 def PaddleMake(args):
@@ -106,14 +106,17 @@ def baidu_translate(sentence):
     info = child.stdout.readline().strip()
     return info
 
-def gast_dump(sentence):
+def gast_dump(file):
     import subprocess
-    sentence = sentence.replace("\n", "")
-    cmd = "python3 ~/xkvim/cmd_script/dump_gast.py --code \"{sentence}\"".format(
-        sentence = sentence,
+    cmd = "python3 ~/xkvim/cmd_script/dump_gast.py --file \"{file}\"".format(
+        file = file,
     )
-    child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+    child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    error = child.stderr.readline().strip()
     info = child.stdout.readline().strip()
+    if error: 
+        print("Error occur:\n", error)
+        return ""
     return info
 
 @vim_register(command="Trans")
@@ -144,8 +147,8 @@ def VisualTranslate(args):
 def GastDump(args):
     """ `< and `>
     """
-    text = vim_utils.GetVisualWords()
-    info = gast_dump(text)
+    file = vim_utils.WriteVisualIntoTempfile()
+    info = gast_dump(file)
     print(info)
 
 @vim_register(command="Copyfile")
@@ -176,5 +179,5 @@ def ShareCode(args):
     """
     word = vim_utils.GetVisualWords()
     open("/tmp/share.txt", "w").write(word)
-    if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt"): 
+    if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt")[0]: 
         print ("Your code is shared into http://10.255.125.22:8082/share.txt")

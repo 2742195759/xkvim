@@ -300,7 +300,7 @@ endfunction
 
 function s:PyWindowsKeyMap(winid, key)
     let key = a:key
-    let keymap = { "\<up>": "<up>", "\<enter>": "<cr>", "\<down>": "<down>"}
+    let keymap = py3eval("Xiongkun.vim_utils.GetKeyMap()")
     if get(keymap, a:key, "") != ""
         let key = keymap[a:key]
     endif

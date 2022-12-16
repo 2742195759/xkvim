@@ -789,7 +789,6 @@ class FileFinderBuffer(WidgetBuffer):
         qualifier = []
         qualifier_name_set = set()
         search_base = None
-        buffer_names = GetBufferList()
         for p in pieces: 
             p = p.strip()
             if not p: continue
@@ -810,7 +809,8 @@ class FileFinderBuffer(WidgetBuffer):
             if basename.startswith("."): return False
             if basename.endswith(".o"): return False
             if basename.endswith(".pyc"): return False
-            if not re.search(search_base, basename): return False
+            #if not re.search(search_base, basename): return False
+            if not re.search(search_base, filepath): return False
             for qual in qualifier: 
                 if qual.startswith("+") and not re.search(qual[1:], filepath): return False
                 if qual.startswith("-") and re.search(qual[1:], filepath): return False
@@ -819,7 +819,10 @@ class FileFinderBuffer(WidgetBuffer):
         def score(filepath):
             basename = os.path.basename(filepath).lower()
             filepath = filepath.lower()
-            return len(basename) - len(search_base)
+            addition = 0
+            if re.search(search_base, basename): 
+                addition = -10000 # high priority
+            return addition + abs(len(basename) - len(search_base))
 
         if search_base is None: 
             self.widgets['result'].set_items(self.files)
@@ -834,7 +837,8 @@ class FileFinderBuffer(WidgetBuffer):
         FileFinderPGlobalInfo.update_mru(filepath)
         self.on_exit()
         if filepath:
-            vim.command(f"{cmd} {filepath}")
+            loc = Location(filepath)
+            GoToLocation(loc, cmd)
 
     def on_exit(self):
         vim.command("set updatetime=4000")
@@ -884,10 +888,10 @@ class FileFinderBuffer(WidgetBuffer):
             '<c-j>': lambda x,y: self.on_item_down(),
             'i:<enter>': lambda x,y: self.on_enter("e"),
             '<enter>': lambda x,y: self.on_enter("e"),
-            'i:<c-s>': lambda x,y: self.on_enter("vne"),
-            '<c-s>': lambda x,y: self.on_enter("vne"),
-            '<c-t>': lambda x,y: self.on_enter("tabe"),
-            'i:<c-t>': lambda x,y: self.on_enter("tabe"),
+            'i:<c-s>': lambda x,y: self.on_enter("v"),
+            '<c-s>': lambda x,y: self.on_enter("v"),
+            '<c-t>': lambda x,y: self.on_enter("t"),
+            'i:<c-t>': lambda x,y: self.on_enter("t"),
             '<c-p><c-p>': lambda x,y: x,
             '<c-p>': lambda x,y: x,
             'i:<tab>': lambda x,y: self.on_change_database(),
@@ -940,7 +944,7 @@ def FileFinder(args):
     ff = FileFinderApp()
     ff.start()
 
-@vim_register(command="B", with_args=True)
+@vim_register(command="B", with_args=True, command_completer="buffer")
 def BufferFinder(args):
     ff = FileFinderApp()
     ff.start()

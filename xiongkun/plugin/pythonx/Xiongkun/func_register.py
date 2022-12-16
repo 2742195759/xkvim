@@ -34,7 +34,7 @@ import vim
 import sys
 import os
 
-def vim_register(name="", keymap="", command="", with_args=False):
+def vim_register(name="", keymap="", command="", with_args=False, command_completer=""):
     """
     keymap: i:MAP | MAP
     """
@@ -66,9 +66,16 @@ endfunction
 
         if command != "": 
             # split by space,  and pass as string
+            nonlocal command_completer 
+            if command_completer!="":
+                command_completer = "-complete={}".format(command_completer)
             arg_num = '0'
-            if with_args: arg_num = '*'
-            vim.command( """ command! -n=%s -range %s cal %s(split("<args>", " ")) """%(arg_num, command, vim_name))
+            if with_args: 
+                arg_num = '*'
+            vim.command( """ command! -n={arg_num} {command_completer} -range {command} cal {vim_name}(split("<args>", " ")) """.format(arg_num=arg_num, 
+                            command_completer=command_completer, 
+                            command=command, 
+                            vim_name=vim_name))
         return func
     return decorator
 

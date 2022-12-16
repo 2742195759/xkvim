@@ -30,6 +30,7 @@ def LoadConfig(config_path="./.vim_clangd.py"):
 def TerminalStart(ssh_url, ssh_passwd, docker_cmd, work_dir=None):
     """ provide keys with: 
     """
+    print (f"Connect to {ssh_url} , {docker_cmd}, {work_dir}")
     if not work_dir: 
         work_dir = GetPwd()
     vim.command("tabe")
@@ -39,7 +40,7 @@ def TerminalStart(ssh_url, ssh_passwd, docker_cmd, work_dir=None):
     bufnr = vim.eval("bufnr()")
     send_keys(bufnr, f"ssh {ssh_url}\n")
     import time
-    time.sleep(0.5)
+    time.sleep(1)
     send_keys(bufnr, f"{ssh_passwd}\r\n")
     time.sleep(0.4)
     send_keys(bufnr, f"\r\n")
@@ -51,7 +52,18 @@ def TerminalStart(ssh_url, ssh_passwd, docker_cmd, work_dir=None):
 
 @vim_register(command="Bash", with_args=True)
 def BashStart(args=[]):
-    config = LoadConfig()
+    if len(args) == 1: 
+        config_file = "/home/data/.vim_clangd.py"
+        from easydict import EasyDict as edict
+        configs = LoadConfig(config_file)
+        if (args[0] == 'ls'): 
+            print("tf | torch | paddle | profile | wzf | cvpods")
+            return
+        else: 
+            config = edict(getattr(configs, args[0]))
+            config.wd = GetPwd()
+    else: 
+        config = LoadConfig()
     TerminalStart(config.ssh_url, config.ssh_passwd, config.docker_cmd, config.wd)
 
 

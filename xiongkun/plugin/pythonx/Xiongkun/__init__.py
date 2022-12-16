@@ -121,3 +121,10 @@ def CopyFileName(args):
     cmd = "/bin/cp ../%s ./%s" % (filename, filename)
     os.system("echo %s >> /home/data/web/scripts/copy_file.sh" % cmd)
 
+@vim_register(command="SearchConfig")
+def EditSearchConfig(args):
+    vim.command("tabe search_config")
+
+@vim_register(command="SearchConfigTemplate")
+def NewSearchConfig(args):
+    vim.command("read ~/xkvim/search_config")

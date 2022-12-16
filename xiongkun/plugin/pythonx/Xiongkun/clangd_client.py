@@ -85,7 +85,8 @@ def do_path_map(path, fr="clangd", to="vim"):
     if len(optional) > 0:
         return prefix[to][0] + path[len(optional[0]):]
     else:
-        raise RuntimeError(f"Got `{fr}` path: `{path}`, which is not found in vim client.")
+        #raise RuntimeError(f"Got `{fr}` path: `{path}`, which is not found in vim client.")
+        return path
 
 client_id = str(random.randint(1, 10000))
 clangd = None

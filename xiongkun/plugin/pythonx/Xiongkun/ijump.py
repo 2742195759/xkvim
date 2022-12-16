@@ -9,7 +9,7 @@ from functools import partial
 import re
 
 def get_history_isearch(word):
-    cmd = f'ilist! /{word}/'
+    cmd = f'ilist! /\<{word}\>/'
     return vim_utils.GetCommandOutput(cmd)
 
 space = " *"
