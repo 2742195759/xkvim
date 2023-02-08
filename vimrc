@@ -277,3 +277,4 @@ call airline#add_statusline_func('MyPlugin')
 set noshowmode
 set termwinscroll=10000000
 let delimitMate_matchpairs = "(:),[:],{:}"
+" set switchbuf=vsplit

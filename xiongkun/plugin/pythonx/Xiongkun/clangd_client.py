@@ -10,6 +10,8 @@ import json
 from contextlib import contextmanager
 from .windows import GlobalPreviewWindow
 import time
+from .log import log
+from urllib.parse import quote, unquote
 
 def _StartAutoCompile():# {{{
     cmd = """
@@ -108,7 +110,8 @@ def send_by_python(json_req=None, cmd=None, url=clangd_config.url, timeout=(2,2)
     try:
         rsp = requests.post(url, data=json.dumps(json_req), headers=headers, timeout=timeout)
         return rsp
-    except:
+    except Exception as e:
+        log("[clangd error]", str(e))
         return None
         # }}}
 
@@ -318,7 +321,6 @@ def Clangd_GoTo(args, preview=False):# {{{
     if rsp is None:
         vim_utils.info ("Compiling, Try later.")
         return []
-    #print (rsp)
     all_locs = _clangd_to_location( rsp['result'] )
     if len(all_locs) == 0: 
         print ("Implementation No Found !")
@@ -329,6 +331,7 @@ def Clangd_GoTo(args, preview=False):# {{{
     else:
         if len(all_locs) == 1:
             first_loc = all_locs[0]
+            log("[Clangd Get Result]", first_loc.getfile())
             vim_utils.GoToLocation(first_loc, '.')
         else: 
             vim_utils.SetQuickFixList(all_locs, True, False)
@@ -395,6 +398,11 @@ def ClangdCompleteInterface(args):# {{{
 # }}}
 
 def uri2abspath(uri):
+    """
+    NOTES: uri is quoted. 
+    C++ -> "C%2B%2B", we need unquote to decode.
+    """
+    uri = unquote(uri)
     return do_path_map(uri[7:], "clangd", "vim")
 
 @vim_register(name="ClangdServerComplete")

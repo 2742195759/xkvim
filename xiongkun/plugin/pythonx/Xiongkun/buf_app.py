@@ -359,6 +359,9 @@ class Widget():
         pass
 
     def _rematch(self, attr, high, rrange, keyword=None, priority=0):
+        if keyword is not None:
+            keyword = escape(keyword, "~%")
+            keyword = escape(keyword, "\\")
         if getattr(self, attr) is not None: 
             mid = getattr(self, attr)
             vim.eval(f"matchdelete({mid})")
@@ -712,6 +715,9 @@ class ListBoxWidget(Widget):
     def get_height(self):
         return self.height
 
+    def __len__(self):
+        return len(self.items)
+
 class MruList:
     def __init__(self):
         self.items = []
@@ -948,8 +954,27 @@ def FileFinder(args):
 def BufferFinder(args):
     ff = FileFinderApp()
     ff.start()
+    #ff.on_cursor_hold = on_auto_hold
     ff.mainbuf.files = GetBufferList()
     input = "" if len(args)==0 else " ".join(args)
     ff.mainbuf.widgets['input'].text = input
     ff.mainbuf.redraw()
     ff.mainbuf.on_last_input()
+    ff.mainbuf.on_search()
+    if len(ff.mainbuf.widgets['result']) == 1: 
+        ff.mainbuf.on_enter("b")
+        
+@vim_register(command="SB", with_args=True, command_completer="buffer")
+def SplitBufferFinder(args):
+    ff = FileFinderApp()
+    ff.start()
+    #ff.on_cursor_hold = on_auto_hold
+    ff.mainbuf.files = GetBufferList()
+    input = "" if len(args)==0 else " ".join(args)
+    ff.mainbuf.widgets['input'].text = input
+    ff.mainbuf.redraw()
+    ff.mainbuf.on_last_input()
+    ff.mainbuf.on_search()
+    if len(ff.mainbuf.widgets['result']) == 1: 
+        ff.mainbuf.on_enter("sb")
+    

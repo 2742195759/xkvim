@@ -230,11 +230,12 @@ class DiffBuffer(BashCommandResultBuffer):
         }
 
 class GitPreviewApp(Application):#{{{
-    def __init__(self, command_getter):
+    def __init__(self, command_getter, init_file=None):
         """
         """
         super().__init__()
         self.command_getter = command_getter
+        self.init_file = init_file
 
         def ondiff(commit0, commit1): 
             """ while press "d" in the git file log buffer.
@@ -262,7 +263,7 @@ class GitPreviewApp(Application):#{{{
                 self.git_diff_layout.reset_buffers(bufdict)
                 self.git_diff_layout.windiff(['first', 'second'])
 
-            onenter(files=True)
+            onenter(file=init_file, files=True)
 
         self.git_diff_layout = None
         self.git_log_layout = CreateWindowLayout(active_win='win')
@@ -281,6 +282,7 @@ class GitPreviewApp(Application):#{{{
 @vim_register(command="GF", with_args=True)
 def GitFileHistory(args):#{{{
     command_getter  = None
+    init_file = None
     if len(args) == 0: 
         """ show all git log which modified this file.
         """
@@ -289,6 +291,7 @@ def GitFileHistory(args):#{{{
             vim.command(f"echom '{file}'")
             return f"git log {file}" 
         command_getter = file_log_command
+        init_file = CurrentEditFile()
     elif len(args) == 1: 
         """ show all git log belongs to certain author.
         """
@@ -297,8 +300,9 @@ def GitFileHistory(args):#{{{
             print (f"Author is {author}")
             return f"git log --author {author}" 
         command_getter = author_log_command
+        init_file = None
 
-    app = GitPreviewApp(command_getter )
+    app = GitPreviewApp(command_getter, init_file)
     app.start()
 #}}}
 

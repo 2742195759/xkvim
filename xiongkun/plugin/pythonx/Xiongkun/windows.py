@@ -423,8 +423,17 @@ class BoxListWindow(Window):# {{{
                 def inv_name_filter(item):
                     if text in item['filename']: return False
                     return True
+                def context_filter(item):
+                    assert text.startswith("+")
+                    actual_text = text[1:]
+                    context = "".join(peek_line(item['filename'], int(item['lnum']), int(item['lnum'])+5))
+                    item['text'] = context
+                    if actual_text  in context: return True
+                    return False
                 m = {'f': name_filter, 'F': inv_name_filter}
-                self.items = list(filter(m[key], self.items))
+                if text.startswith('+'): filter_fn = context_filter
+                else: filter_fn = m[key]
+                self.items = list(filter(filter_fn, self.items))
                 self.update(self.items)
             return True# }}}
         if key in ['d', 'D']: 

@@ -15,6 +15,7 @@ from .buf_app import *
 from .quick_note import *
 from .remote_terminal import *
 from .log_analysis_plugin import *
+from .traceback import *
 
 pro = None; 
 
@@ -41,8 +42,9 @@ Make    ===>   Paddle make and cfile the error.
 <F9>    ===>   Restart the UltiSnippet and YCM Server.
 Latex   ===>   compile the current edit latex file, and popup in your Mac. Need WebServerCenter.
 IFuzzy|IFind ===> Fuzzy Match By Clangd Indexer.  [ useful for code complete and preview. ]
-ProfileProject  ===> ProfileProeject ./ FLAGS_new_einsum=1 python3.7 main.py
+ProfileProject  ===> ProfileProeject ./ FLAGS_new_einsum=1 python3.7 main.py.
 Reload  ===>   reload Xiongkun python plugin, make all the changes work.
+Traceback ===> Traceback a stack output, current only support python language.
 <TODO>  ===>   Code Complete by clangd. clangd is slower but more stable, more accurary than YCM. Use my own compile tools.
 """)
 

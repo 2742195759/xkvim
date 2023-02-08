@@ -502,22 +502,43 @@ endsnippet
 #}}}
 
 snippet pd.static_example "[static] a static graph example" #{{{
+import paddle
+import paddle.fluid as fluid
+import numpy as np
+import sys
+import os
+import os.path as osp
+import numpy as np
+import os
+import unittest
+
+import paddle
+import paddle.fluid as fluid
+import paddle.fluid.core as core
+import paddle.fluid.layers as layers
+import paddle.fluid.framework as framework
+from paddle.fluid.backward import append_backward
+from paddle.fluid.framework import Program, program_guard
+
+paddle.enable_static()
+
 # TODO( Snippet paddle import. )
 paddle.set_device('cpu')
 paddle.enable_static()
-main_prg, startup_prg = Program(), Program()
+main_prg, startup_prg = paddle.static.Program(), paddle.static.Program()
 with program_guard(main_prg, startup_prg):
     var_a = paddle.static.data(name='a', shape=[2,2], dtype='float32')
-    var_b = paddle.static.data(name='b', shape=[1], dtype='int64')
     var_a.stop_gradient = False
-    var_c = paddle.unsqueeze(var_a, var_b)
-    print("CompileTimeShape:", var_c.shape)
+    linear = paddle.nn.Linear(2, 2)
     exe = paddle.static.Executor()
+    sgd = paddle.optimizer.SGD(0.001, parameters=[linear.weight])
+    sgd.minimize(linear(var_a).mean())
     exe.run(startup_prg)
+    print (main_prg)
     out = exe.run(main_prg, 
                   feed={'a': np.array([[1.0,2],[3,4]], dtype='float32'), 
                         'b': np.array([0])}, 
-                  fetch_list=[var_c])
+                  fetch_list=[var_a])
     print("RuntimeShape", out[0].shape)
 endsnippet
 #}}}
@@ -972,5 +993,91 @@ PYTHONPATH="/home/data/Paddle/build/python" python3.7 /home/data/test/test_aggre
 Vim diff command:
 diffsplit 
 """
+endsnippet 
+#}}}
+
+snippet example_setup "a example of setup.py." #{{{
+"""Setup for pip package."""
+
+import PPAutoDiff
+
+from setuptools import find_packages, setup
+
+
+def read_requirements_file(filepath):
+    with open(filepath) as fin:
+        requirements = fin.read()
+    return requirements
+
+
+REQUIRED_PACKAGES = read_requirements_file("requirements.txt")
+
+
+setup(
+    name='ppautodiff',
+    version=PPAutoDiff.__version__,
+    description=
+    ('A tools to automatically diff precision between Paddle and Pytorch Model.'
+     ),
+    long_description='',
+    url='https://github.com/PaddlePaddle/PPAutoDiff',
+    author='PaddlePaddle Author',
+    author_email='',
+    install_requires=REQUIRED_PACKAGES,
+    packages=find_packages(),
+    include_package_data=True,
+    python_requires=">=3.7",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: OS Independent",
+    ],
+    license='Apache 2.0',
+    keywords=('ppautodiff automatically diff precision between paddle and pytorch model'),
+)
+endsnippet 
+#}}}
+
+snippet github_workflow "a example of github workflow" #{{{
+#workflow name
+name: Test 
+
+#trigger event
+on: [push, pull_request]
+
+# jobs definition
+jobs:
+  # name of job
+  Test:
+    # name of job
+    name: Test
+    # which os platform you want to run on
+    runs-on: ubuntu-20.04
+    # ...
+    permissions:
+      pull-requests: write
+      contents: read
+      id-token: write
+    # steps to run: sequential run
+    steps:
+      # use: call github action. see github/action for all list of actions
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      # customed command definition
+      - name: Install dependencies
+        # customed command 
+        # | is to continue a line
+        run: |
+          # each line is a command
+          python -m pip install --upgrade pip
+          make install
+      # make test. write all you command in Makefile.
+      - name: run the command
+        run: make test
 endsnippet 
 #}}}

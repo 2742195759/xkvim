@@ -27,16 +27,19 @@ def LoadConfig(config_path="./.vim_clangd.py"):
     setattr(config, "wd", pwd)
     return config
 
-def TerminalStart(ssh_url, ssh_passwd, docker_cmd, work_dir=None):
+def TerminalStart(ssh_url, ssh_passwd, docker_cmd, work_dir=None, open_window=None):
     """ provide keys with: 
     """
     print (f"Connect to {ssh_url} , {docker_cmd}, {work_dir}")
     if not work_dir: 
         work_dir = GetPwd()
-    vim.command("tabe")
-    vim.command("terminal")
+    if open_window is None: 
+        vim.command("tabe")
+        vim.command("terminal")
+        vim.command("wincmd o")
+    elif open_window == 'split':
+        vim.command("vertical terminal")
     #vim.command("file ssh")
-    vim.command("wincmd o")
     bufnr = vim.eval("bufnr()")
     send_keys(bufnr, f"ssh {ssh_url}\n")
     import time
@@ -50,8 +53,7 @@ def TerminalStart(ssh_url, ssh_passwd, docker_cmd, work_dir=None):
     send_keys(bufnr, f"cd {work_dir}\r\n")
     return bufnr
 
-@vim_register(command="Bash", with_args=True)
-def BashStart(args=[]):
+def load_config(args):
     if len(args) == 1: 
         config_file = "/home/data/.vim_clangd.py"
         from easydict import EasyDict as edict
@@ -64,8 +66,17 @@ def BashStart(args=[]):
             config.wd = GetPwd()
     else: 
         config = LoadConfig()
+    return config
+
+@vim_register(command="Bash", with_args=True)
+def BashStart(args=[]):
+    config = load_config(args)
     TerminalStart(config.ssh_url, config.ssh_passwd, config.docker_cmd, config.wd)
 
+@vim_register(command="VBash", with_args=True)
+def VBashStart(args=[]):
+    config = load_config(args)
+    TerminalStart(config.ssh_url, config.ssh_passwd, config.docker_cmd, config.wd, 'split')
 
 @vim_register(command="BashHelp", with_args=True)
 def TerminalHelper(args):
@@ -80,8 +91,8 @@ def TerminalHelper(args):
     print ("  <M-f> -> start a command")
     print ("Abbreviate:")
     print ("  pp    -> PYTHONPATH=")
-    print ("  proxy -> set proxy short cut")
-    print ("  nopro -> set no proxy short cut")
+    print ("  pro   -> set proxy short cut")
+    print ("  nop   -> set no proxy short cut")
     print ("  pdb   -> python pdb")
 
 @vim_register(command="Write", with_args=True)

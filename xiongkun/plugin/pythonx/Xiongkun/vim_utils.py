@@ -106,6 +106,8 @@ def GoToLocation(location, method):
     3. 't': tabe
     4. '.' | 'e': current window
     5. 'p': preview open
+    6. 'b': buffer open
+    6. 'sb': buffer open
     """
     norm_methods = {
         'e': 'e!',
@@ -114,6 +116,8 @@ def GoToLocation(location, method):
         't': 'tabe!',
         'v': 'vne!',
         's': 'split!',
+        'b': 'b',
+        'sb': 'vertical sb',
     }
     view_methods = {
         #'e': 'view',
@@ -128,6 +132,8 @@ def GoToLocation(location, method):
         's': 'noswapfile split',
         't': 'noswapfile tabe',
         'v': 'noswapfile vne',
+        'b': 'noswapfile b',
+        'sb':'noswapfile vertical sb',
     }
     vim_method = norm_methods[method]
     if HasSwapFile(location.getfile()): 
@@ -293,8 +299,7 @@ def FindWindowInCurrentTabIf(prediction):
         if prediction(winnr): 
             finded = winnr
     if finded == -1 : 
-        print ("Error: not found preview window")
-        raise NotImplementedError()
+        return -1
     else : 
         return vimeval(f"winbufnr({finded})")
 
@@ -318,7 +323,9 @@ def GetLineFromLocation(location):
         lines = fp.readlines()
     return lines[location.getline()-1].strip()
 
-def SetQuickFixList(locations, jump=False, cwin=False, textlist=None):
+def SetQuickFixList(locations, jump="none", cwin=False, textlist=None):
+    if jump == True: jump = "first"
+    assert jump in ['first', 'last', 'none']
     results = []
     for idx, loc in enumerate(locations): 
         results.append({'filename': loc.getfile(), 
@@ -328,8 +335,10 @@ def SetQuickFixList(locations, jump=False, cwin=False, textlist=None):
 
     qflist = VimVariable().assign(results)
     vimeval('setqflist(%s)' % qflist)
-    if jump: 
+    if jump == 'first': 
         vimcommand("cr")
+    elif jump == 'last': 
+        vimcommand("cr {}".format(len(locations)))
     if cwin: 
         vimcommand("copen")
 
@@ -387,6 +396,7 @@ while in py3: see example:
 while in vimeval / vimcommand: use 
     vim_format('let a = "%s"', text)
 """
+
 def escape(command, chars="'\\\""):
     l = []
     for c in command:
@@ -621,10 +631,21 @@ class VimKeymap:
         insert ("<cr>")
         insert ("<f1>")
 
-    def is_init(self):
-        return len(self.km) > 0
-
 vkm = VimKeymap()
 vkm.init()
+
 def GetKeyMap():
     return vkm.km
+
+def peek_line(filename, start, end):
+    """
+    read line from [start, end)
+    """
+    import linecache
+    ret = []
+    for i in range(start, end): 
+        ret.append(linecache.getline(filename, i).strip())
+    return ret
+
+    
+    
