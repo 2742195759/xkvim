@@ -16,6 +16,8 @@ from .quick_note import *
 from .remote_terminal import *
 from .log_analysis_plugin import *
 from .traceback import *
+from .quick_jump import QuickJump, PreJump
+from .log import OpenLog
 
 pro = None; 
 

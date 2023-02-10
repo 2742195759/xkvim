@@ -19,6 +19,7 @@ Bundle 'https://github.com/tpope/vim-surround'
 Bundle 'https://github.com/jreybert/vimagit'
 Bundle 'https://github.com/AndrewRadev/quickpeek.vim'
 Bundle 'https://github.com/skywind3000/vim-quickui'
+Bundle 'https://github.com/tomasiser/vim-code-dark'
 Bundle 'The-NERD-Commenter'
 
 
@@ -70,7 +71,8 @@ set mouse=
 set fdm=marker
 set foldcolumn=2
 
-colorscheme molokai
+"colorscheme molokai
+colorscheme codedark
 "source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc  # move to metakey.vim
 source ~/Important/MyVim/_MY_VIM_/WindowTabeSwitch.vimrc
 

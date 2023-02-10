@@ -235,4 +235,14 @@ augroup FileIndentAutoCommand
     autocmd!
     autocmd BufEnter * call FileTypeBranch()
 augroup END
+
+function! VimQuickJump()
+    PreJump
+    redraw
+    QuickJump
+endfunc
+
+noremap <silent> s :call VimQuickJump()<cr>
+noremap <silent> S :call VimQuickJump()<cr>
+
 """"""""""""""}}}

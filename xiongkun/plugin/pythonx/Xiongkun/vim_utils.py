@@ -157,6 +157,12 @@ def GetCurrentLine():
     """
     return vimeval("getline('.')")
 
+def GetLine(nr):
+    """
+    get the line of current cursor.
+    """
+    return vimeval(f"getline({nr})")
+
 def tempfile():
     return vim.eval("tempname()")
 
@@ -176,12 +182,20 @@ def GetCursorXY():
 def SetCursorXY(x, y):
     vimeval(f"setpos('.', [0, {x}, {y}, 0])")
 
+def SetLine(lnum, text):
+    """
+    set line to text.
+    """
+    text = escape(text, "\"\\")
+    log("setline(%d, '%s')"%(int(lnum), text))
+    return vimeval('setline(%d, "%s")'%(int(lnum), text))
+
 def SetCurrentLine(text):
     """
     set current line to text.
     """
     lnum, cnum = GetCursorXY()
-    return vimeval("setline(%d, '%s')"%(int(lnum), text))
+    return SetLine(lnum, text)
 
 def ReplaceCurrentLine(func):
     new_line = func(GetCurrentLine())
@@ -265,6 +279,24 @@ def GetAllLines(bufnr=None):
     if bufnr == None: 
         bufnr = vimeval("bufnr()")
     return vimeval(f"getbufline({bufnr}, 1, '$')")
+
+def GetDisplayLines(bufnr=None):
+    lines = GetAllLines(bufnr)
+    win = VimWindows()
+    top, bot = win.display_lines
+    return lines[top-1:bot]
+
+def SetDisplayLine(lineno, text, bufnr=None):
+    lines = GetAllLines(bufnr)
+    win = VimWindows()
+    top, bot = win.display_lines
+    SetLine(lineno + top, text)
+
+def GetDisplayLine(lineno, text, bufnr=None):
+    lines = GetAllLines(bufnr)
+    win = VimWindows()
+    top, bot = win.display_lines
+    return GetLine(lineno + top)
     
 def SetVimRegister(reg, content):
     vimcommand('let @%s="%s"' % (reg, content))
@@ -648,4 +680,69 @@ def peek_line(filename, start, end):
     return ret
 
     
+class Matcher:
+    def __init__(self):
+        self.mid = None
+            
+    def match(self, high="Error", row_range=None, col_range=None, keyword=None, priority=0): 
+        """
+            high: highlight group name.
+            row_range: (start, end) 
+            col_range: (start, end)
+            keyword: 
+                - None: no key word
+                - str : the highlight word
+        """
+        if keyword is not None:
+            keyword = escape(keyword, "~%")
+            keyword = escape(keyword, "\\")
+        self.delete()
+        items = []
+        if row_range is not None: 
+            start, end = row_range
+            items.append(r"\\%>{}l\\&\\%<{}l".format(start, end))
+        if col_range is not None: 
+            start, end = col_range
+            items.append(r"\\%>{}c\\&\\%<{}c".format(start, end))
+        if keyword: 
+            items.append(keyword)
+        cmd = r"\\&".join(items)
+        cmd += r"\\c"
+        log("Pattern:", cmd)
+        self.mid = vim.eval("matchadd(\"{}\", \"{}\", {})".format(
+            high, 
+            cmd, 
+            priority))
+        
+    def delete(self):
+        if self.mid is not None:
+            vim.eval(f"matchdelete({self.mid})")
+
+def GetWindowCurrentId(): 
+    return vimeval("win_getid()")
+
+class VimWindows: 
+    def __init__(self):
+        self._id = GetWindowCurrentId()
+
+    @property
+    def id(self):
+        return int(self.id)
+
+    @property
+    def display_lines(self):
+        """
+        [{'winnr': 3, 'variables': {'airline_lastmode': 'normal', 'paren_hl_on': 0, 'airline_active': 1, 'airline_current_mode': 'COMMAND'}, 'botline': 24, 'height': 24, 'bufnr': 1, 'winbar': 0, 'width': 180, 'tabnr': 1,
+ 'quickfix': 0, 'topline': 1, 'loclist': 0, 'wincol': 33, 'winrow': 27, 'textoff': 2, 'winid': 1000, 'terminal': 0}]
+        """
+        out = vimeval(f"getwininfo({self._id})")
+        return int(out[0]['topline']), int(out[0]['botline'])
+
+    @property
+    def bufnr(self):
+        out = vimeval(f"getwininfo({self._id})")
+        return int(out[0]['bufnr'])
+        
+        
+        
     

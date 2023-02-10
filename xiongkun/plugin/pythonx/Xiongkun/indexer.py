@@ -65,6 +65,7 @@ def PreviewResult(locs):
 
 @vim_register(command="ILoad", with_args=True)
 def LoadIndexer(args):
+    return 
     path = args[0]
     state.database = Indexer(path)
 
