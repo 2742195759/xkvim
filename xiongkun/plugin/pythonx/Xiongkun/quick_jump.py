@@ -21,7 +21,7 @@ UI。
 """
 
 all_labels = "abcdefghijklmnopgrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890;'.,/@!#$%^&*()<>{}+-="
-expected_char = 2
+expected_char = 1
 
 class State:
     jump_fn = None
@@ -34,6 +34,7 @@ class State:
         cls.is_stop=1
         cls.jump_fn=None
         cls.next_fn=None
+
 
 @vim_register(command="QuickJump", with_args=False)
 def QuickJump(args):

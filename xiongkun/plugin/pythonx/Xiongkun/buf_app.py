@@ -781,7 +781,6 @@ class FileFinderBuffer(WidgetBuffer):
 
     def on_search(self):
         """ 
-        +dygraph_to_static -test 
         """
         import glob
         import re
@@ -796,6 +795,7 @@ class FileFinderBuffer(WidgetBuffer):
         qualifier = []
         qualifier_name_set = set()
         search_base = None
+        FileFinder
         for p in pieces: 
             p = p.strip()
             if not p: continue

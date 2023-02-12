@@ -235,6 +235,9 @@ augroup FileIndentAutoCommand
     autocmd BufEnter * call FileTypeBranch()
 augroup END
 
+
+""" quickjump config
+
 function! VimQuickJump(cmd)
     exe 'PreJump '. a:cmd
     let loop_num = 20
@@ -250,10 +253,30 @@ function! VimQuickJump(cmd)
     endwhile
 endfunc
 
+function! GI()
+    execute "normal `^"
+    let insert_pos = getpos("'^")
+    if insert_pos[2] > len(getline('.'))
+        startinsert!
+    else
+        startinsert
+    endif
+endfunc
+
+function! VimInsertQuickPeek()
+    call VimQuickJump('s')
+    """ normal can't go into insert mode
+    execute "normal \<m-p>"
+    call GI()
+endfunction
+    
+
 nnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
 nnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
 vnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
 vnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
+inoremap <silent> <m-s> <esc>:<c-u>call VimInsertQuickPeek()<esc>
+
 
 """ conflict with surrounding: cs ds ys
 """ the conflict make the bugs is very hard to find. so i should install less

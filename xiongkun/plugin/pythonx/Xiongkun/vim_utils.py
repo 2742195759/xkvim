@@ -157,6 +157,11 @@ def GetCurrentLine():
     """
     return vimeval("getline('.')")
 
+def EmptyBuffer(): 
+    lines = GetCurrentLine()
+    strs = "".join(lines)
+    return len(strs) == 0
+
 def GetLine(nr):
     """
     get the line of current cursor.
@@ -743,6 +748,7 @@ class VimWindows:
         out = vimeval(f"getwininfo({self._id})")
         return int(out[0]['bufnr'])
         
-        
-        
-    
+def normal_GI():
+    """ VimInsertQuickPeek
+    """
+    vim.command("call GI()")

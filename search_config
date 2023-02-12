@@ -1,5 +1,6 @@
 --exclude-dir="build*"
 --exclude-dir="doc"
+--exclude-dir="docs*"
 --exclude-dir="patches"
 --exclude-dir="r"
 --exclude-dir=".*"
@@ -8,3 +9,5 @@
 --exclude="*.cmake"
 --exclude="*.json"
 --exclude="*.sh"
+--exclude-dir="__pycache__"
+--exclude="*.log"

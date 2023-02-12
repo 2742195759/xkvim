@@ -129,7 +129,6 @@ def CopyFileName(args):
 @vim_register(command="SearchConfig")
 def EditSearchConfig(args):
     vim.command("tabe search_config")
-
-@vim_register(command="SearchConfigTemplate")
-def NewSearchConfig(args):
-    vim.command("read ~/xkvim/search_config")
+    if EmptyBuffer(): 
+        vim.command("read ~/xkvim/search_config")
+        vim.command("normal 0d_")
