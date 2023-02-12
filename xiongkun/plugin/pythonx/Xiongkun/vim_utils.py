@@ -178,11 +178,14 @@ def GetCurrentWord():
     return vimeval("expand('<cword>')")
 
 
-def GetCursorXY():
+def GetCursorXY(win_id=None):
     """
     get the [int, int] position of cursor.
     """
-    return [ int(i) for i in vimeval("getpos('.')")[1:3]]
+    if win_id is None:
+        return [ int(i) for i in vimeval("getpos('.')")[1:3]]
+    else: 
+        return [ int(i) for i in vimeval(f"getcurpos({win_id})")[1:3]]
 
 def SetCursorXY(x, y):
     vimeval(f"setpos('.', [0, {x}, {y}, 0])")
@@ -326,6 +329,13 @@ def GetPreviewWinFile():
         return 
     else : 
         return vimeval("bufname(winbufnr(winnr()))")
+
+def IteratorWindowCurrentTab():
+    tab_info = vimeval('gettabinfo(win_id2tabwin(win_getid(winnr()))[0])')[0]
+    """ [{'windows': [1001, 1372, 1375, 1000], 'variables': {'NERDTreeBufName': 'NERD_tree_1'}, 'tabnr': 1}]
+    """
+    for win_id in tab_info['windows']: 
+        yield win_id
 
 def FindWindowInCurrentTabIf(prediction):
     tab_info = vimeval('gettabinfo(win_id2tabwin(win_getid(winnr()))[0])')[0]
@@ -744,15 +754,18 @@ def GetWindowCurrentId():
     return vimeval("win_getid()")
 
 class VimWindow: 
-    def __init__(self):
-        self._id = GetWindowCurrentId()
+    def __init__(self, winid=None):
+        if winid is None:
+            self._id = GetWindowCurrentId()
+        else:
+            self._id = winid
 
     @property
     def id(self):
         return int(self._id)
 
     @property
-    def display_lines(self):
+    def display_rows(self):
         """
         [{'winnr': 3, 'variables': {'airline_lastmode': 'normal', 'paren_hl_on': 0, 'airline_active': 1, 'airline_current_mode': 'COMMAND'}, 'botline': 24, 'height': 24, 'bufnr': 1, 'winbar': 0, 'width': 180, 'tabnr': 1,
  'quickfix': 0, 'topline': 1, 'loclist': 0, 'wincol': 33, 'winrow': 27, 'textoff': 2, 'winid': 1000, 'terminal': 0}]

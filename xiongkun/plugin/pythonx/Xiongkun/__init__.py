@@ -16,7 +16,7 @@ from .quick_note import *
 from .remote_terminal import *
 from .log_analysis_plugin import *
 from .traceback import *
-from .quick_jump import QuickJump, PreJump
+from .quick_jump import QuickJump, BufferJump, WindowJump, GlobalJump
 from .quick_jump import State as jump_state
 from .log import OpenLog
 

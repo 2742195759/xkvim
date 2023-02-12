@@ -75,7 +75,7 @@ set foldcolumn=2
 "colorscheme molokai
 colorscheme codedark
 "source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc  # move to metakey.vim
-source ~/Important/MyVim/_MY_VIM_/WindowTabeSwitch.vimrc
+"source ~/Important/MyVim/_MY_VIM_/WindowTabeSwitch.vimrc
 
 " xiongkun added in 2021 year
 map gs :update<cr>

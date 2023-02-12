@@ -239,7 +239,13 @@ augroup END
 """ quickjump config
 
 function! VimQuickJump(cmd)
-    exe 'PreJump '. a:cmd
+    if a:cmd == 's'
+        exe 'BufferJump '. a:cmd
+    elseif a:cmd == 'S'
+        exe 'GlobalJump '. a:cmd
+    elseif a:cmd == 't'
+        exe 'WindowJump '. a:cmd
+    endif
     let loop_num = 20
     while loop_num > 0
         let t = pyxeval("Xiongkun.jump_state.is_stop")
@@ -263,7 +269,7 @@ function! GI()
 endfunc
 
 function! VimInsertQuickPeek()
-    call VimQuickJump('s')
+    call VimQuickJump()
     """ normal can't go into insert mode
     execute "normal \<m-p>"
     call GI()
@@ -272,8 +278,8 @@ endfunction
 
 nnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
 nnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
+nnoremap <silent> <tab> <Cmd>call VimQuickJump('t')<cr>
 vnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
-vnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
 inoremap <silent> <m-s> <esc>:<c-u>call VimInsertQuickPeek()<esc>
 
 
@@ -282,7 +288,6 @@ inoremap <silent> <m-s> <esc>:<c-u>call VimInsertQuickPeek()<esc>
 """ scripts as i can.
 """ omap: normap + visual selection.
 onoremap <silent> s v<Cmd>call VimQuickJump('s')<cr>
-onoremap <silent> S v<Cmd>call VimQuickJump('S')<cr>
 
 """ surround command is: 
 
