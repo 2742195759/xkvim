@@ -78,5 +78,5 @@ function! NERDTreeChangeSearchPath(dirnode)
 endf
 
 
-noremap <leader>f :call GrepUnderCursor()<cr>
-noremap <leader>F :NERDTreeFind<cr>
+nnoremap <leader>f :call GrepUnderCursor()<cr>
+nnoremap <leader>F :NERDTreeFind<cr>

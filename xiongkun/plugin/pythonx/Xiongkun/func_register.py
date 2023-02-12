@@ -41,7 +41,7 @@ def vim_register(name="", keymap="", command="", with_args=False, command_comple
     def decorator(func):
         # register in vim
         nonlocal keymap
-        keymap_mode = "noremap"
+        keymap_mode = "nnoremap"
         if keymap.startswith("i:"):
             keymap_mode = "inoremap"
             keymap = keymap[2:]

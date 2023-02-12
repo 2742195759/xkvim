@@ -42,10 +42,10 @@ cnoremap <M-e> <End>
 cnoremap <M-w> <C-w>
 """}}}
 
-noremap <F4> :redraw!<cr>
-noremap <M-d> :Def<cr>
-noremap <M-r> :Ref<cr>
-noremap <M-c> 10[{
+nnoremap <F4> :redraw!<cr>
+nnoremap <M-d> :Def<cr>
+nnoremap <M-r> :Ref<cr>
+nnoremap <M-c> 10[{
 
 " 因为meta key 存在的原因，原来的 esc 就是 会导致 esc 出现延迟，所以使用
 " <M-e> 作为 esc ，保持输入的流畅性。这样的实现很舒服。我觉得可以。

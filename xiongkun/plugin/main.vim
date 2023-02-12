@@ -1,42 +1,41 @@
 """ Convenient Hight Light Word by matchadd()
 let s:strkey2matchnr = {}
-
 let s:circlegroup = ["Error", "StatusLineTerm", "Directory"]
 let s:circlegroup_current = 0
-fu! s:GetCircleGroup() 
+fu! s:GetCircleGroup() "{{{
     let group = s:circlegroup[s:circlegroup_current]
     let s:circlegroup_current += 1
     let s:circlegroup_current  = s:circlegroup_current % len(s:circlegroup)
     return group
-endf
+endf"}}}
 
-function! s:AddSmartMatch(pattern)
+function! s:AddSmartMatch(pattern)"{{{
     if has_key(s:strkey2matchnr, a:pattern) 
         echom a:pattern." already highlighted"
         return 
     en
     let mid = matchadd(s:GetCircleGroup(), a:pattern)
     let s:strkey2matchnr[a:pattern] = mid
-endf
+endf"}}}
 
-function! s:DelSmartMatch(pattern)
+function! s:DelSmartMatch(pattern)"{{{
     if has_key(s:strkey2matchnr, a:pattern) 
         call matchdelete(s:strkey2matchnr[a:pattern])
         call remove(s:strkey2matchnr, a:pattern)
         return 
     en
     echom a:pattern." not highlighted! can't delete"
-endf
+endf"}}}
 
-function! s:TriggerMatch(pattern)
+function! s:TriggerMatch(pattern)"{{{
     if has_key(s:strkey2matchnr, a:pattern) 
         call s:DelSmartMatch(a:pattern)
     else
         call s:AddSmartMatch(a:pattern)
     en
-endf
+endf"}}}
 
-function! s:OpenHeaderOrCpp(filepath)
+function! s:OpenHeaderOrCpp(filepath)"{{{
     " Use the execute to do actual things
     " and wrap command as call <somefunction>
     let newpath = a:filepath
@@ -54,28 +53,28 @@ function! s:OpenHeaderOrCpp(filepath)
     else
         execute 'e' newpath
     en 
-endf
+endf"}}}
 
 """"""""""""""""" GitCommenter
 py3 import Xiongkun
-function! s:ShowGitComment()
+function! s:ShowGitComment()"{{{
     let filename = expand("%")
     let linenr = getcurpos()[1]
     execute 'py3' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
-endf
+endf"}}}
 
-function! MakeXelatex()
+function! MakeXelatex()"{{{
     echo system("python3 ~/xkvim/cmd_script/xelatex.py --file=".expand("%:p"))
-endfunction
+endfunction"}}}
 
-function! MakeNvcc()
+function! MakeNvcc()"{{{
     let file = expand("%:p")
     call system("~/xkvim/cmd_script/remove.sh nvcc_file")
     call system("python3 ~/xkvim/cmd_script/upload.py --file " . file . " --rename nvcc_file ")
     echo system("python3 ~/xkvim/cmd_script/converse_execute.py --name xkweb --cmd " . "/home/ssd3/start_nvcc.sh")
-endfunction
+endfunction"}}}
 
-function! ProfileSingleScript(start_cmd)
+function! ProfileSingleScript(start_cmd)"{{{
     let file = expand("%:p")
     call system("~/xkvim/cmd_script/remove.sh profile")
     let cmd = "~/xkvim/cmd_script/send_profile_task.sh " . file . " " . '"' . a:start_cmd . '"'
@@ -83,13 +82,13 @@ function! ProfileSingleScript(start_cmd)
     echom system(cmd)
     let tmp_filename = "tmp_" . string(rand()) . ".qdrep"
     echo system(printf("python3 ~/xkvim/cmd_script/converse_execute.py --name mac --cmd " . "\"cd ~/my_report/ && curl http://10.255.125.22:8082/my_report.qdrep --output %s && open ./%s\"", tmp_filename, tmp_filename))
-endfunction
+endfunction"}}}
 
-function! ThreadDispatchExecutor(timer_id)
+function! ThreadDispatchExecutor(timer_id)"{{{
     py3 Xiongkun.vim_dispatcher.ui_thread_worker()
-endfunction
+endfunction"}}}
 
-function! ReloadPythonPlugin()
+function! ReloadPythonPlugin()"{{{
     py3 from importlib import reload
     py3 << endpython
 import sys
@@ -100,9 +99,9 @@ for name, mod in ls[::-1]:
         m = (eval(name))
         if isinstance(m, ModuleType): reload(m)
 endpython
-endfunction
+endfunction"}}}
 
-function! FileTypeBranch()
+function! FileTypeBranch()"{{{
     filetype detect
     if (or(&filetype == 'c',&filetype=='cpp'))
         "source ~/Important/MyVim/_MY_VIM_/VimCpp.vimrc
@@ -119,10 +118,10 @@ function! FileTypeBranch()
         setlocal foldlevel=2
         source ~/Important/MyVim/_MY_VIM_/VimPython.vimrc
     end
-endfunction
+endfunction"}}}
 
-packadd cfilter
-packadd termdebug
+packadd cfilter"{{{
+packadd termdebug"}}}
 
 """""""""""""""": HighLight Group {{{
 hi ListBoxKeyword term=bold ctermfg=208 ctermbg=24
@@ -144,12 +143,12 @@ function! IMAP_EXECUTE_PY3(py3_stmt)"{{{
 endfunction"}}}
 
 """""""""""""""": Map below {{{
-noremap <silent> <space>m :Mt<cr>
+nnoremap <silent> <space>m :Mt<cr>
 "noremap K :!clear && dict <C-R>=expand("<cword>")<cr><cr>
 "vnoremap K "dy:!clear && dict <C-R>d<cr>
 
-noremap <C-]> <Cmd>call UniverseCtrl()<cr>
-noremap <M-f> <Cmd>call UniverseSearch()<cr>
+nnoremap <C-]> <Cmd>call UniverseCtrl()<cr>
+nnoremap <M-f> <Cmd>call UniverseSearch()<cr>
 nnoremap <M-p> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.find()<cr>
 nnoremap <M-j> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.next()<cr>
 nnoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
@@ -236,13 +235,34 @@ augroup FileIndentAutoCommand
     autocmd BufEnter * call FileTypeBranch()
 augroup END
 
-function! VimQuickJump()
-    PreJump
-    redraw
-    QuickJump
+function! VimQuickJump(cmd)
+    exe 'PreJump '. a:cmd
+    let loop_num = 20
+    while loop_num > 0
+        let t = pyxeval("Xiongkun.jump_state.is_stop")
+        if t == 1
+            break
+        endif
+        redraw
+        QuickJump
+        py3 Xiongkun.jump_state.is_stop=1
+        let loop_num = loop_num - 1
+    endwhile
 endfunc
 
-noremap <silent> s :call VimQuickJump()<cr>
-noremap <silent> S :call VimQuickJump()<cr>
+nnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
+nnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
+vnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
+vnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
+
+""" conflict with surrounding: cs ds ys
+""" the conflict make the bugs is very hard to find. so i should install less
+""" scripts as i can.
+""" omap: normap + visual selection.
+onoremap <silent> s v<Cmd>call VimQuickJump('s')<cr>
+onoremap <silent> S v<Cmd>call VimQuickJump('S')<cr>
+
+""" surround command is: 
 
 """"""""""""""}}}
+

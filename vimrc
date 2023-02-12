@@ -21,6 +21,7 @@ Bundle 'https://github.com/AndrewRadev/quickpeek.vim'
 Bundle 'https://github.com/skywind3000/vim-quickui'
 Bundle 'https://github.com/tomasiser/vim-code-dark'
 Bundle 'The-NERD-Commenter'
+Bundle 'https://github.com/frazrepo/vim-rainbow'
 
 
 if has("cscope")
@@ -264,7 +265,8 @@ if !(&diff)
 endif
 set foldopen=hor,search,jump,block,mark,quickfix
 set foldclose=all
-hi CursorLine term=bold ctermbg=24 guibg=#13354A
+hi CursorLine term=bold ctermbg=240
+"hi CursorLine term=bold ctermbg=24 guibg=#13354A
 
 function! MyPlugin(...)
     if &filetype == 'filefinder'
@@ -280,3 +282,11 @@ set noshowmode
 set termwinscroll=10000000
 let delimitMate_matchpairs = "(:),[:],{:}"
 " set switchbuf=vsplit
+let g:surround_no_mappings=1
+
+hi TabLineSel term=reverse cterm=undercurl ctermfg=203 ctermbg=234 gui=undercurl guifg=#F44747 guibg=#1E1E1E guisp=#F44747
+
+
+" rainbow plugin config:
+let g:rainbow_active = 1
+set incsearch

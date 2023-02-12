@@ -155,7 +155,7 @@ class Buffer:
                 key = "<lt>" + key[1:]
             key = prefix + key
             map_cmd = {
-                'n': 'noremap', 
+                'n': 'nnoremap', 
                 'i': 'inoremap',
             }[flag]
             vim.command("{map_cmd} <buffer> {orikey} <Cmd>call BufApp_KeyDispatcher([\"{name}\", \"{key}\"])<cr>".format(map_cmd=map_cmd, orikey=origin_key, key=key, name=self.name))
@@ -443,7 +443,7 @@ class SimpleInput(InputWidget):
         self.position = position
         buffer = draw_context.string_buffer
         buffer[position[0]] = f">>> {self.text}"
-        self._rematch("match_id", "CursorLineNr", None, ">>>")
+        self._rematch("match_id", "ErrorMsg", None, ">>>")
 
     def get_height(self):
         return 1
@@ -483,6 +483,7 @@ class WidgetBuffer(Buffer):
     def oninit(self):
         if self.syntax: 
             vim.command(f'set syntax={self.syntax}')
+            vim.command(f'hi CursorLine term=bold ctermbg=240')
 
     def parse(self):
         lines = GetAllLines(self.bufnr)
@@ -706,7 +707,7 @@ class ListBoxWidget(Widget):
         # line highlight to indicate current selected items.
         self._rematch("cur_match_id", self.highlight_group, (self.cur, self.cur+2), None)
         if self.search_keyword: 
-            self._rematch("search_match_id", "CursorLineNr", (0, self.height+1), self.search_keyword)
+            self._rematch("search_match_id", "ErrorMsg", (0, self.height+1), self.search_keyword)
         self._rematch("tmp_mid", self.search_highlight, (self.cur, self.cur+2), self.search_keyword, 10)
         
     def get_widgets(self): 
