@@ -287,19 +287,19 @@ def GetAllLines(bufnr=None):
 
 def GetDisplayLines(bufnr=None):
     lines = GetAllLines(bufnr)
-    win = VimWindows()
+    win = VimWindow()
     top, bot = win.display_lines
     return lines[top-1:bot]
 
 def SetDisplayLine(lineno, text, bufnr=None):
     lines = GetAllLines(bufnr)
-    win = VimWindows()
+    win = VimWindow()
     top, bot = win.display_lines
     SetLine(lineno + top, text)
 
 def GetDisplayLine(lineno, text, bufnr=None):
     lines = GetAllLines(bufnr)
-    win = VimWindows()
+    win = VimWindow()
     top, bot = win.display_lines
     return GetLine(lineno + top)
     
@@ -684,7 +684,6 @@ def peek_line(filename, start, end):
         ret.append(linecache.getline(filename, i).strip())
     return ret
 
-    
 class Matcher:
     def __init__(self):
         self.mid = None
@@ -713,7 +712,7 @@ class Matcher:
             items.append(keyword)
         cmd = r"\\&".join(items)
         cmd += r"\\c"
-        log("Pattern:", cmd)
+        #log("Pattern:", cmd)
         self.mid = vim.eval("matchadd(\"{}\", \"{}\", {})".format(
             high, 
             cmd, 
@@ -722,17 +721,35 @@ class Matcher:
     def delete(self):
         if self.mid is not None:
             vim.eval(f"matchdelete({self.mid})")
+    
+class TextPopup:
+    def __init__(self, *args, **kwargs):
+        self.win_id = None
+        self.win_id = self._create(*args, **kwargs)
+            
+    @classmethod
+    def _create(cls, text, screen_row, screen_col, highlight="Normal", z_index=0): 
+        win_id = int(vim.eval('popup_create("%s", {"line":%s, "col":%s, "highlight": "%s"})' % 
+            (text, 
+             screen_row, 
+             screen_col,
+             highlight)))
+        return win_id
+        
+    def delete(self):
+        if self.win_id is not None:
+            vim.eval(f"popup_close({self.win_id})")
 
 def GetWindowCurrentId(): 
     return vimeval("win_getid()")
 
-class VimWindows: 
+class VimWindow: 
     def __init__(self):
         self._id = GetWindowCurrentId()
 
     @property
     def id(self):
-        return int(self.id)
+        return int(self._id)
 
     @property
     def display_lines(self):
@@ -747,8 +764,18 @@ class VimWindows:
     def bufnr(self):
         out = vimeval(f"getwininfo({self._id})")
         return int(out[0]['bufnr'])
+
+    def to_screen_pos(self, row, col):
+        """
+        row and col is 1-based.
+        return value is [row,col] also 1-based.
+        """
+        ret = vimeval(f'screenpos({self.id}, {row}, {col})')
+        return int(ret['row']), int(ret['col'])
+
         
-def normal_GI():
+def Normal_GI():
     """ VimInsertQuickPeek
     """
     vim.command("call GI()")
+

@@ -248,7 +248,6 @@ function! VimQuickJump(cmd)
         endif
         redraw
         QuickJump
-        py3 Xiongkun.jump_state.is_stop=1
         let loop_num = loop_num - 1
     endwhile
 endfunc
