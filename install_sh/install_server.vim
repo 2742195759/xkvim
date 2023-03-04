@@ -1,0 +1,1 @@
+:CocInstall coc-jedi

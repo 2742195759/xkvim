@@ -15,6 +15,8 @@ source /root/.bashrc
 apt install -y python3-pip
 pip3 install dict-cli
 
+py_version=`python3 --version | cut -d ' ' -f 2 | cut -d '.' -f 1-2`
+apt install -y python${py_version}-dev
 apt install -y language-pack-zh-hans
 python3 -m pip install requests
 python3 -m pip install ply
