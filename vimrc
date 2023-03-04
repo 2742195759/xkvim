@@ -283,4 +283,3 @@ set incsearch
 
 source /root/xkvim/coc.vim
 set nofoldenable
-

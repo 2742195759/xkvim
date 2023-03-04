@@ -1,5 +1,5 @@
 # TODO: conda deactivate
-~/xkvim/install.sh
+~/xkvim/install_sh/install_vim_config.sh
 cd ..
 apt update
 apt install libncurses-dev -y
@@ -20,7 +20,7 @@ make distclean  # 如果您以前构建Vim
 --disable-netbeans \
 --with-compiledby="xxx@email.com" \
 --enable-fail-if-missing
-/bin/rm -r /usr/share/vim/vim81
+/bin/rm -rf /usr/share/vim/vim81
 make install -j 20
 make VIMRCLOC=/etc/vim/ VIMRUNTIMEDIR=/usr/share/vim MAKE="make -e -j 20"
 ln -sf /usr/share/vim/vim82 /usr/share/vim/vim81
@@ -29,3 +29,6 @@ source ~/.bashrc
 rm -f ~/xkvim/xiongkun/xiongkun
 cp -f ~/xkvim/bash_scripts/vimdiff.sh /usr/bin/vimdiff
 python3 -m pip install requests_toolbelt
+
+# install coc dependences
+./install_sh/install_coc_dep.sh
