@@ -1,5 +1,5 @@
-git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/vundle
 ~/xkvim/install_sh/install_vim_config.sh
+git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/vundle
 cd ..
 apt update
 apt install ctags -y
