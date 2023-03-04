@@ -6,6 +6,11 @@ ln -sf /root/xkvim/after ~/.vim/after
 mkdir -p /tmp
 mv ~/.vim/plugin/xiongkun /tmp/xiongkun.bak
 ln -sf /root/xkvim/xiongkun ~/.vim/plugin/xiongkun
+if ( ll /root/bashrc_backup ); then
+else
+    echo "Backup bashrc in /root/bashrc_backup"
+    cp -rf /root/.bashrc /root/bashrc_backup
+fi
 rm -rf /root/.bashrc
 rm -rf /root/.scripts
 ln -sf /root/xkvim/bashrc /root/.bashrc
