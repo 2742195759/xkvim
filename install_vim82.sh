@@ -33,4 +33,5 @@ python3 -m pip install ply
 
 vim -s /root/xkvim/install_sh/bundle_install.vim
 # install coc dependences
+cd /root/xkvim/
 /root/xkvim/install_sh/install_coc_dep.sh
