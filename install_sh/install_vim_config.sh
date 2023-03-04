@@ -6,15 +6,20 @@ ln -sf /root/xkvim/after ~/.vim/after
 mkdir -p /tmp
 mv ~/.vim/plugin/xiongkun /tmp/xiongkun.bak
 ln -sf /root/xkvim/xiongkun ~/.vim/plugin/xiongkun
-if ( ll /root/bashrc_backup ); then
-else
-    echo "Backup bashrc in /root/bashrc_backup"
-    cp -rf /root/.bashrc /root/bashrc_backup
-fi
-rm -rf /root/.bashrc
+
+#if ( ll /root/bashrc_backup ); then
+#else
+    #echo "Backup bashrc in /root/bashrc_backup"
+    #cp -rf /root/.bashrc /root/bashrc_backup
+#fi
+
+#rm -rf /root/.bashrc
 rm -rf /root/.scripts
-ln -sf /root/xkvim/bashrc /root/.bashrc
-ln -sf /root/xkvim/bash_scripts /root/.scripts
+#ln -sf /root/xkvim/bashrc /root/.bashrc
+#ln -sf /root/xkvim/bash_scripts /root/.scripts
+
+echo "unset GREP_OPTIONS" >> /root/.bashrc
+echo "export TERM=xterm-256color" >> /root/.bashrc
 source /root/.bashrc
 
 apt install -y python3-pip
