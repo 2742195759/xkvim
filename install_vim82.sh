@@ -26,7 +26,10 @@ make distclean  # 如果您以前构建Vim
 make install -j 20
 make VIMRCLOC=/etc/vim/ VIMRUNTIMEDIR=/usr/share/vim MAKE="make -e -j 20"
 ln -sf /usr/share/vim/vim82 /usr/share/vim/vim81
+origin_vim=`which /usr/bin/vim`
 #rm -rf /usr/bin/vim
+rm -f $origin_vim
+ln -sf /root/vim/src/vim $origin_vim
 source ~/.bashrc
 rm -f ~/xkvim/xiongkun/xiongkun
 cp -f ~/xkvim/bash_scripts/vimdiff.sh /usr/bin/vimdiff
