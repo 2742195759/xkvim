@@ -1,4 +1,7 @@
-# TODO: conda deactivate
+/root/miniconda3/bin/conda init
+/root/miniconda3/bin/conda create -n vim python=3.9
+conda activate vim
+
 ~/xkvim/install_sh/install_vim_config.sh
 cd ..
 apt update
@@ -29,6 +32,6 @@ source ~/.bashrc
 rm -f ~/xkvim/xiongkun/xiongkun
 cp -f ~/xkvim/bash_scripts/vimdiff.sh /usr/bin/vimdiff
 python3 -m pip install requests_toolbelt
-
+python3 -m pip install easydict
 # install coc dependences
 ./install_sh/install_coc_dep.sh
