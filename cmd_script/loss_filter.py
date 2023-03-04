@@ -11,6 +11,7 @@ def parameter_parser():
     parser.add_argument("-r", "--reduction-expr",            type=str,   default="print", help="print | sum | mean")
     parser.add_argument("-n", "--discard",                   type=int,   default=0, help="while reduction, discard [0:n] and [-n:]")
     parser.add_argument("-d", "--debug",                     type=bool,  default=False, help="debug")
+    parser.add_argument("-l", "--line_number",               type=bool,  default=False, help="display line number?")
     return parser.parse_args()
 
 args = parameter_parser()
@@ -38,7 +39,7 @@ def extract(line, extract_expr):
     }
     type_extracter = {
         "f": r'(\\d+\\.\\d+)',
-        "i": r'(\\d+)',
+        "i": r'([+-]?\\d+)',
         "s": r'(.*?)',
     }
     log (type_extracter[t])
@@ -50,7 +51,7 @@ def extract(line, extract_expr):
     log("Find in line: ", x[0].strip())
     return type_converter[t](x[0].strip())
 
-def action(tuple_list, action):
+def action(lno_list, tuple_list, action):
     # discard the warm up 
     if args.discard > 0 : 
         tuple_list = tuple_list[args.discard: ]
@@ -62,18 +63,24 @@ def action(tuple_list, action):
         if len(tuple_list) == 0: print("null")
         else: print (sum(tuple_list) / len(tuple_list))
     if action == "print":
-        for item in tuple_list: 
-            print (item)
+        for idx, item in zip(lno_list, tuple_list): 
+            if args.line_number: 
+                print (idx, item)
+            else: 
+                print(item)
 
 def main():
     current_step = 0
     tuple_list = []
-    for line in sys.stdin:
+    lno_list = []
+    for idx, line in enumerate(sys.stdin):
         line = line.strip()
         if is_valid(line, args.valid_expr): 
             ret = extract(line, args.extract_expr)
-            if ret: tuple_list.append(ret)
-    action(tuple_list, args.reduction_expr)
+            if ret: 
+                tuple_list.append(ret)
+                lno_list.append(idx)
+    action(lno_list, tuple_list, args.reduction_expr)
 
 if __name__ == "__main__":
     main()

@@ -473,20 +473,6 @@ endfunction
 function! CtrlPSearcher(searcher, input_text)
 endfunction
 
-let g:ycm_cache = cache#New()
-function! s:YCM_dosearch(input_text)
-    let item = TryYcmJumpAndReturnLocation(a:input_text)
-    if item[1] == -1
-        return []
-    endif
-    return [{"filename": item[0], "lnum": item[1], "cmd": printf("%d", item[1]), "other":"", "source":"YCM", "text":item[2]}]
-endfunction
-
-function! YCMSearcher(input_text)
-    let g:ycm_cache.proc = function("s:YCM_dosearch", [a:input_text])
-    return g:ycm_cache.Get(a:input_text)
-endf
-
 function! GrepSearcher(input_text)
     let pattern = (a:input_text)
     call SilentGrep(pattern)
@@ -547,29 +533,6 @@ function! s:PeekLineNumberFromCMD(filename, search_cmd) abort
     """ not implemented 
     return 0
 endfunction
-
-" Try YCM and return location. many cause flush
-function! TryYcmJumpAndReturnLocation(identifier)
-    let pos = getpos('.')
-    " if don't set pos[0], the bufnr is always 0.
-    let pos[0] = bufnr() 
-    try 
-        silent! keepj exec "YcmCompleter GoTo ".a:identifier 
-    endtry
-    if pos[0] == bufnr() && pos[1] == getpos('.')[1]
-        return ["", -1, ""]
-    else
-        let filename = bufname(bufnr())
-        let line_nr = getpos('.')[1]
-        let text = getline('.')
-        " if pos[0] != bufnr(), and modified, which means jumping to other buffer, so :q the window
-        if &modified && pos[0] != bufnr()  
-            silent! wincmd q
-        endif
-        call setpos('.', pos)
-        return [filename, line_nr, text]
-    endif
-endfun
 
 function! UniverseCtrl()
     let pattern = '\<'.expand("<cword>").'\>'

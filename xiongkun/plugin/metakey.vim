@@ -11,11 +11,12 @@ set <M-r>=r  "表示定义函数
 set <M-;>=;  "补充分号
 set <M-a>=a  "添加注释
 set <M-A>=A  "取消注释
-set <M-f>=f  "寻找定义，.h -> .cpp
+set <M-g>=g  "寻找定义，.h -> .cpp
 set <M-s>=s  "定义Set和Get函数, Preview窗口预览keyword.
 set <M-c>=c  "寻找到Decl of cpp
 set <M-1>=1  "切换tab , prev
 set <M-2>=2  "切换tab , next 
+set <M-3>=3  "切换到上一个tab：g<Tab>
 set <M-o>=o  "Jump前一个
 set <M-u>=u  "open preview window in pre windows.
 set <M-i>=i  "Jump后一个
@@ -24,6 +25,7 @@ set <M-m>=m  "GoTo the Git Commit
 set <M-W>=W 
 set <M-w>=w 
 set <M-p>=p  "preview popup window.
+set <M-q>=q  "destory a terminal
 set <M-j>=j  "next Index search results.
 set <M-k>=k  "prev Index search results.
 set <M-e>=e  "<ESC>"
@@ -35,6 +37,8 @@ set <M-:>=:
 "set <M->=  "换行，但是会执行
 nnoremap  <M-o> <C-o>zv
 nnoremap  <M-i> <C-i>zv
+nnoremap  <M-3> g<Tab>
+tnoremap  <M-3> <C-w>g<Tab>
 
 """ commandline map  {{{
 cnoremap <M-a> <Home>

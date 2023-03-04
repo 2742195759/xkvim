@@ -23,11 +23,13 @@ UI。
 
 2. 有汉字，其他字符，Unicode等，会扰乱了 col 的坐标。
 3. 统一搜索，将 S 作为统一的搜索语言。可以在window之间进行跳转，如果是S，那么需要输入2个字符。s 输入一个字符。 
+    - OK
 4. [optional] optimizer the all_labels.
+5. long line will have error label popup windows.
 
 """
 
-all_labels = "abcdefghijklmnopgrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890;'.,/@!#$%^&*()<>{}+-="
+all_labels = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890;'.,/@!#$%^&*()<>{}+-="
 """
     fontend_type: 
         - 'popup': use popup-window to show labels, slow but unified.
@@ -138,13 +140,24 @@ def get_pattern(char_num):
 
 def search_in_window(pattern, wid):
     lines = vim_utils.GetAllLines(vim_utils.VimWindow(wid).bufnr)
-    log("Buffer:", lines)
     top, bot = vim_utils.VimWindow(wid).display_rows
     searched = [] # JumpItem
+    last_is_fold=False
     for linenr, line in enumerate(lines): 
         if linenr >= top-1 and linenr <= bot-1: 
-            for f in re.finditer(pattern, line.lower()):#, overlapped=True): 
-                searched.append(JumpItem.from_buffer_pos((linenr+1, f.span()[0]+1), wid, None))
+            if vim_utils.isLineFolded(linenr+1):  
+                if last_is_fold: continue
+                else: 
+                    last_is_fold = True
+                    bufpos = (linenr+1, 1)
+                    if VimWindow(wid).in_window_view(*bufpos): 
+                        searched.append(JumpItem.from_buffer_pos(bufpos, wid, None))
+            else: 
+                last_is_fold = False
+                for f in re.finditer(pattern, line.lower()):#, overlapped=True): 
+                    bufpos = (linenr+1, f.span()[0]+1)
+                    if VimWindow(wid).in_window_view(*bufpos): 
+                        searched.append(JumpItem.from_buffer_pos(bufpos, wid, None))
     return searched
 
 @vim_register(command="BufferJump", with_args=True)
@@ -152,6 +165,7 @@ def BufferJump(args):
     ## search all the matches
     pattern = get_pattern(1)
     if pattern is None: return
+    vim_utils.WindowView.clear()
     searched = search_in_window(pattern, VimWindow().id)
     JumpStart(searched)
 
@@ -161,7 +175,7 @@ def WindowJump(args):
     searched = [] # lineno, startpos, endpos: [startpos, endpos)
     for win_id in vim_utils.IteratorWindowCurrentTab():
         #log("WindowIter:", win_id)
-        searched.append(JumpItem.from_window_display_pos( (1,1), win_id, None))
+        searched.append(JumpItem.from_window_display_pos((1,1), win_id, None))
         #searched.append(JumpItem.from_window_display_pos(
             #vim_utils.GetCursorXY(win_id), win_id, None))
     JumpStart(searched)
@@ -173,8 +187,8 @@ def GlobalJump(args):
     pattern = get_pattern(2)
     if pattern is None: return
     searched = []
+    vim_utils.WindowView.clear()
     for win_id in vim_utils.IteratorWindowCurrentTab():
-        log(win_id)
         searched.extend(search_in_window(pattern, win_id))
     JumpStart(searched)
 

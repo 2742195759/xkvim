@@ -13,13 +13,13 @@ This file contain some vim helper function.
 called by the other part of the script.
 '''
 
-import vim
+import vim#{{{
 import os.path as osp
 from contextlib import contextmanager
 from threading import Lock
 from .multiprocess_utils import *
 from .log import log
-import os
+import os#}}}
 
 def absolute_import(module_name, path):
     import importlib.util
@@ -189,6 +189,7 @@ def GetCursorXY(win_id=None):
 
 def SetCursorXY(x, y):
     vimeval(f"setpos('.', [0, {x}, {y}, 0])")
+    vimcommand("normal zv")
 
 def SetLine(lnum, text):
     """
@@ -349,13 +350,6 @@ def FindWindowInCurrentTabIf(prediction):
         return -1
     else : 
         return vimeval(f"winbufnr({finded})")
-
-def YcmJumpFromFunctionCall(call_text, jump_word):
-    SetVimRegister("b", call_text)
-    vimcommand("put b")
-    SearchToString(jump_word, "?")
-    vimcommand("sleep 2")
-    vimcommand("YcmCompleter GoToDefinition")
 
 def TmpName():
     return vimeval('tempname()')
@@ -786,9 +780,50 @@ class VimWindow:
         ret = vimeval(f'screenpos({self.id}, {row}, {col})')
         return int(ret['row']), int(ret['col'])
 
+    @property
+    def height(self):
+        return int(vim.eval(f"winheight({self.id})"))
+
+    @property
+    def width(self):
+        return int(vim.eval(f"winwidth({self.id})"))
+
+    def in_window_view(self, row, col):
+        """
+        is (row, col) in window view ?  all number is 1-based.
+        """
+        """
+        topline is the topmost line, 1-based
+        leftcol is the leftmost-1, 0-based
+        """
+        view = WindowView.find(self.id)
+        #topline = int(view['topline'])  
+        leftcol = int(view['leftcol'])
+        #if row >= topline and row < topline + self.height:   # fold will make this invalid
+        if col > leftcol and col < leftcol + self.width + 1:
+            return True
+        return False
+
+class WindowView:
+    cache = {}
+    @classmethod
+    def clear(cls):
+        cls.cache = {}
+    @classmethod
+    def find(cls, winid):
+        # win_saveview = {'lnum': 792, 'leftcol': 0, 'col': 10, 'topfill': 0, 'topline': 778, 'coladd': 0, 'skipcol': 0, 'curswant': 10}
+        if winid in cls.cache:
+            return cls.cache[winid]
+        with CurrentWindowGuard(winid): 
+            view = vim.eval("winsaveview()")
+            cls.cache[winid] = view
+        return view
         
 def Normal_GI():
     """ VimInsertQuickPeek
     """
     vim.command("call GI()")
 
+def isLineFolded(num):
+    if vim.eval(f"foldclosed({num})") == "-1": return False
+    return True

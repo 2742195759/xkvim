@@ -103,7 +103,6 @@ def YamlGen(args):
     SetVimRegister("z", "")
     EditFileWithPath(osp.join(prefix, 'python/xktmp.py'), "tabe")
     ClearCurrent()
-    YcmJumpFromFunctionCall("import paddle\npaddle.%s()" % op_name, "%s"%op_name)
 
 @vim_register(command="YamlC", with_args=True)
 def YamlGenCursor(args):

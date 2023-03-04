@@ -29,3 +29,18 @@ def AnalysisTraceback(args):
     bufnr = int(FindWindowInCurrentTabIf(prediction))
     if int(vim.eval("bufnr()")) != bufnr: 
         SetQuickFixList(locs, jump='last')
+
+@vim_register(keymap="<space>gf", command="TracebackLine")
+def AnalysisTraceback(args):
+    line = vim_utils.GetCurrentLine().strip()
+    loc = None
+    if line.startswith("File \""): 
+        result = re.search(r'File "(.+)", line (.+), in (.+)', line)
+        filename, lineno, name = result.groups()
+        if osp.exists(filename): 
+            filename = filename.replace("build/", "")
+            loc = (Location(filename, int(lineno)))
+    if loc is None: 
+        print ("Non't a valid python traceback line.")
+        return 
+    vim_utils.GoToLocation(loc, "t")

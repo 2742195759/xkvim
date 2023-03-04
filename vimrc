@@ -9,11 +9,11 @@ Bundle 'https://github.com/scrooloose/nerdtree'
 Bundle 'taglist.vim'
 Bundle 'https://github.com/honza/vim-snippets'
 Bundle 'https://github.com/sirver/UltiSnips'
-Bundle 'https://github.com/Shougo/neocomplete.vim'
+"Bundle 'https://github.com/Shougo/neocomplete.vim'
 Bundle 'https://github.com/tomasr/molokai'
 Bundle 'https://github.com/vim-airline/vim-airline'
 Bundle 'https://github.com/kien/ctrlp.vim'
-Bundle 'https://github.com/Valloric/YouCompleteMe'
+"Bundle 'https://github.com/Valloric/YouCompleteMe'
 Bundle 'https://github.com/Raimondi/delimitMate'
 Bundle 'https://github.com/tpope/vim-surround'
 Bundle 'https://github.com/jreybert/vimagit'
@@ -22,7 +22,8 @@ Bundle 'https://github.com/skywind3000/vim-quickui'
 Bundle 'https://github.com/tomasiser/vim-code-dark'
 Bundle 'The-NERD-Commenter'
 Bundle 'https://github.com/frazrepo/vim-rainbow'
-
+Bundle 'https://github.com/neoclide/coc.nvim'
+Bundle 'https://github.com/Yggdroot/indentLine'
 
 if has("cscope")
   set cscopeprg=/usr/bin/cscope
@@ -74,9 +75,6 @@ set foldcolumn=2
 
 "colorscheme molokai
 colorscheme codedark
-"source ~/Important/MyVim/_MY_VIM_/AltKeyStart.vimrc  # move to metakey.vim
-"source ~/Important/MyVim/_MY_VIM_/WindowTabeSwitch.vimrc
-
 " xiongkun added in 2021 year
 map gs :update<cr>
 nn <up> <C-u>
@@ -200,9 +198,9 @@ let g:UltiSnipsExpandTrigger = '<c-j>'
 let g:UltiSnipsJumpForwardTrigger='<c-j>'
 let g:UltiSnipsJumpBackwardTrigger='<c-k>'
 
-""" YCM config
-let g:ycm_python_binary_path = '/usr/bin/python3'
-let g:ycm_server_python_interpreter = '/usr/bin/python2'
+"""" YCM config
+"let g:ycm_python_binary_path = '/usr/bin/python3'
+"let g:ycm_server_python_interpreter = '/usr/bin/python2'
 
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
@@ -217,16 +215,9 @@ endif
 if filereadable(expand("~/.xkconfig.vim"))
     autocmd VimEnter * source ~/.xkconfig.vim
 endif
-"""Add YCM jump abbre
-cabbre yd YcmCompleter GoToDefinition
-cabbre yt YcmCompleter GetType
-cabbre yp YcmCompleter GetParent
-cabbre yi YcmCompleter GoToInclude
-cabbre yf YcmCompleter FixIt
-cabbre yr YcmCompleter GoToReference
 
 """ pdf for vim
-abbre xkpdb import pdb<cr>pdb.set_trace()
+abbre xkpdb breakpoint()
 let mapleader='\'
 set runtimepath+=/root/.vim/plugin/xiongkun/plugin
 set shell=bash
@@ -247,7 +238,6 @@ let g:UltiSnipsSnippetStorageDirectoryForUltiSnipsEdit="/root/xkvim/xiongkun/plu
 """ universe reflesh
 function! UniverseReflesh()
     call UltiSnips#RefreshSnippets()
-    YcmRestartServer
 endfunction
 nmap <F9> :call UniverseReflesh()<cr>
 let g:ctrlp_by_filename = 1  "default by filename mode for speed."
@@ -288,5 +278,9 @@ hi TabLineSel term=reverse cterm=undercurl ctermfg=203 ctermbg=234 gui=undercurl
 
 
 " rainbow plugin config:
-let g:rainbow_active = 1
+" let g:rainbow_active = 1
 set incsearch
+
+source /root/xkvim/coc.vim
+set nofoldenable
+

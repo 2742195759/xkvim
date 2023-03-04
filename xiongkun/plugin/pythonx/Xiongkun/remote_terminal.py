@@ -88,7 +88,7 @@ def TerminalHelper(args):
     print ("  <M-l> -> switch tabpage: next")
     print ("  <M-n> -> normal mode")
     print ("  <M-p> -> page the \" register into the terminal")
-    print ("  <M-f> -> start a command")
+    print ("  <M-g> -> start a command")
     print ("Abbreviate:")
     print ("  pp    -> PYTHONPATH=")
     print ("  pro   -> set proxy short cut")

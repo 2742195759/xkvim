@@ -502,6 +502,7 @@ class GlobalPreviewWindow:# {{{
 
     @staticmethod
     def cur_loc():
+        if GPW.candidate_idx <= 0: return 
         if GPW.candidate_idx >= len(GPW.candidate_locs): return 
         return GPW.candidate_locs[GPW.candidate_idx]
     
@@ -585,7 +586,7 @@ class GlobalPreviewWindow:# {{{
             if not word: return 
             pwd = GetPwd()
             USEngineOpts = {
-                'searchers': [ClangdIndexSearcher, YcmSearcher, CtagSearcher, GrepSearcher], 
+                'searchers': [ClangdIndexSearcher, LSPSearcher, CtagSearcher, GrepSearcher], 
                 'async_mask': [1, 0, 0, 1],
                 'window': GPW.GetWindowCallback(),
             }
@@ -653,9 +654,10 @@ class Searcher:# {{{
         pass
 # }}}
 
-class YcmSearcher(Searcher):# {{{
+class LSPSearcher(Searcher):# {{{
     def do_search(self, inp, d):
-        return vimeval("YCMSearcher(\"%s\")"%escape(inp))#}}}
+        return []
+        #return vimeval("YCMSearcher(\"%s\")"%escape(inp))#}}}
 
 class CtagSearcher(Searcher):# {{{
     def do_search(self, inp, d):
@@ -901,7 +903,7 @@ class UniverseSearchEngine(Searcher):# {{{
     def singleton():
         global USEngine
         USEngineOpts = {
-            'searchers': [YcmSearcher, ClangdIndexSearcher, CtagSearcher, CtrlPSearcher, GrepSearcher], 
+            'searchers': [LSPSearcher, ClangdIndexSearcher, CtagSearcher, CtrlPSearcher, GrepSearcher], 
             'async_mask': [0, 1, 0, 0, 1],
         }
         USEngineOpts["window"] = BoxListWindow.GetWindowCallback()

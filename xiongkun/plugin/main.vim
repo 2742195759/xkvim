@@ -57,6 +57,7 @@ endf"}}}
 
 """"""""""""""""" GitCommenter
 py3 import Xiongkun
+
 function! s:ShowGitComment()"{{{
     let filename = expand("%")
     let linenr = getcurpos()[1]
@@ -104,19 +105,17 @@ endfunction"}}}
 function! FileTypeBranch()"{{{
     filetype detect
     if (or(&filetype == 'c',&filetype=='cpp'))
-        "source ~/Important/MyVim/_MY_VIM_/VimCpp.vimrc
         setlocal tabstop=2 "in paddle, Default 2 for tabstop"
         setlocal shiftwidth=2 "in paddle, Default 2 for shift"
-        "setlocal foldmethod=marker
-        "setlocal foldmarker={,}
+        setlocal foldmethod=marker
+        setlocal foldmarker={,}
         setlocal foldlevel=2
     elseif (&filetype == 'vim')
         setlocal commentstring=\"%s
     elseif (&filetype == 'python')
         setlocal commentstring=#%s
-        "setlocal foldmethod=indent
+        setlocal foldmethod=indent
         setlocal foldlevel=2
-        source ~/Important/MyVim/_MY_VIM_/VimPython.vimrc
     end
 endfunction"}}}
 
@@ -148,7 +147,7 @@ nnoremap <silent> <space>m :Mt<cr>
 "vnoremap K "dy:!clear && dict <C-R>d<cr>
 
 nnoremap <C-]> <Cmd>call UniverseCtrl()<cr>
-nnoremap <M-f> <Cmd>call UniverseSearch()<cr>
+nnoremap <M-s> <Cmd>call UniverseSearch()<cr>
 nnoremap <M-p> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.find()<cr>
 nnoremap <M-j> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.next()<cr>
 nnoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
@@ -161,7 +160,7 @@ inoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
 inoremap <M-h> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.page_up()<cr>
 inoremap <M-l> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.page_down()<cr>
 inoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_window()<cr>
-inoremap <M-f> <C-R>=ClangdServerComplete([])<cr>
+inoremap <M-g> <C-R>=ClangdServerComplete([])<cr>
 vnoremap // y/\V<C-R>=escape(@",'/\')<CR><CR>
 nnoremap <expr> gp '`[' . strpart(getregtype(), 0, 1) . '`]'
 """ copy the visual into a tempname file. to view a part of a file
@@ -171,16 +170,16 @@ vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:set filetype
 
 " tnoremap below.
 " go back to the normal mode
+noremap  <C-w>c :echo "change c-q to close"<cr>
+tnoremap <C-w><C-c> :echo "change c-q to close"<cr>
 tnoremap <M-n> <C-w>N  
 " copy and paste by the vim register
 tnoremap <M-p> <C-w>""  
 " forcefully exit the ternimal mode
-tnoremap <M-c> <C-w><C-c>
+tnoremap <M-q> <C-w><C-c>
 " switch between tab pages.
 tnoremap <M-1> <C-w>gT
 tnoremap <M-2> <C-w>gt
-" insert command
-" tnoremap <M-f> <C-w>:
 " insert command
 tnoremap <F1> <C-w>:BashHelp<cr>
 " abbre in terminal mode
@@ -211,8 +210,8 @@ augroup UniverseCtrlGroup
     autocmd VimEnter * cal g:universe_searcher.Init()
     let index_path=getcwd().'/index.idx'
     if filereadable(index_path)
-        autocmd VimEnter * execute 'ILoad '.index_path
-        autocmd VimLeave * execute 'IFinish'
+        "autocmd VimEnter * execute 'ILoad '.index_path
+        "autocmd VimLeave * execute 'IFinish'
     endif
     autocmd VimLeave * cal g:universe_searcher.Exit()
 augroup END
@@ -269,7 +268,7 @@ function! GI()
 endfunc
 
 function! VimInsertQuickPeek()
-    call VimQuickJump()
+    call VimQuickJump('s')
     """ normal can't go into insert mode
     execute "normal \<m-p>"
     call GI()

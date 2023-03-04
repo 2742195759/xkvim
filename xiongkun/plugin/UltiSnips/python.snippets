@@ -1081,3 +1081,33 @@ jobs:
         run: make test
 endsnippet 
 #}}}
+
+snippet print_memory "a example of print memory." #{{{
+import  os
+import re
+import time
+def print_memory(number):
+    pattern = r"(\d+)MiB /"
+    os.system("nvidia-smi > /home/data/tmp.txt")
+    with open("/home/data/tmp.txt", "r") as fp :
+        lines = fp.readlines()
+    out = []
+    for line in lines:
+        memory = re.search(pattern, line)
+        if memory is not None:
+            out.append(memory.group(1))
+
+    return out[number] + "Mb"
+print(print_memory(3))
+endsnippet 
+#}}}
+
+snippet print_train_program "print the train program of dy2static." #{{{
+print(net.forward.get_concrete_program(inp)[1].train_program)
+endsnippet  
+#}}}
+
+snippet print_main_program "print the default main program of static." #{{{
+print(paddle.static.default_main_program())
+endsnippet 
+#}}}
