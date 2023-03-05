@@ -1,12 +1,12 @@
 apt update
 apt install -y git
 git pull
-ln -sf /root/xkvim/vimrc ~/.vimrc
-ln -sf /root/xkvim/after ~/.vim/after
 mkdir -p /tmp
 mv ~/.vim/plugin/xiongkun /tmp/xiongkun.bak
 mkdir -p ~/.vim/plugin/
 ln -sf /root/xkvim/xiongkun ~/.vim/plugin/xiongkun
+ln -sf /root/xkvim/vimrc ~/.vimrc
+ln -sf /root/xkvim/after ~/.vim/after
 
 #if ( ll /root/bashrc_backup ); then
 #else
