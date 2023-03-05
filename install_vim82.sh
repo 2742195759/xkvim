@@ -1,4 +1,3 @@
-git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/vundle
 cd ..
 apt update
 apt install ctags -y
@@ -46,6 +45,8 @@ else
 fi
     
 ~/xkvim/install_sh/install_vim_config.sh
+git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/vundle
+
 python3 -m pip install requests_toolbelt
 python3 -m pip install easydict
 python3 -m pip install ply
