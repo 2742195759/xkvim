@@ -9,7 +9,6 @@ if [ -f $HOME/vim_dist.tar ]; then
     # support python version is python3.8
     cd $HOME
     tar -xf vim_dist.tar
-    cd vim_dist
     set -e
     conda create -n vim python=3.8
     echo 'export PATH=$HOME/vim_dist/config/usr/share/vim:$PATH' >> $HOME/.bashrc
