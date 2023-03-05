@@ -8,7 +8,7 @@ git clone https://github.com/vim/vim.git
 cd vim 
 git pull
 cd src
-make distclean  # 如果您以前构建Vim
+make clean  # 如果您以前构建Vim
 ./configure --prefix=/usr --with-features=huge \
 --enable-multibyte \
 --enable-python3interp \
@@ -22,14 +22,11 @@ make distclean  # 如果您以前构建Vim
 --with-compiledby="xxx@email.com" \
 --enable-fail-if-missing
 /bin/rm -rf /usr/share/vim/vim81
-origin_vim=`which vim`
-rm -f $origin_vim
-hash -d vim
-make install -j 20
-make VIMRCLOC=/etc/vim/ VIMRUNTIMEDIR=/usr/share/vim MAKE="make -e -j 20"
+make -j 20
+make install
+#make VIMRCLOC=/etc/vim/ VIMRUNTIMEDIR=/usr/share/vim MAKE="make -e -j 20"
 ln -sf /usr/share/vim/vim82 /usr/share/vim/vim81
-rm -f ~/xkvim/xiongkun/xiongkun
-cp -f ~/xkvim/bash_scripts/vimdiff.sh /usr/bin/vimdiff
+#cp -f ~/xkvim/bash_scripts/vimdiff.sh /usr/bin/vimdiff  # Circle vim bugs.
 python3 -m pip install requests_toolbelt
 python3 -m pip install easydict
 python3 -m pip install ply
