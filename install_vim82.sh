@@ -1,4 +1,3 @@
-~/xkvim/install_sh/install_vim_config.sh
 git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/vundle
 cd ..
 apt update
@@ -9,12 +8,14 @@ if [ -f $HOME/vim_dist.tar ]; then
     # support python version is python3.8
     cd $HOME
     tar -xf vim_dist.tar
-    set -e
+    cd vim
+    ./init.sh
     conda create -n vim python=3.8
-    echo 'export PATH=$HOME/vim_dist/config/usr/share/vim:$PATH' >> $HOME/.bashrc
+    echo 'export PATH=$HOME/vim:$PATH' >> $HOME/.bashrc
+    echo 'export VIM=$HOME/vim/config/usr/share/vim' >> $HOME/.bashrc
     echo 'source activate vim'
     source ~/.bashrc
-    unset -e
+    cd $HOME
 else
     # Install from source
     cd $HOME
@@ -44,6 +45,7 @@ else
     #cp -f ~/xkvim/bash_scripts/vimdiff.sh /usr/bin/vimdiff  # Circle vim bugs.
 fi
     
+~/xkvim/install_sh/install_vim_config.sh
 python3 -m pip install requests_toolbelt
 python3 -m pip install easydict
 python3 -m pip install ply
