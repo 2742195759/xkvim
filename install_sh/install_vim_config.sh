@@ -4,9 +4,9 @@ git pull
 mkdir -p /tmp
 mv ~/.vim/plugin/xiongkun /tmp/xiongkun.bak
 mkdir -p ~/.vim/plugin/
-ln -sf /root/xkvim/xiongkun ~/.vim/plugin/xiongkun
-ln -sf /root/xkvim/vimrc ~/.vimrc
-ln -sf /root/xkvim/after ~/.vim/after
+ln -sf $HOME/xkvim/xiongkun ~/.vim/plugin/xiongkun
+ln -sf $HOME/xkvim/vimrc ~/.vimrc
+ln -sf $HOME/xkvim/after ~/.vim/after
 
 #if ( ll /root/bashrc_backup ); then
 #else
@@ -19,9 +19,9 @@ ln -sf /root/xkvim/after ~/.vim/after
 #ln -sf /root/xkvim/bashrc /root/.bashrc
 #ln -sf /root/xkvim/bash_scripts /root/.scripts
 
-echo "unset GREP_OPTIONS" >> /root/.bashrc
-echo "export TERM=xterm-256color" >> /root/.bashrc
-source /root/.bashrc
+echo "unset GREP_OPTIONS" >> $HOME/.bashrc
+echo "export TERM=xterm-256color" >> $HOME/.bashrc
+source $HOME/.bashrc
 
 apt install -y python3-pip
 pip3 install dict-cli

@@ -10,7 +10,6 @@ Bundle 'taglist.vim'
 Bundle 'https://github.com/honza/vim-snippets'
 Bundle 'https://github.com/sirver/UltiSnips'
 "Bundle 'https://github.com/Shougo/neocomplete.vim'
-Bundle 'https://github.com/tomasr/molokai'
 Bundle 'https://github.com/vim-airline/vim-airline'
 Bundle 'https://github.com/kien/ctrlp.vim'
 "Bundle 'https://github.com/Valloric/YouCompleteMe'
@@ -219,11 +218,11 @@ endif
 """ pdf for vim
 abbre xkpdb breakpoint()
 let mapleader='\'
-set runtimepath+=/root/.vim/plugin/xiongkun/plugin
+set runtimepath+=$HOME/.vim/plugin/xiongkun/plugin
 set shell=bash
 set path+='./'
 set cursorline
-set tags+=/root/cpp_src/stl.tags
+set tags+=$HOME/cpp_src/stl.tags
 
 
 """ configure for quick-peek plugin 
@@ -233,7 +232,7 @@ set completeopt=menu,preview
 filetype plugin on 
 
 """ configure for g:UltiSnippetEdit
-let g:UltiSnipsSnippetStorageDirectoryForUltiSnipsEdit="/root/xkvim/xiongkun/plugin/UltiSnips/"
+let g:UltiSnipsSnippetStorageDirectoryForUltiSnipsEdit="$HOME/xkvim/xiongkun/plugin/UltiSnips/"
 
 """ universe reflesh
 function! UniverseReflesh()
@@ -281,5 +280,5 @@ hi TabLineSel term=reverse cterm=undercurl ctermfg=203 ctermbg=234 gui=undercurl
 " let g:rainbow_active = 1
 set incsearch
 
-source /root/xkvim/coc.vim
+source $HOME/xkvim/coc.vim
 set nofoldenable

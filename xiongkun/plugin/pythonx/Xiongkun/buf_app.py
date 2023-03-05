@@ -744,7 +744,7 @@ class MruList:
 class FileFinderPGlobalInfo: 
     files = None
     mru = MruList()
-    mru_path = "/home/data/.vim_mru"
+    mru_path = f"{HOME_PREFIX}/.vim_mru"
     @classmethod
     def preprocess(self):
         self.files = []

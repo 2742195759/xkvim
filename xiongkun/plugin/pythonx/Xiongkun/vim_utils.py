@@ -21,6 +21,8 @@ from .multiprocess_utils import *
 from .log import log
 import os#}}}
 
+HOME_PREFIX=os.environ["HOME"]
+
 def absolute_import(module_name, path):
     import importlib.util
     import sys
@@ -408,7 +410,7 @@ def error(*args):
     vimcommand("echohl")
 
 def test():
-    filename = "/home/data/tmp"
+    filename = f"{HOME_PREFIX}/tmp"
     l = Location(filename, 3, 1)
     InsertLinesAtLocation(['test', 'demo'], l)
 

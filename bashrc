@@ -69,5 +69,5 @@ git config --global user.email xiongkun03@baidu.com
 git config --global user.name xiongkun
 git config --global push.default current
 git config --global credential.helper store
-export PATH=$PATH:/root/xkvim/bash_scripts:/root/xkvim/cmd_script
+export PATH=$PATH:$HOME/xkvim/bash_scripts:$HOME/xkvim/cmd_script
 
