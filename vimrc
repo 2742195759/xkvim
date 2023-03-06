@@ -1,5 +1,6 @@
 set nocompatible
 
+set term=screen-256color
 set rtp+=~/.vim/bundle/vundle/
 set encoding=utf-8
 call vundle#rc()
