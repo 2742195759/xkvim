@@ -816,6 +816,7 @@ class FileFinderBuffer(WidgetBuffer):
             if basename.startswith("."): return False
             if basename.endswith(".o"): return False
             if basename.endswith(".pyc"): return False
+            if basename.endswith(".swp"): return False
             #if not re.search(search_base, basename): return False
             if not re.search(search_base, filepath): return False
             for qual in qualifier: 
@@ -823,19 +824,12 @@ class FileFinderBuffer(WidgetBuffer):
                 if qual.startswith("-") and re.search(qual[1:], filepath): return False
             return True
 
-        def score(filepath):
-            basename = os.path.basename(filepath).lower()
-            filepath = filepath.lower()
-            addition = 0
-            if re.search(search_base, basename): 
-                addition = -10000 # high priority
-            return addition + abs(len(basename) - len(search_base))
-
         if search_base is None: 
             self.widgets['result'].set_items(self.files)
             self.widgets['result'].set_keyword(None)
         else:
-            res = sorted(list(filter(filt, self.files)), key=lambda x: score(x))
+            from fuzzyfinder import fuzzyfinder
+            res = list(fuzzyfinder(search_base, filter(filt, self.files)))[:17]
             self.widgets['result'].set_items(res)
             self.widgets['result'].set_keyword(search_base)
         self.redraw()

@@ -38,7 +38,7 @@ def AnalysisTraceback(args):
         result = re.search(r'File "(.+)", line (.+), in (.+)', line)
         filename, lineno, name = result.groups()
         if osp.exists(filename): 
-            filename = filename.replace("build/", "")
+            #filename = filename.replace("build/", "")
             loc = (Location(filename, int(lineno)))
     if loc is None: 
         print ("Non't a valid python traceback line.")

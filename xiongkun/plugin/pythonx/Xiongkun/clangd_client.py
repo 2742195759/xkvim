@@ -340,7 +340,7 @@ def Clangd_GoTo(args, preview=False):# {{{
 @vim_register(name="GoToDefinition", command="Def")
 def Clangd_GoToDef(args):# {{{
     file = vim_utils.CurrentEditFile()
-    if file.split('.')[-1] not in ['cc', 'cpp', 'h', 'hpp', 'c']: 
+    if not clangd_config.enable or file.split('.')[-1] not in ['cc', 'cpp', 'h', 'hpp', 'c']: 
         vim.command('normal gd')
     else: 
         Clangd_GoTo(['def'])# }}}
