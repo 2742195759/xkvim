@@ -5,6 +5,7 @@ import os.path as osp
 from .func_register import *
 from .vim_utils import *
 from collections import OrderedDict
+from .rpc import rpc_call, rpc_wait
 
 @vim_register(name="BufApp_KeyDispatcher", with_args=True)
 def Dispatcher(args):
@@ -44,6 +45,8 @@ class Buffer:
         self.name = appname + self._name_generator()
         self.history = history
         Buffer.instances[self.name] = self
+        # TODO: add status here
+        self.state="create"
 
     def get_keymap(self):
         return {}
@@ -124,6 +127,7 @@ class Buffer:
             vim.command(f"b #")
             vim.command(f"bwipeout {self.bufnr}")
         del Buffer.instances[self.name]
+        self.state="exit"
         #vim.command(f"echom {name} is Quit. len(instances) is {len(Buffer.instance)}")
 
     def _unset_autocmd(self):
@@ -308,9 +312,10 @@ class WidgetOption:
         self.position = (-1, -1) # expect position
 
 class DrawContext:
-    def __init__(self, screen_size, string_buffer):
+    def __init__(self, bufnr, screen_size, string_buffer):
         self.screen_size = screen_size  # (h, w)
         self.string_buffer = string_buffer # [None] * h
+        self.bufnr = bufnr
 
 class Widget():
     def __init__(self, woptions): 
@@ -343,6 +348,9 @@ class Widget():
         return (self.position[0], 1)
 
     def on_unfocus(self):
+        pass
+
+    def post_draw(self, context, position):
         pass
 
     def on_input_start(self):
@@ -497,7 +505,7 @@ class WidgetBuffer(Buffer):
 
     def onredraw(self):
         wsize = self._get_window_size()
-        draw_context = DrawContext(wsize, [""] * (wsize[0] + 1))
+        draw_context = DrawContext(self.bufnr, wsize, [""] * (wsize[0] + 1))
         given_lines = (1, draw_context.screen_size[0] + 1)
         self._clear()
         self.root.ondraw(draw_context, given_lines)
@@ -509,6 +517,7 @@ class WidgetBuffer(Buffer):
             ))
             vim.eval(cmd)
         vim.command(f"normal! gg")
+        self.root.post_draw(draw_context, given_lines)
 
     def on_sync(self):
         for n, w in self.widgets.items(): 
@@ -610,10 +619,17 @@ class WidgetBuffer(Buffer):
     def on_cursor_hold(self):
         pass
 
+    def insert_char_pre(self, char):
+        pass
+
+    def on_text_changed_i(self):
+        pass
+
     def auto_cmd(self, cmd):
         if cmd == None: 
             return [
                 "InsertLeave", "CursorMoved", "CursorMovedI", "InsertEnter", "CursorHoldI",
+                "TextChangedI", "InsertCharPre",
             ]
         if cmd == "InsertLeave": self.on_input_end()
         if cmd == "InsertEnter": self.on_input()
@@ -621,6 +637,12 @@ class WidgetBuffer(Buffer):
         if cmd == "CursorMovedI": self.on_insert_cursor_move()
         if cmd == "CursorHoldI": self.on_cursor_hold()
         if cmd == "CursorHold": self.on_cursor_hold()
+        if cmd == "TextChangedI": self.on_text_changed_i()
+        if cmd == "InsertCharPre": self.insert_char_pre(vimeval("v:char"))
+        else:
+            method = getattr(self, cmd.lower(), None)
+            if method: 
+                method(self)
 
 class WidgetList(Widget): 
     def __init__(self, name, widgets, reverse=False): 
@@ -651,6 +673,20 @@ class WidgetList(Widget):
                 w.ondraw(draw_context, (start, start+w.get_height()))
                 start = start + w.get_height()
 
+    def post_draw(self, draw_context, position): 
+        start, end = position
+        self.position = position
+        if self.reverse: 
+            for w in self.widgets[::-1]:
+                if end - w.get_height() < start: break
+                w.post_draw(draw_context, (end-w.get_height(), end))
+                end = end - w.get_height()
+        else:
+            for w in self.widgets:
+                if start + w.get_height() >= end: break
+                w.post_draw(draw_context, (start, start+w.get_height()))
+                start = start + w.get_height()
+
     def get_height(self):
         return sum([w.get_height() for w in self.widgets])
 
@@ -665,12 +701,13 @@ class ListBoxWidget(Widget):
         self.items = items
         self.cur = 0
         self.height = height
-        self.cur_match_id = None
+        self.matches = []
         self.highlight_group = "ListBoxLine"
         self.search_match_id = None
         self.search_highlight = "ListBoxKeyword"
         self.search_keyword = None
         self.tmp_mid = None
+        self.text_prop = None
     
     def cur_item(self):
         if self.cur >= len(self.items): return None
@@ -691,6 +728,7 @@ class ListBoxWidget(Widget):
 
     def ondraw(self, draw_context, position): 
         width = draw_context.screen_size[1]
+        bufnr = draw_context.bufnr
         def padded(text):
             return str(text) + (width - len(str(text))) * ' '
         self.position = position
@@ -704,12 +742,40 @@ class ListBoxWidget(Widget):
                 buffer[start] = padded(str(text))
                 start += 1
 
+    def post_draw(self, draw_context, position): 
         # line highlight to indicate current selected items.
-        self._rematch("cur_match_id", self.highlight_group, (self.cur, self.cur+2), None)
-        if self.search_keyword: 
-            self._rematch("search_match_id", "ErrorMsg", (0, self.height+1), self.search_keyword)
-        self._rematch("tmp_mid", self.search_highlight, (self.cur, self.cur+2), self.search_keyword, 10)
-        
+        self.position = position
+        start, end = position
+        for m in self.matches: 
+            m.delete()
+        self.matches.clear()
+        self.matches.append(Matcher().match(self.highlight_group, (self.cur, self.cur+2)))
+
+        if self.search_keyword is None:
+            return
+
+        if self.text_prop is None: 
+            self.text_prop = TextProp("ff_search", draw_context.bufnr, "Error")
+
+        def find_pos(search, cur_text):
+            pointer = 0
+            res = []
+            for col, c in enumerate(cur_text): 
+                if c == search[pointer]: 
+                    res.append(col+1)
+                    pointer += 1
+                if pointer == len(search): break
+            #log("Find:", search, cur_text, res)
+            return res
+
+        cur_line = start
+        self.text_prop.clear()
+        for text in self.items:
+            if cur_line >=  end: break
+            for col in find_pos(self.search_keyword, text):
+                self.text_prop.prop_add(cur_line, col)
+            cur_line += 1
+
     def get_widgets(self): 
         return [[self.wopt.name, self]]
 
@@ -774,65 +840,25 @@ class FileFinderBuffer(WidgetBuffer):
         super().__init__(root, name, history, options)
         if FileFinderPGlobalInfo.files is None: 
             FileFinderPGlobalInfo.preprocess()
+        self.on_change_database()
         self.last_window_id = vim.eval("win_getid()")
         self.saved_cursor = GetCursorXY()
-        self.files = FileFinderPGlobalInfo.files
         self.mode = "file"
 
     def on_search(self):
         """ 
         """
-        import glob
-        import re
-        self.on_sync()
-        search_text = self.widgets['input'].text.strip().lower()
-        join = []
-        for t in search_text: 
-            if t == '+' or t == '-': join.append("|"+t)
-            else: join.append(t)
-        search_text = "".join(join)
-        pieces = search_text.split("|")
-        qualifier = []
-        qualifier_name_set = set()
-        search_base = None
-        FileFinder
-        for p in pieces: 
-            p = p.strip()
-            if not p: continue
-            if p.startswith("+") or p.startswith("-"): 
-                qualifier.append(p)
-                qualifier_name_set.add(p)
-            else: search_base = p
-        if ".git/" not in qualifier_name_set: 
-            qualifier.append("-git/")
-        if "/build" not in qualifier_name_set: 
-            qualifier.append("-/build")
-        if "cmake/" not in qualifier_name_set: 
-            qualifier.append("-cmake/")
-
-        def filt(filepath): 
-            basename = os.path.basename(filepath).lower()
-            filepath = filepath.lower()
-            if basename.startswith("."): return False
-            if basename.endswith(".o"): return False
-            if basename.endswith(".pyc"): return False
-            if basename.endswith(".swp"): return False
-            #if not re.search(search_base, basename): return False
-            if not re.search(search_base, filepath): return False
-            for qual in qualifier: 
-                if qual.startswith("+") and not re.search(qual[1:], filepath): return False
-                if qual.startswith("-") and re.search(qual[1:], filepath): return False
-            return True
-
-        if search_base is None: 
-            self.widgets['result'].set_items(self.files)
-            self.widgets['result'].set_keyword(None)
-        else:
-            from fuzzyfinder import fuzzyfinder
-            res = list(fuzzyfinder(search_base, filter(filt, self.files)))[:17]
+        def update_ui(res): 
+            if self.state == "exit":
+                return
+            res, search_base = res
             self.widgets['result'].set_items(res)
             self.widgets['result'].set_keyword(search_base)
-        self.redraw()
+            self.redraw()
+
+        self.on_sync()
+        search_text = self.widgets['input'].text.strip().lower()
+        rpc_call("filefinder.search", update_ui, search_text)
 
     def goto(self, filepath, cmd=None):
         FileFinderPGlobalInfo.update_mru(filepath)
@@ -849,7 +875,7 @@ class FileFinderBuffer(WidgetBuffer):
         vim.eval(f"win_gotoid({self.last_window_id})")
         SetCursorXY(*self.saved_cursor)
 
-    def on_cursor_hold(self):
+    def on_text_changed_i(self):
         self.on_search()
 
     def on_enter(self, cmd):
@@ -901,7 +927,7 @@ class FileFinderBuffer(WidgetBuffer):
         return m
 
     def on_change_database(self):
-        if not hasattr(self, "mode") or self.mode == "file":
+        if hasattr(self, 'mode') and self.mode == "file":
             setattr(self, "mode", "mru")
             self.files = FileFinderPGlobalInfo.get_mru()[::-1]
         else: 
@@ -909,6 +935,10 @@ class FileFinderBuffer(WidgetBuffer):
             self.files = FileFinderPGlobalInfo.files
         vim.command(f"let w:filefinder_mode = \"{self.mode}\"")
         vim.command("AirlineRefresh")
+        def set_file(cur_type):
+            if cur_type != self.mode:
+                rpc_call("filefinder.set_files", None, self.mode, self.files)
+        rpc_call("filefinder.get_type", set_file)
 
 class FileFinderApp(Application):
     """ 

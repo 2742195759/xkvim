@@ -273,6 +273,17 @@ function! VimInsertQuickPeek()
     execute "normal \<m-p>"
     call GI()
 endfunction
+
+function! RPCServer(channel, msg)
+    let g:rpc_receive=a:msg
+    "echom a:msg
+    py3 Xiongkun.rpc_server.receive()
+endfunction
+
+function! RPCServerError(channel, msg)
+    let g:rpc_receive=a:msg
+    echom a:msg
+endfunction
     
 
 nnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>

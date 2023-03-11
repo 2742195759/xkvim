@@ -19,6 +19,8 @@ from .traceback import *
 from .quick_jump import QuickJump, BufferJump, WindowJump, GlobalJump
 from .quick_jump import State as jump_state
 from .log import OpenLog
+from .paddle import *
+from .rpc import *
 
 pro = None; 
 
@@ -131,3 +133,4 @@ def EditSearchConfig(args):
     if EmptyBuffer(): 
         vim.command("read ~/xkvim/search_config")
         vim.command("normal 0d_")
+

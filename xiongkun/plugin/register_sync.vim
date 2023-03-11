@@ -6,8 +6,8 @@ function! s:RegisterSyncRead(timer_id)
     let last_ftime = getftime(filepath)
     if last_ftime > g:last_ftime
         let lines = readfile(filepath, 'r')
-        let regname = lines[0]
         if len(lines)> 0
+            let regname = lines[0]
             call setreg(regname, lines[2:], lines[1])
             let last_ftime = last_ftime
         endif

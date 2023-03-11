@@ -89,6 +89,9 @@ class Location:
         row = self.line + new_base - self.base
         return Location(self.full_path, row, col, new_base)
 
+    def jump(self, cmd="."):
+        GoToLocation(self, cmd)
+
 class LocationRange:
     def __init__(self, start_loc, end_loc):
         self.start = start_loc
@@ -459,11 +462,13 @@ def test():
     print(vim_format("TextTrimer(\"%s\")",text))
 
 def vimcommand(cmd):
+    log("Command: ", cmd)
     vim.command(cmd)
     return
     vim_dispatcher.call(vim.command, [cmd])
 
 def vimeval(cmd):
+    #log("VIMEVAL:", cmd)
     ret = vim.eval(cmd)
     return ret
     ret = vim_dispatcher.call(vim.eval, [cmd])
@@ -690,6 +695,29 @@ def peek_line(filename, start, end):
         ret.append(linecache.getline(filename, i).strip())
     return ret
 
+class TextProp:
+    def __init__(self, name, bufnr=None, high="Error"):
+        if bufnr is None:
+            bufnr = int(vimeval("bufnr()"))
+        self.bufnr = int(bufnr)
+        self.name = name
+        prop = {'priority':0, 'highlight': high, 'bufnr': self.bufnr}
+        vimeval('prop_type_add("{name}", {dict})'.format(
+            name = name, 
+            dict = dict2str(prop)
+        ))
+
+    def prop_add(self, lnum, col, length=0): 
+        config = {
+            'type': self.name, 
+            'length': length,
+            'bufnr': self.bufnr
+        }
+        vimeval(f'prop_add({lnum}, {col}, {dict2str(config)})')
+
+    def clear(self):
+        vimeval("prop_clear(1, 100000)")
+
 class Matcher:
     def __init__(self):
         self.mid = None
@@ -723,6 +751,11 @@ class Matcher:
             high, 
             cmd, 
             priority))
+        return self
+
+    def match_pos(self, high, row, col, priority=0):
+        self.match(high, (row-1, row+1), (col-1, col+1), None, priority)
+        return self
         
     def delete(self):
         if self.mid is not None:
@@ -829,3 +862,14 @@ def Normal_GI():
 def isLineFolded(num):
     if vim.eval(f"foldclosed({num})") == "-1": return False
     return True
+
+def dict2str(d):
+    import json
+    return json.dumps(d)
+
+def ui(func):
+    def wrapper(*args): 
+        log("call ui.")
+        vim_dispatcher.call(func, args)
+    return wrapper
+    

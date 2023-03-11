@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import ctypes
 import inspect
 from .log import log
+import multiprocessing
 
 def _async_raise(tid, exctype):# {{{
     """ throw a exception in a thread.
@@ -173,6 +174,49 @@ class UIDispatcher(Model):# {{{
             return fn(*args)
         self.queue.put(UIDispatcher.CallRequest(fn, args))
         return self.reply.get()# }}}
+
+class ThreadRemoteService:
+    """
+    in vim + python, thread busy will cause ui thread busy
+    useless !!
+    """
+    def __init__(self, worker):
+        self.id = 0
+        self.worker = worker
+        self.queue = multiprocessing.Queue()
+        self.threads = []
+
+    def __call__(self, args, on_finish): 
+        self.id += 1
+        cur_id = self.id
+        def worker(*args):
+            output = self.worker(*args)
+            return (cur_id, output)
+
+        def finish(id, output):
+            if cur_id == self.id: 
+                if isinstance(output, tuple): 
+                    on_finish(*output)
+                else: 
+                    on_finish(output)
+
+        thread_run(worker, args=args, on_finish=finish)
+
+def thread_run(func, args=[], on_finish=None, on_error=None):
+    def wrapper_func(*args, **kwargs):
+        try:
+            output = func(*args, **kwargs)
+            if isinstance(output, tuple): 
+                on_finish(*output)
+            else: 
+                on_finish(output)
+        except Exception as e:
+            log("Thread Run Exception: ", str(e))
+            if on_error is not None: 
+                on_error(e)
+
+    thread = Thread(target=wrapper_func, args=args, daemon=True)
+    thread.start()
 
 def test():# {{{
     def p1(inp):
