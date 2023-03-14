@@ -49,7 +49,7 @@ class RPCServer:
         self.on_receive(msg)
 
     def on_receive(self, msg):
-        log("Msg:", msg)
+        #log("[RPC]receive: ", msg)
         id, output = json.loads(msg)
         assert id in self.callbacks
         name, on_return = self.callbacks.pop(id)
@@ -67,7 +67,6 @@ class RPCServer:
             self.increment_cache[name] = self.id
         package = [self.id, name, args]
         self.callbacks[self.id] = (name, on_return)
-        #log("[Vim Send]:" ,package)
         self.send(package)
     
 rpc_server = RPCServer()

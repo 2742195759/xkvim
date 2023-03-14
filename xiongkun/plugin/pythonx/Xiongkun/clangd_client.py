@@ -51,6 +51,7 @@ def StopAutoCompileGuard():# {{{
 def init_clangd_config():
     pwd = vim_utils.GetPwd()
     path = os.path.join(pwd, "./.vim_clangd.py")
+    return
     if os.path.isfile(path): 
         config = vim_utils.absolute_import("vim_clangd", path)
         clangd_config.path_map = config.path_map

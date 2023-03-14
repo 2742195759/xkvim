@@ -755,17 +755,20 @@ class ListBoxWidget(Widget):
             return
 
         if self.text_prop is None: 
-            self.text_prop = TextProp("ff_search", draw_context.bufnr, "Error")
+            self.text_prop = TextProp("ff_search", draw_context.bufnr, "ErrorMsg")
 
         def find_pos(search, cur_text):
             pointer = 0
             res = []
+            search = search[::-1]
+            cur_text = cur_text[::-1]
+            length = len(cur_text)
+            # reverse
             for col, c in enumerate(cur_text): 
                 if c == search[pointer]: 
-                    res.append(col+1)
+                    res.append(length - col)
                     pointer += 1
                 if pointer == len(search): break
-            #log("Find:", search, cur_text, res)
             return res
 
         cur_line = start
