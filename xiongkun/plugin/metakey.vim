@@ -34,6 +34,9 @@ set <M-h>=h
 set <M-l>=l  
 set <M-n>=n  
 set <M-:>=:  
+set <M-[>=[  
+set <M-]>=]  
+
 "set <M->=  "换行，但是会执行
 nnoremap  <M-o> <C-o>zv
 nnoremap  <M-i> <C-i>zv

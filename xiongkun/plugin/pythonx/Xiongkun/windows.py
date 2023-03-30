@@ -1,12 +1,14 @@
 import vim
 import traceback
 from .vim_utils import *
+from .func_register import vim_register
 import time
 import threading
 from .multiprocess_utils import ProductConsumerModel, CancellableWorker
 import subprocess
 from .sema_utils import SemaPool
 from functools import partial
+import os
 
 class Buffer:# {{{
     def __init__(self, name):
@@ -704,8 +706,9 @@ class GrepSearcher(Searcher):# {{{
     def do_search(inp, directory, worker):
         extra_args = []
         log("do_search")
-        if osp.isfile("search_config"):
-            with open("search_config", "r") as fp :
+        search_config_path = directory + "/search_config"
+        if osp.isfile(search_config_path):
+            with open(search_config_path, "r") as fp :
                 lines = fp.readlines()
                 lines = [ l.strip() for l in lines ]
                 lines = list(filter(lambda x: x and not x.strip().startswith("#"), lines))
@@ -846,7 +849,7 @@ class UniverseSearchEngine(Searcher):# {{{
         with NotChangeQuickfixGuard():
             self.clear_history()
             self.last_input = inp
-            vimeval("CreateAndImportTmpTags()")
+            #vimeval("CreateAndImportTmpTags()")
             # [search]
             results = []
             workers = []
@@ -910,6 +913,16 @@ class UniverseSearchEngine(Searcher):# {{{
         if USEngine is None: 
              USEngine = UniverseSearchEngine(USEngineOpts)
         return USEngine# }}}
+
+@vim_register(with_args=True, command_completer="file", command="ChangeSearchDirectory")
+def ChangeSearchGlobal(args): 
+    assert len(args) <= 1
+    directory = vim.eval("getcwd()")
+    if len(args) == 1:
+        directory = args[0]
+    log("Director:", directory)
+    directory = vim.eval(f'expand("{directory}")')
+    vim.command(f'let g:nerd_search_path="{directory}"')
 
 #======  unit test of search and windows.
 

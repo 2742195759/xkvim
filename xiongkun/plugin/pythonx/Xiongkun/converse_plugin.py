@@ -12,6 +12,7 @@ import time
 import os.path as osp
 from .log import log, log_google
 from urllib.parse import quote
+import shlex
 
 def open_url_on_mac(url):
     cmd = """open "%s" """ % url
@@ -106,14 +107,27 @@ def baidu_translate(sentence):
     info = child.stdout.readline().strip()
     return info
 
-def gast_dump(file):
+def run_python_file(python_file, **kwargs):
     import subprocess
-    cmd = "python3 ~/xkvim/cmd_script/dump_gast.py --file \"{file}\"".format(
-        file = file,
-    )
+    args_str = []
+    pre_command = ["source ~/.bashrc"]
+    with open(python_file, "r") as fp :
+        lines = fp.readlines()
+        for line in lines:
+            if line.startswith("#cmd:"):
+                line = line.replace("#cmd:", "").strip()
+                pre_command.append(line)
+                
+    for key, val in kwargs.items():
+        args_str.append(f"--{key} {val}")
+    args_str = " ".join(args_str)
+    pre_command.append("python3")
+    command_str = "&&".join(pre_command)
+    cmd = f"bash -c '{command_str} {python_file} {args_str}'"
+    log(f"Start run `{cmd}`")
     child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    error = child.stderr.readline().strip()
-    info = child.stdout.readline().strip()
+    error = "".join(child.stderr.readlines()).strip()
+    info = "".join(child.stdout.readlines()).strip()
     if error: 
         print("Error occur:\n", error)
         return ""
@@ -148,8 +162,17 @@ def GastDump(args):
     """ `< and `>
     """
     file = vim_utils.WriteVisualIntoTempfile()
-    info = gast_dump(file)
+    info = run_python_file("~/xkvim/cmd_script/dump_gast.py", file=file)
     print(info)
+
+@vim_register(command="Run", keymap="<F9>")
+def RunCurrentFile(args):
+    """ Dump a function's bytecode into screen.
+    """
+    tmp_file = vim_utils.tempfile()
+    vim.command(f"silent! w {tmp_file}")
+    info = run_python_file(tmp_file)
+    print (info)
 
 @vim_register(command="Copyfile")
 def PaddleCopyfile(args):

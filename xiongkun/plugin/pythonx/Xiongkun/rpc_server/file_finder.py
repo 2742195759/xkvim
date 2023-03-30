@@ -9,6 +9,8 @@ from functions import KillablePool
 class Filefinder:
     def __init__(self):
         self.files = ["initializing..."]
+        # type is "DIRECTOTYR@TYPE"
+        # for example: "/home/data/Paddle/@file|mru"
         self.type = "none"
 
     @server_function
@@ -22,6 +24,7 @@ class Filefinder:
             if basename.endswith(".pyc"): return False
             if basename.endswith(".swp"): return False
             if '.git/' in filepath: return False
+            if 'build/' in filepath: return False
             return True
         self.files = list(filter(filt, self.files))
         log("[FileFinder] set files with length:", len(self.files))
@@ -64,6 +67,8 @@ def fuzzy_match(search_text, candidate):
     import glob
     import re
     join = []
+    if isinstance(search_text, tuple): 
+        search_text = search_text[0]
     for t in search_text: 
         if t == '+' or t == '-': join.append("|"+t)
         else: join.append(t)

@@ -25,6 +25,7 @@ Bundle 'The-NERD-Commenter'
 Bundle 'https://github.com/frazrepo/vim-rainbow'
 Bundle 'https://github.com/neoclide/coc.nvim'
 Bundle 'https://github.com/Yggdroot/indentLine'
+Bundle 'https://github.com/github/copilot.vim'
 
 if has("cscope")
   set cscopeprg=/usr/bin/cscope
@@ -234,7 +235,8 @@ set completeopt=menu,preview
 filetype plugin on 
 
 """ configure for g:UltiSnippetEdit
-let g:UltiSnipsSnippetStorageDirectoryForUltiSnipsEdit="$HOME/xkvim/xiongkun/plugin/UltiSnips/"
+let g:home=$HOME
+let g:UltiSnipsSnippetStorageDirectoryForUltiSnipsEdit=g:home."/xkvim/xiongkun/plugin/UltiSnips/"
 
 """ universe reflesh
 function! UniverseReflesh()
@@ -263,7 +265,7 @@ function! MyPlugin(...)
     if &filetype == 'filefinder'
       let w:airline_section_a = 'FileFinder'
       let w:airline_section_b = getwinvar(winnr(), "filefinder_mode")
-      let w:airline_section_c = "Author: @xiongkun"
+      let w:airline_section_c = getwinvar(winnr(), "filefinder_dir")
     endif
   endfunction
 call airline#add_statusline_func('MyPlugin')

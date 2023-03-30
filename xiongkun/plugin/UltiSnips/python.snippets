@@ -320,6 +320,9 @@ for batch in batches:
 
 with paddle.fluid.profiler._nvprof_range(i, 10, 20):
     forward()
+
+# 启动命令：
+# nsys profile -o my_report -w true -t cuda,nvtx,osrt,cudnn,cublas -s cpu --capture-range=cudaProfilerApi --stop-on-range-end=true --cudabacktrace=true -x true python train.py
 endsnippet
 #}}}
 
@@ -1109,5 +1112,19 @@ endsnippet
 
 snippet print_main_program "print the default main program of static." #{{{
 print(paddle.static.default_main_program())
+endsnippet 
+#}}}
+
+snippet bytecode "dump the bytecode of python function" #{{{
+import dis
+def func(x, y):
+	return x + y
+dis.dis(func)
+endsnippet 
+#}}}
+
+snippet cmd "add cmd for python files for <F9> execution." #{{{
+#cmd: export PYTHONPATH=/home/data/Paddle/build/python
+#cmd: conda activate py38
 endsnippet 
 #}}}

@@ -11,7 +11,7 @@ from .log import log
 from .vim_utils import Location, SetQuickFixList, vimcommand, FindWindowInCurrentTabIf
 import os.path as osp
 
-file_patter = r"[a-zA-Z0-9/]*"
+file_patter = r"[a-zA-Z0-9/\._-]*"
 number_pattern = r"[0-9]+"
 
 @vim_register(command="Traceback")
@@ -34,7 +34,7 @@ def AnalysisTraceback(args):
         SetQuickFixList(locs, jump='last')
 
 @vim_register(keymap="<space>gf", command="TracebackLine")
-def AnalysisTraceback(args):
+def TracebackOneLine(args):
     line = vim_utils.GetCurrentLine().strip()
     patterns = [
         f"({file_patter}):({number_pattern})", 
@@ -49,6 +49,8 @@ def AnalysisTraceback(args):
         filename, lineno = result.groups()
         if osp.exists(filename): 
             loc = Location(filename, int(lineno))
+        else: 
+            print ("trace back file not exists: ", filename)
     if loc is None: 
         print ("Non't a valid python traceback line.")
         return 

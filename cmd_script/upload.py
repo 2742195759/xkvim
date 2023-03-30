@@ -22,6 +22,7 @@ m = MultipartEncoder(
 headers = {
     "Content-Type": m.content_type,
     "referer": URL,
+    "charset":"UTF-8",
 }
 re = requests.post(URL, data=m, headers=headers)
 if re.status_code != 200:

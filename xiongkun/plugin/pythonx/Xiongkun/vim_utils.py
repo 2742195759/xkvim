@@ -204,6 +204,14 @@ def SetLine(lnum, text):
     log("setline(%d, '%s')"%(int(lnum), text))
     return vimeval('setline(%d, "%s")'%(int(lnum), text))
 
+def SetContent(lines):
+    """
+    set content to current buffer.
+    """
+    assert isinstance(lines, str)
+    for lnum, text in enumerate(lines.split("\n")):
+        SetLine(lnum, text)
+
 def SetCurrentLine(text):
     """
     set current line to text.

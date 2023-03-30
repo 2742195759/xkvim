@@ -41,3 +41,12 @@ def IJump(args):
             filename = line
     loc = vim_utils.Location(filename, lineno, 0, 1)
     vim_utils.GoToLocation(loc, '.')
+
+@vim_register(command="Getout", with_args=True)
+def GetoutputFromCommand(args):
+    assert len(args) >= 1, "Input the vim command from which you want get outputs."
+    cmd = " ".join(args)
+    output = vim_utils.GetCommandOutput(cmd)
+    vim.command(f"vne")
+    vim_utils.SetContent(output)
+    vim_utils.memory_buffer()

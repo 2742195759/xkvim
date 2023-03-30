@@ -812,12 +812,14 @@ class MruList:
 
 class FileFinderPGlobalInfo: 
     files = None
+    directory = None
     mru = MruList()
     mru_path = f"{HOME_PREFIX}/.vim_mru"
     @classmethod
-    def preprocess(self):
+    def preprocess(self, directory):
+        self.directory = directory
         self.files = []
-        for line in vim.eval("system(\"find ./\")").split("\n"):
+        for line in vim.eval("system(\"find {dir}\")".format(dir=directory)).split("\n"):
             line = line.strip()
             if line and os.path.isfile(line):
                 self.files.append(line)
@@ -834,19 +836,19 @@ class FileFinderPGlobalInfo:
         self.mru.save(self.mru_path)
 
 class FileFinderBuffer(WidgetBuffer):
-    def __init__(self, name="FileFinder", history=None, options=None):
+    def __init__(self, directory="./", name="FileFinder", history=None, options=None):
         widgets = [
             ListBoxWidget(name="result", height=14, items=[]),
             SimpleInput(prom="input", name="input"),
         ]
         root = WidgetList("", widgets, reverse=True)
         super().__init__(root, name, history, options)
-        if FileFinderPGlobalInfo.files is None: 
-            FileFinderPGlobalInfo.preprocess()
+        self.directory = directory
+        if FileFinderPGlobalInfo.directory != directory: 
+            FileFinderPGlobalInfo.preprocess(directory)
         self.on_change_database()
         self.last_window_id = vim.eval("win_getid()")
         self.saved_cursor = GetCursorXY()
-        self.mode = "file"
 
     def on_search(self):
         """ 
@@ -893,6 +895,7 @@ class FileFinderBuffer(WidgetBuffer):
     def oninit(self):
         super().oninit()
         vim.command(f'let w:filefinder_mode="{self.mode}"')
+        vim.command(f'let w:filefinder_dir="{self.directory}"')
         vim.command('set filetype=filefinder')
 
     def on_item_up(self):
@@ -938,20 +941,18 @@ class FileFinderBuffer(WidgetBuffer):
             self.files = FileFinderPGlobalInfo.files
         vim.command(f"let w:filefinder_mode = \"{self.mode}\"")
         vim.command("AirlineRefresh")
+        type = self.directory+"@"+self.mode
         def set_file(cur_type):
-            if cur_type != self.mode:
-                rpc_call("filefinder.set_files", None, self.mode, self.files)
+            log("Type is:", cur_type, type)
+            if cur_type != type:
+                rpc_call("filefinder.set_files", None, type, self.files)
         rpc_call("filefinder.get_type", set_file)
 
 class FileFinderApp(Application):
-    """ 
-    ListBoxWidget
-    >>> input 
-    """
-    def __init__(self):
+    def __init__(self, directory='./'):
         super().__init__()
         self.layout = CreateWindowLayout(cmds=["botright new", "resize 15"], active_win="win")
-        self.mainbuf = FileFinderBuffer()
+        self.mainbuf = FileFinderBuffer(directory=directory)
 
     def start(self):
         self.layout.create()
@@ -965,7 +966,7 @@ class FileFinderApp(Application):
 def FileFinderReflesh(args):
     FileFinderPGlobalInfo.preprocess()
 
-@vim_register(command="FF")
+@vim_register(command="FF", with_args=True, command_completer="file")
 def FileFinder(args):
     """ Find a file / buffer by regular expression.
 
@@ -975,12 +976,14 @@ def FileFinder(args):
         3. normal files
         4. with build / build_svd
     """
-    ff = FileFinderApp()
+    directory = "./"
+    if len(args) == 1: 
+        directory = args[0]
+    ff = FileFinderApp(directory=directory)
     ff.start()
 
 @vim_register(command="B", with_args=True, command_completer="buffer")
 def BufferFinder(args):
-    ff = FileFinderApp()
     ff.start()
     #ff.on_cursor_hold = on_auto_hold
     ff.mainbuf.files = GetBufferList()
