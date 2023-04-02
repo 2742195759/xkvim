@@ -2,3 +2,9 @@ config.vim
 *.pyc
 user_tag
 search_config
+DevToolsActivePort
+*.swp
+*.swo
+Default/
+node-v15.14.0-linux-x64/
+*/__pycache__/
