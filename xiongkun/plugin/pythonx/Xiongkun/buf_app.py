@@ -5,7 +5,7 @@ import os.path as osp
 from .func_register import *
 from .vim_utils import *
 from collections import OrderedDict
-from .rpc import rpc_call, rpc_wait
+from .rpc import rpc_call
 
 @vim_register(name="BufApp_KeyDispatcher", with_args=True)
 def Dispatcher(args):

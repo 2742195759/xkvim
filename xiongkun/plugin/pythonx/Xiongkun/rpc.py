@@ -77,6 +77,7 @@ def rpc_call(name, on_return=None, *args):
         see `xiongkun/plugin/pythonx/Xiongkun/rpc_server/server.py` for remote function.
     """
     #return None
+    assert on_return is None or callable(on_return), "on_return must be a callable function"
     do_nothing = lambda x: x
     if on_return is None: 
         on_return = do_nothing

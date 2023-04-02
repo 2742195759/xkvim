@@ -21,6 +21,7 @@ from .quick_jump import State as jump_state
 from .log import OpenLog
 from .paddle import *
 from .rpc import *
+from .yiyan import *
 
 pro = None; 
 

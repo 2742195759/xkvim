@@ -13,6 +13,7 @@ from decorator import InQueue, server_function, pool_function, process_function,
 from queue_loop import QueueLoop
 from file_finder import Filefinder
 from log import log, mutex
+from yiyan_server import Yiyan
 
 def send(obj):
     #log("[Server] send: ", json.dumps(obj))
@@ -26,6 +27,8 @@ def echo(s):
     return s
 
 filefinder = Filefinder()
+yiyan = Yiyan()
+yiyan.init_yiyan()
 
 def get_server_by_name(name):
     name = name.strip()

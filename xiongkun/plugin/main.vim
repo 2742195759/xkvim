@@ -276,8 +276,10 @@ endfunction
 
 function! RPCServer(channel, msg)
     let g:rpc_receive=a:msg
+    "let g:rpc_vimcommand=a:msg
     "echom a:msg
     py3 Xiongkun.rpc_server.receive()
+    redraw!
 endfunction
 
 function! RPCServerError(channel, msg)

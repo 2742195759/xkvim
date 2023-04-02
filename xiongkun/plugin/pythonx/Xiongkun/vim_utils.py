@@ -565,6 +565,10 @@ def CurrentWindowGuard(win_id=None):
     yield
     vim.eval(f'win_gotoid({saved_id})')
 
+def GoToWindow(wnr):
+    win_id = vim.eval(f"win_getid({wnr})")
+    vim.eval(f'win_gotoid({win_id})')
+
 @contextmanager
 def RedirGuard(name, mode='w'):
     """
@@ -724,7 +728,7 @@ class TextProp:
         vimeval(f'prop_add({lnum}, {col}, {dict2str(config)})')
 
     def clear(self):
-        vimeval("prop_clear(1, 100000)")
+        vimeval("prop_clear(1, 10000000)")
 
 class Matcher:
     def __init__(self):
