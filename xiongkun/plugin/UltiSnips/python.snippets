@@ -1128,3 +1128,52 @@ snippet cmd "add cmd for python files for <F9> execution." #{{{
 #cmd: conda activate py38
 endsnippet 
 #}}}
+
+snippet select "select nonblocking function." #{{{
+    def __nonblocking(self, socket_client, socket_server):
+        '''
+        使用select实现异步处理数据
+
+        参数：socket_client 代理端与客户端之间建立的套接字
+        参数：socket_server 代理端与服务端之间建立的套接字
+        '''
+        _rlist = [socket_client, socket_server]
+        is_recv = True
+        while is_recv:
+            try:
+                # rlist, wlist, elist = select.select(_rlist, _wlist, _elist, [timeout])
+                # 参数1：当列表_rlist中的文件描述符fd状态为readable时，fd将被添加到rlist中
+                # 参数2：当列表_wlist中存在文件描述符fd时，fd将被添加到wlist
+                # 参数3：当列表_xlist中的文件描述符fd发生错误时，fd将被添加到elist
+                # 参数4：超时时间timeout
+                #  1) 当timeout==None时，select将一直阻塞，直到监听的文件描述符fd发生变化时返回
+                #  2) 当timeout==0时，select不会阻塞，无论文件描述符fd是否有变化，都立刻返回
+                #  3) 当timeout>0时，若文件描述符fd无变化，select将被阻塞timeout秒再返回
+                rlist, _, elist = select.select(_rlist, [], [], 2)
+                if elist:
+                    break
+                for tmp_socket in rlist:
+                    is_recv = True
+                    # 接收数据
+                    data = tmp_socket.recv(self.socket_recv_bufsize)
+                    if data == b'':
+                        is_recv = False
+                        continue
+                    
+                    # socket_client状态为readable, 当前接收的数据来自客户端
+                    if tmp_socket is socket_client: 
+                        socket_server.send(data) # 将客户端请求数据发往服务端
+                        debug('proxy', 'client -> server')
+
+                    # socket_server状态为readable, 当前接收的数据来自服务端
+                    elif tmp_socket is socket_server:
+                        socket_client.send(data) # 将服务端响应数据发往客户端
+                        debug('proxy', 'client <- server')
+                        
+                time.sleep(self.delay) # 适当延迟以降低CPU占用
+            except Exception as e:
+                break
+
+        socket_client.close()
+        socket_server.close()
+endsnippet 
