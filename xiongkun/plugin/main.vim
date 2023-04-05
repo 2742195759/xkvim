@@ -160,7 +160,6 @@ inoremap <M-k> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.prev()<cr>
 inoremap <M-h> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.page_up()<cr>
 inoremap <M-l> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.page_down()<cr>
 inoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_window()<cr>
-inoremap <M-g> <C-R>=ClangdServerComplete([])<cr>
 vnoremap // y/\V<C-R>=escape(@",'/\')<CR><CR>
 nnoremap <expr> gp '`[' . strpart(getregtype(), 0, 1) . '`]'
 """ copy the visual into a tempname file. to view a part of a file
@@ -235,8 +234,22 @@ augroup FileIndentAutoCommand
 augroup END
 
 
-""" quickjump config
+function! JustTestUIReflesh(cmd)
+    " test script can update the vim ui in the background.
+    " yes: redraw and redraw! is the right way to update
+    let x = 10 
+    while x 
+        let x = x - 1
+        silent execute "vne ".string(x)
+        echo "hello world (y/n)" 
+        redraw
+        call getchar()
+    endwhile
+endfunction
+    
 
+
+""" quickjump config
 function! VimQuickJump(cmd)
     if a:cmd == 's'
         exe 'BufferJump '. a:cmd

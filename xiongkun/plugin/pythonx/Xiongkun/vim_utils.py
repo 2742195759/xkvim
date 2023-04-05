@@ -142,9 +142,10 @@ def GoToLocation(location, method):
     }
     vim_method = norm_methods[method]
     if HasSwapFile(location.getfile()): 
-        print ("Swap file found ! overriden. ")
         vim_method = view_methods[method]
     vimcommand("%s +%d %s"%(vim_method, location.getline(), location.getfile()))
+    if location.getcol() != 1:
+        vimcommand("normal %d|"%(location.getcol()))
     vimcommand("normal zv")
 
 def HasSwapFile(path):
@@ -885,3 +886,12 @@ def ui(func):
         vim_dispatcher.call(func, args)
     return wrapper
     
+def Singleton(cls):
+    instance = None
+    def get_instance():
+        nonlocal instance
+        if instance is None: 
+            instance = cls()
+        return instance
+    return get_instance
+

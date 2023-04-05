@@ -10,7 +10,7 @@ class PySema(Sema):
         line = GetTextFromLocation(loc.to_base(0))
         log("pysema: ", line, id_name)
         if id_name is None: 
-            return 'def' in line
+            return 'def' in line or 'class' in line
         else:
-            return ('def ' + id_name) in line
+            return ('def ' + id_name) in line or 'class' + id_name in line
 

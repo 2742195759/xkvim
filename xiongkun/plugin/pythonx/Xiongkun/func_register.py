@@ -34,7 +34,7 @@ import vim
 import sys
 import os
 
-def vim_register(name="", keymap="", command="", with_args=False, command_completer=""):
+def vim_register(name="", keymap="", command="", with_args=False, command_completer="", interactive=False):
     """
     keymap: i:MAP | MAP
     """
@@ -72,10 +72,16 @@ endfunction
             arg_num = '0'
             if with_args: 
                 arg_num = '*'
-            vim.command( """ command! -n={arg_num} {command_completer} -range {command} cal {vim_name}(split("<args>", " ")) """.format(arg_num=arg_num, 
-                            command_completer=command_completer, 
-                            command=command, 
-                            vim_name=vim_name))
+            if not interactive:
+                vim.command( """ command! -n={arg_num} {command_completer} -range {command} cal {vim_name}(split("<args>", " ")) """.format(arg_num=arg_num, 
+                                command_completer=command_completer, 
+                                command=command, 
+                                vim_name=vim_name))
+            if interactive:
+                vim.command( """ command! -n={arg_num} {command_completer} -range {command} cal {vim_name}(split("<args>", " ")) | call InteractDo()""".format(arg_num=arg_num, 
+                                command_completer=command_completer, 
+                                command=command, 
+                                vim_name=vim_name))
         return func
     return decorator
 

@@ -168,7 +168,7 @@ endf
 
 function! s:searcher.Exit()
     let file = self.get_user_tag_path()
-    call SaveVariable(self.user_item, file)
+    "call SaveVariable(self.user_item, file)
 endf
 
 function! s:searcher.do_search(input_text)

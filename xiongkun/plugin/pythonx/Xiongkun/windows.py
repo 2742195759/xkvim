@@ -117,11 +117,12 @@ class PreviewWindow(Window):# {{{
         self.loc = loc
         self.options = {
             "maxheight": 17, 
+            "minheight": 17, 
             "line": 'cursor+5',
             "pos": "topleft", 
             "border": [], 
             "title": loc.getfile(),
-            "minwidth": 0, 
+            "minwidth": 100, 
             "maxwidth": 100, 
             "posinvert": False,
         }
@@ -499,12 +500,12 @@ class GlobalPreviewWindow:# {{{
     pwin = None
     hidden = True
     candidate_locs = []
-    candidate_idx = -1
+    candidate_idx = 0
     win_ops = {}
 
     @staticmethod
     def cur_loc():
-        if GPW.candidate_idx <= 0: return 
+        if GPW.candidate_idx < 0: return 
         if GPW.candidate_idx >= len(GPW.candidate_locs): return 
         return GPW.candidate_locs[GPW.candidate_idx]
     
@@ -545,12 +546,14 @@ class GlobalPreviewWindow:# {{{
     def next():
         if GPW.candidate_idx < len(GPW.candidate_locs) - 1:
             GPW.candidate_idx += 1
+        GPW.show()
         GPW.go()
 
     @staticmethod
     def prev():
         if GPW.candidate_idx > 0:
             GPW.candidate_idx -= 1
+        GPW.show()
         GPW.go()
 
     @staticmethod
@@ -764,7 +767,8 @@ def items2locs(items):# {{{
         if item.get('lnum', "") == "": continue
         ret.append(Location(
             item['filename'],
-            int(item['lnum']), 1))
+            int(item['lnum']),
+            int(item.get('col', 1))))
     return ret# }}}
 
 def remove_angle_bracket(inp):# {{{

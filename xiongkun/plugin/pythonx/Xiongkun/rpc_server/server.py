@@ -28,7 +28,6 @@ def echo(s):
 
 filefinder = Filefinder()
 yiyan = Yiyan()
-yiyan.init_yiyan()
 
 def get_server_by_name(name):
     name = name.strip()

@@ -26,6 +26,7 @@ class YiyanSession:
         self.bufnr = None
         self._create_buffer()
         self._inited = True
+        rpc_call("yiyan.init_yiyan", on_return=lambda x: None)
 
     def query(self, query):
         vim.eval(f"prompt_setprompt({self.bufnr}, '')")
@@ -50,6 +51,8 @@ class YiyanSession:
                         vim.eval(f'appendbufline({self.bufnr}, line("$")-1, "{ans}")')
                 else:
                     print("Yiyan error happens, restart please.:\n1. Navigation Timeout Exceeded: 30000 ms exceeded.")
+                    ans = "[Connection Fail]: Please retry."
+                    vim.eval(f'appendbufline({self.bufnr}, line("$")-1, "{ans}")')
         rpc_call("yiyan.query", on_return, query)
 
     def _create_buffer(self):

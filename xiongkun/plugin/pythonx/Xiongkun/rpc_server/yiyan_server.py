@@ -12,6 +12,7 @@ class Yiyan:
         self.child = None
         pass
 
+    @server_function
     def init_yiyan(self): 
         import subprocess
         # create subprocess
@@ -32,7 +33,7 @@ class Yiyan:
     @server_function
     def query(self, query): 
         if self.check_alive() is False: 
-            self.init_yiyan()
+            self.init_yiyan(0)
         query = query.strip("\n\r")
         self.child.stdin.write(query + "\n")
         self.child.stdin.flush()
