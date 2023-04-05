@@ -70,6 +70,8 @@ global_name_generator = NameGenerator()
 
 class Location: 
     def __init__(self, file, line=1, col=1, base=1):
+        if isinstance(file, int): 
+            file = vim.eval(f"bufname({file})")
         self.full_path = osp.abspath(file)
         self.line = line
         self.col = col
@@ -182,7 +184,6 @@ def GetCurrentWord():
     get the line of current cursor.
     """
     return vimeval("expand('<cword>')")
-
 
 def GetCursorXY(win_id=None):
     """
@@ -552,9 +553,9 @@ def CursorGuard():
     vim.eval(f'setpos(".", {v.name()})')
 
 @contextmanager
-def CurrentBufferGuard(bufnr):
+def CurrentBufferGuard(bufnr=None):
     saved_buf = vim.eval("bufnr()")
-    vim.command(f'b {bufnr}')
+    if bufnr: vim.command(f'b {bufnr}')
     yield
     vim.command(f'b {saved_buf}')
 

@@ -287,9 +287,9 @@ class BoxListWindow(Window):# {{{
 
     def update(self, items):
         """ 
-            [thread unsafty, please do this in UIThread.]:
-            update items into the end of the windows.
-            for window dynamic update.
+        [thread unsafty, please do this in UIThread.]:
+        update items into the end of the windows.
+        for window dynamic update.
         """
         if not self.is_create(): # means the windows already deleted by other thread. so just do nothing.
             return False
@@ -440,13 +440,11 @@ class BoxListWindow(Window):# {{{
                 self.update(self.items)
             return True# }}}
         if key in ['d', 'D']: 
-            name = {'d': None, 'D': remove_angle_bracket(self.last_search)}# {{{
-            log("Definition name:", name)
-            def definition_filter(item):
-                l = items2locs([item])[0]
-                return SemaPool.get_sema(l.getfile()).is_function_definition(l, name[key])
-            self.items = list(filter(definition_filter, self.items))
-            self.update(self.items)
+            search_text = remove_angle_bracket(self.last_search)
+            if key == 'd': 
+                search_text = None
+            items = filter_by_definition(search_text, self.items)
+            self.update(items)
             return True# }}}
         if key in ['I']: 
             def do_include(filename):# {{{
@@ -591,8 +589,8 @@ class GlobalPreviewWindow:# {{{
             if not word: return 
             pwd = GetPwd()
             USEngineOpts = {
-                'searchers': [ClangdIndexSearcher, LSPSearcher, CtagSearcher, GrepSearcher], 
-                'async_mask': [1, 0, 0, 1],
+                'searchers': [LSPSearcher, CtagSearcher, GrepSearcher], 
+                'async_mask': [0, 0, 1],
                 'window': GPW.GetWindowCallback(),
             }
             GPW.use = UniverseSearchEngine(USEngineOpts)
@@ -661,8 +659,23 @@ class Searcher:# {{{
 
 class LSPSearcher(Searcher):# {{{
     def do_search(self, inp, d):
-        return []
-        #return vimeval("YCMSearcher(\"%s\")"%escape(inp))#}}}
+        try:
+            old_buf_pos = int(vim.eval("bufnr()"))
+            old_cur_pos = GetCursorXY()
+            with CursorGuard():
+                with CurrentBufferGuard(): 
+                    vim.command('call CocAction("jumpDefinition")')
+                    buf_pos = int(vim.eval("bufnr()"))
+                    cur_pos = GetCursorXY()
+            #log("[LSPSearcher]", old_buf_pos, old_cur_pos, buf_pos, cur_pos)
+            if buf_pos == old_buf_pos and old_cur_pos == cur_pos: 
+                return []
+            item = self.loc2searchitem(Location(buf_pos, cur_pos[0], cur_pos[1], base=1).to_base(0))
+            item['source'] = 'LSP'
+            #log("[LSPSearcher]", item)
+            return [item]
+        except:
+            return []
 
 class CtagSearcher(Searcher):# {{{
     def do_search(self, inp, d):
@@ -776,6 +789,13 @@ def remove_angle_bracket(inp):# {{{
     inp = inp.replace("\\>", "")
     return inp# }}}
 
+def filter_by_definition(search_text, items):
+    def definition_filter(item):
+        l = items2locs([item])[0]
+        return SemaPool.get_sema(l.getfile()).is_function_definition(l, search_text)
+    items = list(filter(definition_filter, items))
+    return items
+
 USEngine = None
 
 class UniverseSearchEngine(Searcher):# {{{
@@ -886,7 +906,7 @@ class UniverseSearchEngine(Searcher):# {{{
         def get_list_by_name(rs, name):
             return [ r for r in rs if r['source'] == name ]
         return (
-            get_list_by_name(results, "YCM") + 
+            get_list_by_name(results, "LSP") + 
             get_list_by_name(results, "Idx") + 
             get_list_by_name(results, "User") + 
             get_list_by_name(results, "CTag") + 
@@ -910,8 +930,8 @@ class UniverseSearchEngine(Searcher):# {{{
     def singleton():
         global USEngine
         USEngineOpts = {
-            'searchers': [LSPSearcher, ClangdIndexSearcher, CtagSearcher, CtrlPSearcher, GrepSearcher], 
-            'async_mask': [0, 1, 0, 0, 1],
+            'searchers': [LSPSearcher, CtagSearcher, CtrlPSearcher, GrepSearcher], 
+            'async_mask': [0, 0, 0, 1],
         }
         USEngineOpts["window"] = BoxListWindow.GetWindowCallback()
         if USEngine is None: 

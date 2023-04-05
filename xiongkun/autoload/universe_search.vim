@@ -175,9 +175,6 @@ function! s:searcher.do_search(input_text)
     call CreateAndImportTmpTags()
     let results = []
     let results = results + UserSearcher(self, a:input_text)
-    if g:enable_ycm==1
-        let results = results + YCMSearcher(a:input_text)
-    endif
     let results = results + CtagSearcher(a:input_text)
     if g:enable_grep==1
         let results = results + GrepSearcher(a:input_text)
