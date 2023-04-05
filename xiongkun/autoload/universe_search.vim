@@ -31,7 +31,6 @@ let g:default_jump_cmd="e"
 let g:enable_grep=1
 let g:max_filename_length=35
 let g:max_text_length=90
-let g:enable_ycm=1
 let g:enable_insert_preview=0
 
 function! s:previewer.exec(cmd)
@@ -543,10 +542,8 @@ function! UniverseSearch()
     echoh None
     let input_text = trim(input("US>>>"))
     " bacause ycm can only search a tag in current cursor, so disable it.
-    let g:enable_ycm=0 
-    execute printf("py3 Xiongkun.UniverseSearchEngine.singleton().search(\"%s\", \"%s\", [0,1,0,0,1])", escape(input_text, "\\\"'"), g:nerd_search_path)
+    execute printf("py3 Xiongkun.UniverseSearchEngine.singleton().search(\"%s\", \"%s\", [0,0,0,1])", escape(input_text, "\\\"'"), g:nerd_search_path)
     execute "py3 Xiongkun.UniverseSearchEngine.singleton().render()"
-    let g:enable_ycm=1
 endfunction
 "
 " search for the function tag to preview while inserting. 

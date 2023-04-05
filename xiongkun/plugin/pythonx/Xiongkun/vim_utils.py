@@ -485,6 +485,7 @@ def vimeval(cmd):
     return ret
 
 def GetTextFromLocation(loc):
+    loc = loc.to_base(0)
     with open(loc.getfile(), "r") as fp :
         lines = fp.readlines()
     if loc.getline() < len(lines): 

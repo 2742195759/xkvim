@@ -674,7 +674,8 @@ class LSPSearcher(Searcher):# {{{
             item['source'] = 'LSP'
             #log("[LSPSearcher]", item)
             return [item]
-        except:
+        except Exception as e:
+            log(f"[LSPSearcher] Exception: {e}")
             return []
 
 class CtagSearcher(Searcher):# {{{
@@ -877,7 +878,10 @@ class UniverseSearchEngine(Searcher):# {{{
             # [search]
             results = []
             workers = []
-            if not mask: mask = [True] * len(self.all) 
+            if not mask: 
+                mask = [True] * len(self.all) 
+            else: 
+                assert len(mask) == len(self.all)
             for m, s in zip(mask, self.all):
                 if not m: continue
                 w = s.get_workers(inp, directory)

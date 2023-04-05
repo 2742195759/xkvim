@@ -110,16 +110,17 @@ def confirm(message):
     else: 
         return False
 
-def interactive_cdo(reg='q'): 
+def interactive_cdo(command): 
     qflist = vim.eval("getqflist()")
     for idx, item in enumerate(qflist):
         vim_utils.Location(vim.eval(f"bufname({item['bufnr']})"), 
                            int(item['lnum']), 
                            int(item['col']),).jump(".")
+        vim.command("normal zz")
         yield "redraw"
-        if confirm(f"[{idx+1}/{len(qflist)}] Preform @{reg} onto this line? (y/n)"): 
+        if confirm(f"[{idx+1}/{len(qflist)}] Preform `{command}` onto this line? (y/n)"): 
             try:
-                vim.command(f"normal! @{reg}")
+                vim.command(f"{command}")
                 vim.command(f"update")
             except:
                 print("Error happens, skip this line.")
@@ -132,5 +133,20 @@ def Replay(args):
         return 
     assert len(args) == 1
     reg = args[0]
-    DFAContext().set_dfa(interactive_cdo(reg))
+    DFAContext().set_dfa(interactive_cdo(f"normal @{reg}"))
+
+@vim_register(command="Rename", with_args=True, interactive=True)
+def IdentifierRename(args):
+    if len(args) != 2: 
+        print("Rename old_name new_name")
+        print("Example: 对老的名字重命名，改为新的名字")
+        return 
+    old, new = args
+    qflist = vim.eval("getqflist()")
+    if len(qflist) == 0: 
+        print("Please run UniverseSearch first and fill the quickfix list.")
+    command = "s/{old}/{new}/g".format(old=old, new=new)
+    DFAContext().set_dfa(interactive_cdo(command))
+
+
 

@@ -322,3 +322,6 @@ cmap <f28> <nop>
 cmap <f29> <nop>
 tmap <f28> <nop>
 tmap <f29> <nop>
+
+" to avoid abandom
+set hidden
