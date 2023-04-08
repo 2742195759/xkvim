@@ -323,7 +323,7 @@ def GetDisplayLine(lineno, text, bufnr=None):
     return GetLine(lineno + top)
     
 def SetVimRegister(reg, content):
-    vimcommand('let @%s="%s"' % (reg, content))
+    vimcommand('let @%s="%s"' % (reg, escape(content)))
 
 def ToRelatedFilename(filename):
     pwd = GetPwd()
@@ -896,4 +896,7 @@ def Singleton(cls):
             instance = cls()
         return instance
     return get_instance
+
+def GetJumpList():
+    return vim.eval("getjumplist(winnr())")
 

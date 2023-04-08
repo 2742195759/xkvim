@@ -135,3 +135,12 @@ def EditSearchConfig(args):
         vim.command("read ~/xkvim/search_config")
         vim.command("normal 0d_")
 
+
+@vim_register(command="YankLine")
+def YankLine(args):
+    """ yank a paramgraph as a line: remove the \n beween them. 
+        add the yanked line to the register @"
+    """
+    word = vim_utils.GetVisualWords()
+    word = word.replace("\n", "")
+    vim_utils.SetVimRegister('"', word)

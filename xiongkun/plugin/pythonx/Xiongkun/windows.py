@@ -599,7 +599,7 @@ class GlobalPreviewWindow:# {{{
     
     @staticmethod
     def open_in_preview_window():
-        GoToLocation(GPW.cur_loc(), "v") 
+        GoToLocation(GPW.cur_loc(), "p") 
         GPW.hide()
 
     @classmethod

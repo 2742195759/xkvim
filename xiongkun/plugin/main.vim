@@ -303,7 +303,7 @@ endfunction
 
 nnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
 nnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
-nnoremap <silent> <tab> <Cmd>call VimQuickJump('t')<cr>
+"nnoremap <silent> <tab> <Cmd>call VimQuickJump('t')<cr>
 vnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
 inoremap <silent> <m-s> <esc>:<c-u>call VimInsertQuickPeek()<esc>
 
