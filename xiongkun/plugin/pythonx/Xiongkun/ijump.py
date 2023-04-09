@@ -148,22 +148,22 @@ def IdentifierRename(args):
     command = "s/{old}/{new}/g".format(old=old, new=new)
     DFAContext().set_dfa(interactive_cdo(command))
 
-@vim_register(keymap="<C-o>")
+@vim_register(keymap="<M-o>", command="JumpPrevFile")
 def JumpPrevFile(args):
     jumps, last = vim_utils.GetJumpList()
     last = int(last)
     prev_jumps = jumps[:last][::-1]
     for idx, item in enumerate(prev_jumps):
         if int(item["bufnr"]) != vim.current.buffer.number:
-            vim.command(f'execute "normal {idx+1}\<m-o>"')
+            vim.command(f'execute "normal {idx+1}\<c-o>"')
             return
 
-@vim_register(keymap="<C-i>")
+@vim_register(keymap="<M-i>", command="JumpNextFile")
 def JumpNextFile(args):
     jumps, last = vim_utils.GetJumpList()
     last = int(last)
     prev_jumps = jumps[last+1:]
     for idx, item in enumerate(prev_jumps):
         if int(item["bufnr"]) != vim.current.buffer.number:
-            vim.command(f'execute "normal {idx+1}\<m-i>"')
+            vim.command(f'execute "normal {idx+1}\<c-i>"')
             return

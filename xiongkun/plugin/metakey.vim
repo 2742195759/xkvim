@@ -40,8 +40,6 @@ set <M-[>=[
 set <M-]>=]  
 
 "set <M->=  "换行，但是会执行
-nnoremap  <M-o> <C-o>zv
-nnoremap  <M-i> <C-i>zv
 nnoremap  <M-3> g<Tab>
 tnoremap  <M-3> <C-w>g<Tab>
 

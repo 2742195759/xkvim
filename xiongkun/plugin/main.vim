@@ -181,15 +181,10 @@ tnoremap <M-1> <C-w>gT
 tnoremap <M-2> <C-w>gt
 " insert command
 tnoremap <F1> <C-w>:BashHelp<cr>
+tnoremap <M-a> <Cmd>TerminalAbbre<cr>
 " abbre in terminal mode
-tnoremap <M-a>xk  xiongkun
-tnoremap <M-a>pdb import pdb; pdb.set_trace()
-tnoremap <M-a>pro export http_proxy=http://172.19.57.45:3128<cr>export https_proxy=http://172.19.57.45:3128<cr>
-tnoremap <M-a>nop unset http_proxy<cr>unset https_proxy
-tnoremap <M-a>pp PYTHONPATH="/home/data/Paddle2/Paddle/build/python"
-tnoremap <M-a>vd CUDA_VISIBLE_DEVICES=3
-tnoremap <M-a>up /home/data/web/scripts/copy_file.sh
-tnoremap <M-a>def paddle.static.default_main_program()
+tnoremap <M-o> <Cmd>JumpPrevFile<cr>
+tnoremap <M-i> <Cmd>JumpNextFile<cr>
 
 """""""""""""""" }}}
 

@@ -83,23 +83,17 @@ def TerminalHelper(args):
     print ("Keymap: ")
     print ("  <F1>  -> helper page")
     print ("  <M-a> -> start a abbreviate")
-    print ("  <M-c> -> exit the terminal")
+    print ("  <M-q> -> exit the terminal")
     print ("  <M-h> -> switch tabpage: previous")
     print ("  <M-l> -> switch tabpage: next")
     print ("  <M-n> -> normal mode")
     print ("  <M-p> -> page the \" register into the terminal")
     print ("  <M-g> -> start a command")
-    print ("Abbreviate:")
-    print ("  pp    -> PYTHONPATH=")
-    print ("  pro   -> set proxy short cut")
-    print ("  nop   -> set no proxy short cut")
-    print ("  pdb   -> python pdb")
 
-@vim_register(command="Write", with_args=True)
+@vim_register(command="PythonWrite")
 def TerminalWriteFile(args):
-    if (len(args) < 1): 
-        print ("Write python_obj -> write str(python_obj) into tmpfile, and open a new tabe to present it.")
-    obj = args[0]
+    #print ("Write python_obj -> write str(python_obj) into tmpfile, and open a new tabe to present it.")
+    obj = vim.eval('input("python object:")')
     def prediction(wnr):
         return vim.eval(f"getwinvar({wnr}, '&buftype')") == "terminal"
     bufnr = int(FindWindowInCurrentTabIf(prediction))
@@ -109,3 +103,34 @@ def TerminalWriteFile(args):
         vim.command("tabe")
         time.sleep(1.0)
         vim.command(f"read {tmpfile}")
+
+terminal_abbreviate = [
+    ["PY&THONPATH", 'PYTHONPATH=/home/data/Paddle/build/python'], 
+    ["&breakpoint", "breakpoint()"], 
+    ["&proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\n"], 
+    ["&noproxy", "unset http_proxy\nunset https_proxy"], 
+    ["&xk", "xiongkun"], 
+    ["&CUDA_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES=2"], 
+    ["c&opy_file.sh", "/home/data/web/scripts/copy_file.sh"],
+    ["&main_program", "paddle.static.default_main_program()"],
+]
+
+def get_abbreviate_list(bufnr, lists): 
+    results = []
+    for item in terminal_abbreviate:
+        key, val = item
+        new_item = [key, f'call term_sendkeys({bufnr}, "{val}")']
+        results.append(new_item)
+    results.append(["&write_python_obj", "PythonWrite"])
+    return results
+
+@vim_register(command="TerminalAbbre")
+def TerminalAbbre(args):
+    """
+    abbreviate list for terminal windows.
+    <M-a> to tigger this command.
+    """
+    def prediction(wnr):
+        return vim.eval(f"getwinvar({wnr}, '&buftype')") == "terminal"
+    bufnr = int(FindWindowInCurrentTabIf(prediction))
+    PopupList(get_abbreviate_list(bufnr, terminal_abbreviate)).show()

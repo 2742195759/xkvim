@@ -900,3 +900,12 @@ def Singleton(cls):
 def GetJumpList():
     return vim.eval("getjumplist(winnr())")
 
+class PopupList:
+    # depends on vim_quick#ui
+    def __init__(self, items):
+        self._items = items
+        
+    def show(self): 
+        _item_var = VimVariable().assign(self._items)
+        log("[PopupList]: ", 'call quickui#context#open(%s, {})' % _item_var)
+        vim.command('call quickui#context#open(%s, {})' % _item_var)

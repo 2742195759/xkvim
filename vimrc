@@ -307,6 +307,7 @@ let g:loaded_bracketed_paste = 1
 let &t_ti .= "\<Esc>[?2004h"
 let &t_te = "\e[?2004l" . &t_te
 
+
 function! XTermPasteBegin(ret)
   set pastetoggle=<f29>
   set paste

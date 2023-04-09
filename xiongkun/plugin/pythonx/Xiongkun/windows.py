@@ -528,14 +528,12 @@ class GlobalPreviewWindow:# {{{
 
     @staticmethod
     def page_down():
-        print("yes")
         if GPW.pwin is not None:
             GPW.pwin._execute_normal("")
             GPW.pwin._execute_normal("zz")
 
     @staticmethod
     def page_up():
-        print("yes")
         if GPW.pwin is not None:
             GPW.pwin._execute_normal("")
             GPW.pwin._execute_normal("zz")
