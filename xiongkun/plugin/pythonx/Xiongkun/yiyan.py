@@ -36,7 +36,6 @@ class YiyanSession:
         def on_return(outputs):
             self.busy = False
             vim.eval(f"prompt_setprompt({self.bufnr}, 'yiyan> ')")
-            vim.command("stopinsert")
             winnr = vim_utils.FindWindowInCurrentTabIf(
                 lambda wnr: int(vim.eval(f"winbufnr({wnr})")) == int(self.bufnr))
             win_id = vim.eval(f"win_getid({winnr})")
@@ -53,6 +52,9 @@ class YiyanSession:
                     print("Yiyan error happens, restart please.:\n1. Navigation Timeout Exceeded: 30000 ms exceeded.")
                     ans = "[Connection Fail]: Please retry."
                     vim.eval(f'appendbufline({self.bufnr}, line("$")-1, "{ans}")')
+            # when in insert mode, the inputs don't startswith "yiyan>", a new 
+            # line will be inserted, so we need a <space> to disable a new line.
+            vim.command('exec "normal gi "') 
         rpc_call("yiyan.query", on_return, query)
 
     def _create_buffer(self):

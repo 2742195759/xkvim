@@ -6,4 +6,3 @@ hi link Input  ErrorMsg
 
 " syn from the first will show but accurate
 syn sync fromstart
-
