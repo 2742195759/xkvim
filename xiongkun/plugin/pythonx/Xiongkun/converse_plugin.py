@@ -14,6 +14,19 @@ from .log import log, log_google
 from urllib.parse import quote
 import shlex
 
+@vim_utils.Singleton
+class RemoteConfig:
+    def __init__(self):
+        self.remote_name = None
+        pass
+
+    def set_remote(self, remote_name):
+        self.remote_name = remote_name
+
+    def get_remote(self):
+        assert self.remote_name is not None, "Please set remote first."
+        return self.remote_name
+
 def open_url_on_mac(url):
     cmd = """open "%s" """ % url
     ExecuteCommand("mac", cmd, silent=True)
@@ -25,8 +38,10 @@ def ExecuteCommand(name, cmd, silent=True):
     headers['Type'] = 'snd'
     headers['Name'] = name
     ret = requests.post("http://10.255.125.22:8084", data=json.dumps({"cmd": cmd, 'password':'807377414'}), headers=headers)
+    if not silent or ret.status_code != 200:
+        print (f"Return Code is {ret.status_code}, please check the server.")
+        print (f"{ret.reason}")
     if not silent: 
-        print (ret.status_code, ret.reason)
         print (ret.text)
 
 @vim_register(command="Google", with_args=True)
@@ -204,3 +219,38 @@ def ShareCode(args):
     open("/tmp/share.txt", "w").write(word)
     if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt")[0]: 
         print ("Your code is shared into http://10.255.125.22:8082/share.txt")
+
+@vim_register(command="UploadFile", with_args=True)
+def UploadFile(args):
+    """ send a compressed file in local machine into 007 server and renamed to tmpfile.tar
+    """
+    if len(args) != 1: 
+        print ("Usage: SendFile <local_file>|<local_dir>")
+        return
+    vim_utils.system(f"rm -rf /tmp/tmpfile && mkdir -p /tmp/tmpfile && cp -r {args[0]} /tmp/tmpfile")
+    vim_utils.system("cd /tmp && tar -zcvf tmpfile.tar tmpfile")
+    vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/tmpfile.tar")
+
+@vim_register(command="SendFile", with_args=True, command_completer="file")
+def SendFile(args):
+    """ 
+    Usage: SendFile <local-file> | <local-dir> <remote-machine>
+    upload file to 007 server and let remote machine open it.
+    """
+    UploadFile(args[:1])
+    if os.path.isfile(args[0]):
+        open_cmd = f"open /tmp/tmpfile/{os.path.basename(args[0])}"
+    elif os.path.isdir(args[0]): 
+        open_cmd = f"open /tmp/tmpfile"
+    else: 
+        print("Please inputs a valid direcotry or file path.")
+    if len(args) <= 1:
+        exe_machine = "mac"
+    exe_machine = args[1]
+    cmd = [
+        "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
+        "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
+        "cd /tmp/tmpfile ",
+        open_cmd
+    ]
+    ExecuteCommand(exe_machine, "&&".join(cmd), silent=True)

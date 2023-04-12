@@ -105,14 +105,15 @@ def TerminalWriteFile(args):
         vim.command(f"read {tmpfile}")
 
 terminal_abbreviate = [
-    ["PY&THONPATH", 'PYTHONPATH=/home/data/Paddle/build/python'], 
+    ["PYTHONPATH", 'PYTHONPATH=/home/data/Paddle/build/python'], 
     ["&breakpoint", "breakpoint()"], 
-    ["&proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\n"], 
+    ["&proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\nexport no_proxy=localhost,bj.bcebos.com,su.bcebos.com,paddle-wheel.bj.bcebos.com\n"], 
     ["&noproxy", "unset http_proxy\nunset https_proxy"], 
     ["&xk", "xiongkun"], 
     ["&CUDA_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES=2"], 
     ["c&opy_file.sh", "/home/data/web/scripts/copy_file.sh"],
     ["&main_program", "paddle.static.default_main_program()"],
+    ["FLAGS_cudnn_deterministic", "FLAGS_cudnn_deterministic=True"]
 ]
 
 def get_abbreviate_list(bufnr, lists): 

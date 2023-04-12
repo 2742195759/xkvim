@@ -22,7 +22,6 @@ set <M-u>=u  "open preview window in pre windows.
 set <M-i>=i  "Jump后一个
 set <M-F>=F  "切换Source/Head文件
 set <M-m>=m  "GoTo the Git Commit
-set <M-W>=W 
 set <M-w>=w 
 set <M-p>=p  "preview popup window.
 set <M-q>=q  "destory a terminal

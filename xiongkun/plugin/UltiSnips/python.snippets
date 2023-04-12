@@ -1175,5 +1175,17 @@ snippet select "select nonblocking function." #{{{
                 break
 
         socket_client.close()
-        socket_server.close()
+        socket_server.close()   #}}}
+endsnippet
+
+snippet execute_time "execute time of function." #{{{
+def execute_time(func):  
+    def wrapper(*args, **kwargs):  
+        start_time = time.time()  
+        result = func(*args, **kwargs)  
+        end_time = time.time()  
+        execution_time = end_time - start_time  
+        print("Execute time:", execution_time)
+        return result  
+    return wrapper #}}}
 endsnippet 

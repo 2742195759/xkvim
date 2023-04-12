@@ -40,11 +40,11 @@ def RegDiff(args):
 @vim_register(command="LogSplit", with_args=True)
 def LogSplit(args):
     """
-    Split file with Start and End marker and store the info into registers from 1 -> 9.
+    Split file with Start and End marker and store the info into registers from `qwer` to `tyuiop`
     """
     all_args = " ".join(args)
     if len(all_args.split('/')) != 2: 
-        print ("Please Input 2 line spliter. such as: LogSplit Start Step/End Step")
+        print ("Please Input 2 line spliter, split with `/`. such as: LogSplit Start Step/End Step")
         return
     start, end = all_args.split("/")
     starts = []
@@ -63,3 +63,21 @@ def LogSplit(args):
         vim_utils.commands("redir @" + register_name[idx])
         print ("\n".join(texts[s:e+1]))
         vim_utils.commands("redir END")
+
+@vim_register(command="LogSum", with_args=True)
+def LogSum(args):
+    """
+    Sum Log column
+    """
+    column = args[0]
+    awk = "%!awk '{sum+=$%d} END {print sum}'" % int(column)
+    vim.command(awk)
+
+@vim_register(command="LogSort", with_args=True)
+def LogSort(args):
+    """
+    Sort Log column
+    """
+    key = int(args[0])
+    cmd = "sort -k %d -n" % key
+    vim.command(cmd)

@@ -14,7 +14,10 @@ def Dispatcher(args):
     """
     obj = Buffer.instances[args[0]]
     key = args[1]
-    obj.get_keymap()[key](obj, key)
+    buf_name = obj.name
+    if vim.eval("mode()") == "i": 
+        key = "i:" + key
+    obj.get_keymap()[key](obj, args[1])
     return True
 
 def BufApp_AutoCmdDispatcher(name, key):
@@ -643,6 +646,25 @@ class WidgetBuffer(Buffer):
             method = getattr(self, cmd.lower(), None)
             if method: 
                 method(self)
+
+class WidgetBufferWithInputs(WidgetBuffer):
+    def get_keymap(self):
+        key_map = {}
+        base_key = list(range(ord('a'), ord('z'))) + list(range(ord('A'), ord('Z')))
+        for i in base_key:
+            key_map[f"i:{chr(i)}"] = lambda x,y: self.on_insert_input(y)
+            key_map[f"i:<c-{chr(i)}>"] = lambda x,y: self.on_insert_input(y)
+            key_map[f"i:<m-{chr(i)}>"] = lambda x,y: self.on_insert_input(y)
+        key_map[f"i:<bs>"] = lambda x,y: self.on_insert_input(y)
+        key_map[f"i:<tab>"] = lambda x,y: self.on_insert_input(y)
+        return key_map
+
+    def _create_buffer(self):
+        super()._create_buffer()
+        vim.command("imapclear <buffer>")
+    
+    def on_insert_input(self, key):
+        pass
 
 class WidgetList(Widget): 
     def __init__(self, name, widgets, reverse=False): 

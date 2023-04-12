@@ -296,9 +296,23 @@ function! RPCServerError(channel, msg)
 endfunction
     
 
+function! MyFilter(winid, key)
+    echo "Pressed " . a:key
+    return 1
+endfunction!
+
+function! VimPopupExperiment()
+    "call popup_dialog('hello world', {'pos': 'topleft', 'line': 1, 'col': 1, 'minwidth': 10, 'minheight': 10})
+    call popup_menu(['hello', 'world'], {
+        \ 'pos': 'topleft', 'line': 1, 'col': 1, 'minwidth': 10, 'minheight': 10, 
+        \ 'filtermode': 'n', 'mapping': 0, 'filter': function('MyFilter')})
+endfunction
+
+
 nnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
 nnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
-"nnoremap <silent> <tab> <Cmd>call VimQuickJump('t')<cr>
+nnoremap <silent> <m-w> <Cmd>call VimQuickJump('t')<cr>
+tnoremap <silent> <m-w> <Cmd>call VimQuickJump('t')<cr>
 vnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
 inoremap <silent> <m-s> <esc>:<c-u>call VimInsertQuickPeek()<esc>
 

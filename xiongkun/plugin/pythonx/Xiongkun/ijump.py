@@ -165,5 +165,11 @@ def JumpNextFile(args):
     prev_jumps = jumps[last+1:]
     for idx, item in enumerate(prev_jumps):
         if int(item["bufnr"]) != vim.current.buffer.number:
-            vim.command(f'execute "normal {idx+1}\<c-i>"')
+            new_buf_nr = int(item["bufnr"])
+            forth_search_idx = idx + 1
+            while (forth_search_idx < len(prev_jumps) and 
+                   new_buf_nr == int(prev_jumps[forth_search_idx]['bufnr'])): 
+                forth_search_idx += 1
+            forth_search_idx -= 1
+            vim.command(f'execute "normal {forth_search_idx+1}\<c-i>"')
             return
