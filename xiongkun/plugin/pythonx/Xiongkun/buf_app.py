@@ -860,6 +860,19 @@ class FileFinderPGlobalInfo:
         self.mru.push(absp)
         self.mru.save(self.mru_path)
 
+class SimpleInputBuffer(WidgetBufferWithInputs):
+    def __init__(self, name="input", history=None, options=None):
+        widgets = [
+            SimpleInput(prom="input", name="input"),
+        ]
+        root = WidgetList("", widgets, reverse=False)
+        super().__init__(root, name, history, options)
+
+    def on_insert_input(self, key):
+        self.widgets['input'].on_type(key)
+        self.redraw()
+        return True
+
 class FileFinderBuffer(WidgetBufferWithInputs):
     def __init__(self, directory="./", name="FileFinder", history=None, options=None):
         widgets = [
@@ -1038,6 +1051,12 @@ def SplitBufferFinder(args):
 @vim_register(command="FF")
 def TestPopup(args):
     ff = FileFinderBuffer(directory="./")
+    ff.create()
+    ff.show()
+    
+@vim_register(command="TestInput")
+def TestInput(args):
+    ff = SimpleInputBuffer()
     ff.create()
     ff.show()
     
