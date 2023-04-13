@@ -23,8 +23,6 @@ class Filefinder:
             if basename.endswith(".o"): return False
             if basename.endswith(".pyc"): return False
             if basename.endswith(".swp"): return False
-            if '.git/' in filepath: return False
-            if 'build/' in filepath: return False
             return True
         self.files = list(filter(filt, self.files))
         log("[FileFinder] set files with length:", len(self.files))

@@ -23,5 +23,5 @@ def log_google(*args):
 from .func_register import vim_register
 @vim_register(command="Log", with_args=False)
 def OpenLog(args):
-    vim.command(f"tabe {HOME_PREFIX}/vim_log.txt")
+    vim.command(f"noswapfile tabe {HOME_PREFIX}/vim_log.txt")
     

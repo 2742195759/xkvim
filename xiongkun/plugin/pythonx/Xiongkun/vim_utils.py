@@ -900,6 +900,19 @@ def Singleton(cls):
 def GetJumpList():
     return vim.eval("getjumplist(winnr())")
 
+def GetSearchConfig(directory):
+    path = directory + "search_config"
+    if not os.path.exists(path): 
+        return []
+    with open(path, "r") as fp :
+        config_lines = fp.readlines()
+    excludes = []
+    for line in config_lines: 
+        if line.startswith("--exclude-dir="):
+            excludes.append(line.split("=")[1].strip()[1:-1])
+    return excludes
+
+
 class PopupList:
     # depends on vim_quick#ui
     def __init__(self, items):

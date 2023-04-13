@@ -6,6 +6,7 @@ from .func_register import *
 from .vim_utils import *
 from collections import OrderedDict
 from .rpc import rpc_call
+start = None
 
 def win_execute(wid, cmd):
     cmd = escape(cmd)
@@ -189,6 +190,10 @@ class Buffer:
     def show(self):
         assert hasattr(self, "bufnr")
         self.wid = vim.eval(f"VimPopupExperiment({self.bufnr})")
+
+    def start(self):
+        self.create()
+        self.show()
 
     def _set_autocmd(self):
         if not self.auto_cmd(None): return
@@ -659,7 +664,7 @@ class WidgetBufferWithInputs(WidgetBuffer):
         for i in base_key:
             key_map[f"{chr(i)}"] = lambda x,y: self.on_insert_input(y)
         special_keys = [
-            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=',
+            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/'
         ]
         for key in special_keys: 
             key_map[key] = lambda x,y: self.on_insert_input(y)
@@ -843,8 +848,20 @@ class FileFinderPGlobalInfo:
     @classmethod
     def preprocess(self, directory):
         self.directory = directory
+
+        excludes = GetSearchConfig(self.directory)
+        base_cmd = f"find {directory} "
+        find_cmd = []
+        for exclude in excludes: 
+            find_cmd.append(" ".join(["-not", "-path", f"\"*{exclude}\""]))
+
+        log("[FindCmd]: ", find_cmd)
+        find_cmd = " -a ".join(find_cmd)
+        find_cmd = base_cmd + find_cmd
+        log("[FindCmd]: ", find_cmd)
+
         self.files = []
-        for line in vim.eval("system(\"find {dir}\")".format(dir=directory)).split("\n"):
+        for line in vim.eval("system('{cmd}')".format(cmd=find_cmd)).split("\n"):
             line = line.strip()
             if line and os.path.isfile(line):
                 self.files.append(line)
@@ -889,7 +906,10 @@ class FileFinderBuffer(WidgetBufferWithInputs):
         self.saved_cursor = GetCursorXY()
 
     def on_insert_input(self, key):
+        #global start
+        #start = time.time()
         self.widgets['input'].on_type(key)
+        self.onredraw() # we should redraw the input widget to show the input text. time consume: 0.002+
         self.on_text_changed_i()
         return True
 
@@ -903,6 +923,7 @@ class FileFinderBuffer(WidgetBufferWithInputs):
             self.widgets['result'].set_items(res)
             self.widgets['result'].set_keyword(search_base)
             self.redraw()
+            #log("[RedrawTime]", time.time()-start)
 
         search_text = self.widgets['input'].text.strip().lower()
         rpc_call("filefinder.search", update_ui, search_text)
@@ -1000,25 +1021,28 @@ class FileFinderApp(Application):
         vim.command("setlocal modifiable")
         vim.command("startinsert")
 
-@vim_register(command="FR")
+@vim_register(command="FR", with_args=True, command_completer="file")
 def FileFinderReflesh(args):
-    FileFinderPGlobalInfo.preprocess()
+    directory = "./"
+    if len(args) == 1: 
+        directory = args[0]
+    FileFinderPGlobalInfo.preprocess(directory)
 
-#@vim_register(command="FF", with_args=True, command_completer="file")
-#def FileFinder(args):
-    #""" Find a file / buffer by regular expression.
+@vim_register(command="FF", with_args=True, command_completer="file")
+def FileFinder(args):
+    """ Find a file / buffer by regular expression.
 
-        #sort the files by the following order: 
-        #1. buffer with name
-        #2. mru files
-        #3. normal files
-        #4. with build / build_svd
-    #"""
-    #directory = "./"
-    #if len(args) == 1: 
-        #directory = args[0]
-    #ff = FileFinderApp(directory=directory)
-    #ff.start()
+        sort the files by the following order: 
+        1. buffer with name
+        2. mru files
+        3. normal files
+        4. with build / build_svd
+    """
+    directory = "./"
+    if len(args) == 1: 
+        directory = args[0]
+    ff = FileFinderBuffer(directory=directory)
+    ff.start()
 
 @vim_register(command="B", with_args=True, command_completer="buffer")
 def BufferFinder(args):
@@ -1046,13 +1070,6 @@ def SplitBufferFinder(args):
     ff.mainbuf.on_search()
     if len(ff.mainbuf.widgets['result']) == 1: 
         ff.mainbuf.on_enter("sb")
-    
-
-@vim_register(command="FF")
-def TestPopup(args):
-    ff = FileFinderBuffer(directory="./")
-    ff.create()
-    ff.show()
     
 @vim_register(command="TestInput")
 def TestInput(args):
