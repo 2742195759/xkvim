@@ -296,16 +296,17 @@ function! RPCServerError(channel, msg)
 endfunction
     
 
-function! MyFilter(winid, key)
-    echo "Pressed " . a:key
-    return 1
+function! DispatchFilter(winid, key)
+    let g:popup_handle=0
+    call BufApp_PopupDispatcher([a:winid, a:key])
+    return g:popup_handle
 endfunction!
 
-function! VimPopupExperiment()
+function! VimPopupExperiment(bufnr)
     "call popup_dialog('hello world', {'pos': 'topleft', 'line': 1, 'col': 1, 'minwidth': 10, 'minheight': 10})
-    call popup_menu(['hello', 'world'], {
-        \ 'pos': 'topleft', 'line': 1, 'col': 1, 'minwidth': 10, 'minheight': 10, 
-        \ 'filtermode': 'n', 'mapping': 0, 'filter': function('MyFilter')})
+    return popup_menu(a:bufnr, {
+        \ 'pos': 'center', 'maxwidth': 70, 'maxheight': 15, 'minwidth': 70, 'minheight': 15, 
+        \ 'filtermode': 'n', 'mapping': 0, 'filter': function('DispatchFilter'), 'cursorline': 0, 'title': "FileFinder(@xionkgun)"})
 endfunction
 
 
