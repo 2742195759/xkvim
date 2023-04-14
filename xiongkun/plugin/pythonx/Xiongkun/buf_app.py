@@ -57,11 +57,7 @@ def PopupDispatcher(args):
         key = vim_key_to_char[key]
     log("Handling: ", key)
     buf_name = obj.name
-    keymapper = obj.get_keymap()
-    if key not in keymapper: 
-        vim.command("let g:popup_handle=0")
-        return 
-    handled = keymapper[key](obj, key)
+    handled = obj.on_key(key)
     if handled is not None:
         vim.command("let g:popup_handle=1")
     else: 
@@ -102,6 +98,12 @@ class Buffer:
 
     def get_keymap(self):
         return {}
+
+    def on_key(self, key):
+        if key in self.get_keymap(): 
+            self.get_keymap()[key](self, key)
+            return True
+        return False
 
     def execute(self, cmd):
         if hasattr(self, "wid"): win_execute(self.wid, cmd)
@@ -424,10 +426,11 @@ class Widget():
         pass
 
 class TextWidget(Widget):
-    def __init__(self, text):
+    def __init__(self, text, name=None):
         opt = WidgetOption()
         opt.is_focus = False
         opt.is_input = False
+        opt.name = name
         super().__init__(opt)
         self.text = text
         
@@ -477,7 +480,12 @@ class SimpleInput(InputWidget):
     def ondraw(self, draw_context, position):
         self.position = position
         buffer = draw_context.string_buffer
-        buffer[position[0]] = f">>>{self.text}"
+        buffer[position[0]] = f">>>{self.text}" + "|"
+
+    def post_draw(self, draw_context, position): 
+        # cursor highlight
+        self.position = position
+        start, end = position
 
     def get_height(self):
         return 1
@@ -487,11 +495,13 @@ class SimpleInput(InputWidget):
 
     def on_type(self, key):
         if key == "<space>": 
-            key = " "
+            self.text = self.text + " "
         elif key == "<bs>": 
             self.text = self.text[:-1]
         elif key == "<c-u>": 
             self.text = ""
+        #elif key == "<left>": 
+        #elif key == "<right>": 
         elif key == "<c-w>":
             split_char = "_-/+ "
             tmp = 0
@@ -622,17 +632,24 @@ class WidgetBuffer(Buffer):
                 method(self)
 
 class WidgetBufferWithInputs(WidgetBuffer):
-    def get_keymap(self):
-        key_map = {}
+    def on_key(self, key):
+        #log("on keys: ", key)
+        if super().on_key(key):
+            return True
         base_key = list(range(ord('a'), ord('z'))) + list(range(ord('A'), ord('Z')))
-        for i in base_key:
-            key_map[f"{chr(i)}"] = lambda x,y: self.on_insert_input(y)
+        base_key = list(map(chr, base_key))
         special_keys = [
-            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/'
+            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/', '<cr>'
         ]
-        for key in special_keys: 
-            key_map[key] = lambda x,y: self.on_insert_input(y)
-        return key_map
+        insert_keys = base_key + special_keys
+        if key in insert_keys: 
+            self.on_insert_input(key)
+            return True
+        if '\u4e00' <= key <= '\u9fff':  # 中文
+            self.on_insert_input(key)
+            return True
+        #log(f"[on keys]: not deal this {key}")
+        return False
 
     def _create_buffer(self):
         super()._create_buffer()

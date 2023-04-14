@@ -22,6 +22,7 @@ from .log import OpenLog
 from .paddle import *
 from .rpc import *
 from .yiyan import *
+from .buf_app_translate import *
 
 pro = None; 
 
