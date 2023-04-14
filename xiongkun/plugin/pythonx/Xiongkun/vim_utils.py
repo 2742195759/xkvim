@@ -548,9 +548,11 @@ def NotChangeRegisterGuard(regs):
 @contextmanager
 def CursorGuard():
     saved = vim.eval('getcurpos()')
+    #log("[CursorGuard] Saving :", saved)
     yield
     v = VimVariable()
     v.assign(saved)
+    #log("[CursorGuard] Restoring :", saved)
     vim.eval(f'setpos(".", {v.name()})')
 
 @contextmanager

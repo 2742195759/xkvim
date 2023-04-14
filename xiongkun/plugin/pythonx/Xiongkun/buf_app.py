@@ -25,6 +25,10 @@ vim_key_to_char = {
     ' ' : '<space>',
     '\udc80\udcfd`': "<80><fd>",
     '\udc80kb': "<bs>",
+    '\udc80kd': "<down>",
+    '\udc80kr': "<right>", 
+    '\udc80kl': '<left>',
+    '\udc80ku': '<up>',
 }
 
 @vim_register(name="BufApp_KeyDispatcher", with_args=True)
@@ -68,10 +72,12 @@ def BufApp_AutoCmdDispatcher(name, key):
     obj.auto_cmd(key)
     return True
 
-def WindowQuit(name):
-    obj = Buffer.instances[name]
+@vim_register(name="BufApp_PopupClose", with_args=True)
+def WindowQuit(args):
+    bufname = vim.eval(f'bufname(winbufnr({args[0]}))')
+    log (f"[WindowQuit] closing {bufname}")
+    obj = Buffer.instances[bufname]
     obj.delete()
-
 
 class Buffer:
     instances = {}
@@ -134,11 +140,7 @@ class Buffer:
     
     def redraw(self):
         with CursorGuard():
-            #saved = int(vim.eval('&modifiable'))
-            #vim.command('setlocal modifiable')
             self.onredraw()
-            #if saved == 0: 
-                #vim.command('setlocal nomodifiable')
 
     def onwipeout(self):
         pass
@@ -153,7 +155,7 @@ class Buffer:
 
     def create(self):
         self._create_buffer()
-        with CurrentBufferGuard(self.bufnr):
+        with CursorGuard(), CurrentBufferGuard(self.bufnr):
             if self.history: 
                 self.onrestore(self.history)
             self._set_keymap()
@@ -170,14 +172,14 @@ class Buffer:
         pass
 
     def delete(self):
-        self._unset_autocmd()
-        self.onwipeout()
-        with CurrentBufferGuard(self.bufnr): 
-            vim.command(f"b #")
-            vim.command(f"bwipeout {self.bufnr}")
-        del Buffer.instances[self.name]
-        self.state="exit"
-        #vim.command(f"echom {name} is Quit. len(instances) is {len(Buffer.instance)}")
+        if self.state != "exit":
+            self._unset_autocmd()
+            self.onwipeout()
+            log(f"[BufferDelete] start delete `bwipeout! {self.bufnr}`")
+            vim.command(f"bwipeout! {self.bufnr}")
+            del Buffer.instances[self.name]
+            self.state="exit"
+            self.on_exit()
 
     def _unset_autocmd(self):
         vim.command(f"augroup {self.name}")
@@ -189,7 +191,9 @@ class Buffer:
 
     def show(self):
         assert hasattr(self, "bufnr")
-        self.wid = vim.eval(f"VimPopupExperiment({self.bufnr})")
+        self.options['cursorline'] = 0
+        config = dict2str(self.options)
+        self.wid = vim.eval(f"VimPopupExperiment({self.bufnr}, {config})")
 
     def start(self):
         self.create()
@@ -227,6 +231,15 @@ class Buffer:
     def _create_buffer(self):
         self.bufnr = vim.eval(f"bufadd('{self.name}')")
         vim.eval(f"bufload({self.bufnr})")
+
+    def close(self):
+        vim.command("set updatetime=4000")
+        vim.command(f"call popup_close({self.wid})")
+        self.delete()
+
+    def on_exit(self):
+        pass
+
 
 class BufferSmartPoint:
     def __init__(self):
@@ -342,13 +355,13 @@ class BashCommandResultBuffer(Buffer):
 
     def oninit(self):
         if self.syntax: 
-            vim.command(f'set syntax={self.syntax}')
+            self.execute(f'set syntax={self.syntax}')
 
     def onredraw(self):
         self._clear()
         if self.bash_cmd: 
-            vim.command(f"silent! 0read! {self.bash_cmd}")
-        vim.command(f"normal! gg")
+            self.execute(f"silent! 0read! {self.bash_cmd}")
+        self.execute(f"normal! gg")
 
 class HelloworldApp(Application):
     def __init__(self):
@@ -410,28 +423,6 @@ class Widget():
     def post_draw(self, context, position):
         pass
 
-    def _rematch(self, attr, high, rrange, keyword=None, priority=0):
-        if keyword is not None:
-            keyword = escape(keyword, "~%")
-            keyword = escape(keyword, "\\")
-        if getattr(self, attr) is not None: 
-            mid = getattr(self, attr)
-            vim.eval(f"matchdelete({mid})")
-        items = []
-        if rrange: 
-            start, end = rrange
-            items.append(r"\\%>{}l\\&\\%<{}l".format(start, end))
-        if keyword: 
-            items.append(keyword)
-        cmd = r"\\&".join(items)
-        cmd += r"\\c"
-        mid = vim.eval("matchadd(\"{}\", \"{}\", {})".format(
-            high, 
-            cmd, 
-            priority))
-        setattr(self, attr, mid)
-
-
 class TextWidget(Widget):
     def __init__(self, text):
         opt = WidgetOption()
@@ -487,7 +478,6 @@ class SimpleInput(InputWidget):
         self.position = position
         buffer = draw_context.string_buffer
         buffer[position[0]] = f">>>{self.text}"
-        self._rematch("match_id", "ErrorMsg", None, ">>>")
 
     def get_height(self):
         return 1
@@ -503,7 +493,7 @@ class SimpleInput(InputWidget):
         elif key == "<c-u>": 
             self.text = ""
         elif key == "<c-w>":
-            split_char = "-/+ "
+            split_char = "_-/+ "
             tmp = 0
             for i, c in enumerate(self.text): 
                 if c in split_char: 
@@ -560,7 +550,6 @@ class WidgetBuffer(Buffer):
                 text= escape(line, "\"")
             ))
             vim.eval(cmd)
-        vim.command(f"normal! gg")
         self.root.post_draw(draw_context, given_lines)
 
     def count_number(self, attr):
@@ -600,18 +589,12 @@ class WidgetBuffer(Buffer):
     def on_enter(self):
         pass
 
-    def on_last_input(self):
-        vim.command("setlocal modifiable")
-        vim.command("normal G$")
-        vim.command("startinsert!")
-
     def get_keymap(self):
         """ some special key map for example.
         """
         return {
             '<tab>': self.on_change_focus,
-            'gi': lambda x,y: self.on_last_input(),
-            '<c-c>': lambda x,y: self.on_exit(),
+            '<c-c>': lambda x,y: self.close(),
         }
 
     def get_input_widget(self, cursor): 
@@ -626,25 +609,6 @@ class WidgetBuffer(Buffer):
             vim.command('setlocal modifiable')
         else: 
             vim.command('setlocal nomodifiable')
-
-    def on_exit(self):
-        pass
-
-    def cursor_valid_check(self):
-        c = GetCursorXY()
-        inp = self.last_input_widget
-        if inp and not inp.is_input_range_valid(c): 
-            self.redraw()
-            self.on_last_input()
-
-    def on_insert_cursor_move(self):
-        self.cursor_valid_check()
-
-    def on_cursor_hold(self):
-        pass
-
-    def insert_char_pre(self, char):
-        pass
 
     def on_text_changed_i(self):
         pass
@@ -777,15 +741,16 @@ class ListBoxWidget(Widget):
         # line highlight to indicate current selected items.
         self.position = position
         start, end = position
+
+        if self.line_highlight is None: 
+            self.line_highlight = TextProp("select", draw_context.bufnr, "ListBoxLine")
+        self.line_highlight.clear()
+        self.line_highlight.prop_add(self.cur+1, 1, 1000)
         if self.search_keyword is None:
             return
 
         if self.text_prop is None: 
             self.text_prop = TextProp("ff_search", draw_context.bufnr, "ErrorMsg")
-            self.line_highlight = TextProp("select", draw_context.bufnr, "ListBoxLine")
-
-        self.line_highlight.clear()
-        self.line_highlight.prop_add(self.cur+1, 1, 1000)
 
         def find_pos(search, cur_text):
             pointer = 0
@@ -890,70 +855,52 @@ class SimpleInputBuffer(WidgetBufferWithInputs):
         self.redraw()
         return True
 
-class FileFinderBuffer(WidgetBufferWithInputs):
-    def __init__(self, directory="./", name="FileFinder", history=None, options=None):
+class FuzzyList(WidgetBufferWithInputs):
+    def __init__(self, type, items, name="FuzzyList", history=None, options=None):
         widgets = [
             ListBoxWidget(name="result", height=14, items=[]),
             SimpleInput(prom="input", name="input"),
         ]
+        options = {
+            'title': "FuzzyList", 
+            'maxwidth': 100, 
+            'maxheight': 15, 
+        }
         root = WidgetList("", widgets, reverse=False)
+        self.items = items
+        self.type = type
         super().__init__(root, name, history, options)
-        self.directory = directory
-        if FileFinderPGlobalInfo.directory != directory: 
-            FileFinderPGlobalInfo.preprocess(directory)
-        self.on_change_database()
-        self.last_window_id = vim.eval("win_getid()")
-        self.saved_cursor = GetCursorXY()
+        self.set_items(self.type, self.items)
 
     def on_insert_input(self, key):
-        #global start
-        #start = time.time()
         self.widgets['input'].on_type(key)
         self.onredraw() # we should redraw the input widget to show the input text. time consume: 0.002+
         self.on_text_changed_i()
         return True
 
+    def update_ui(self, res): 
+        """
+        res is a tuple of (res_list, search_base)
+        """
+        if self.state == "exit":
+            return
+        res, search_base = res
+        if not search_base: res = self.items
+        self.widgets['result'].set_items(res)
+        self.widgets['result'].set_keyword(search_base)
+        self.redraw()
+
     def on_search(self):
         """ 
         """
-        def update_ui(res): 
-            if self.state == "exit":
-                return
-            res, search_base = res
-            self.widgets['result'].set_items(res)
-            self.widgets['result'].set_keyword(search_base)
-            self.redraw()
-            #log("[RedrawTime]", time.time()-start)
-
         search_text = self.widgets['input'].text.strip().lower()
-        rpc_call("filefinder.search", update_ui, search_text)
-
-    def goto(self, filepath, cmd=None):
-        FileFinderPGlobalInfo.update_mru(filepath)
-        self.on_exit()
-        if filepath:
-            loc = Location(filepath)
-            GoToLocation(loc, cmd)
-
-    def on_exit(self):
-        vim.command("set updatetime=4000")
-        vim.command(f"call popup_close({self.wid})")
-        self.delete()
-        vim.eval(f"win_gotoid({self.last_window_id})")
-        SetCursorXY(*self.saved_cursor)
+        rpc_call("fuzzyfinder.search", self.update_ui, self.type, search_text)
 
     def on_text_changed_i(self):
         self.on_search()
 
     def on_enter(self, cmd):
-        item = self.widgets['result'].cur_item()
-        self.goto(item, cmd)
-
-    def oninit(self):
-        super().oninit()
-        vim.command(f'let w:filefinder_mode="{self.mode}"')
-        vim.command(f'let w:filefinder_dir="{self.directory}"')
-        vim.command('set filetype=filefinder')
+        pass
 
     def on_item_up(self):
         self.widgets['result'].cur_up()
@@ -965,31 +912,81 @@ class FileFinderBuffer(WidgetBufferWithInputs):
         self.redraw()
         return True
 
+    def set_items(self, name, items):
+        def _set(cur_type):
+            if cur_type is False:
+                rpc_call("fuzzyfinder.set_items", None, name, items)
+        rpc_call("fuzzyfinder.is_init", _set, name)
+
     def get_keymap(self):
         """ some special key map for example.
         """
         m = super().get_keymap()
         m.update({
-            "i:<up>": lambda x,y: self.on_item_up(),
             "<up>": lambda x,y: self.on_item_up(),
-            "i:<down>": lambda x,y: self.on_item_down(),
             "<down>": lambda x,y: self.on_item_down(),
-            'i:<c-k>': lambda x,y: self.on_item_up(),
-            'i:<c-j>': lambda x,y: self.on_item_down(),
             '<c-k>': lambda x,y: self.on_item_up(),
             '<c-j>': lambda x,y: self.on_item_down(),
-            'i:<cr>': lambda x,y: self.on_enter("e"),
             '<cr>': lambda x,y: self.on_enter("e"),
-            'i:<c-s>': lambda x,y: self.on_enter("v"),
             '<c-s>': lambda x,y: self.on_enter("v"),
             '<c-t>': lambda x,y: self.on_enter("t"),
-            'i:<c-t>': lambda x,y: self.on_enter("t"),
             '<c-p><c-p>': lambda x,y: x,
             '<c-p>': lambda x,y: x,
-            'i:<tab>': lambda x,y: self.on_change_database(),
             '<tab>': lambda x,y: self.on_change_database(),
         })
         return m
+
+    def oninit(self):
+        super().oninit()
+        self.update_ui(([], None))
+
+class CommandList(FuzzyList):
+    def __init__(self, type, names, commands):
+        super().__init__(type, names)
+        assert (len(names) == len(commands)), "Length should be equal."
+        self.name2cmd = {
+            n: c for n, c in zip(names, commands)
+        }
+
+    def on_enter(self, cmd):
+        cur_name = self.widgets['result'].cur_item()
+        cmd = self.name2cmd[cur_name]
+        vim.command(cmd)
+        self.close()
+
+class FileFinderBuffer(FuzzyList):
+    def __init__(self, directory="./", name="FileFinder", history=None, options=None):
+        self.directory = directory
+        if FileFinderPGlobalInfo.directory != directory: 
+            FileFinderPGlobalInfo.preprocess(directory)
+        self.on_change_database()
+        super().__init__(self.file_type, self.files, name, history, options)
+        self.last_window_id = vim.eval("win_getid()")
+        self.saved_cursor = GetCursorXY()
+
+    def oninit(self):
+        super().oninit()
+        vim.command(f'let w:filefinder_mode="{self.mode}"')
+        vim.command(f'let w:filefinder_dir="{self.directory}"')
+        vim.command('set filetype=filefinder')
+
+    def on_enter(self, cmd):
+        item = self.widgets['result'].cur_item()
+        self.goto(item, cmd)
+
+    @property
+    def file_type(self):
+        return self.directory+"@"+self.mode
+
+    def goto(self, filepath, cmd=None):
+        FileFinderPGlobalInfo.update_mru(filepath)
+        self.close()
+        if filepath:
+            loc = Location(filepath)
+            GoToLocation(loc, cmd)
+
+    def on_exit(self):
+        SetCursorXY(*self.saved_cursor)
 
     def on_change_database(self):
         if hasattr(self, 'mode') and self.mode == "file":
@@ -998,28 +995,6 @@ class FileFinderBuffer(WidgetBufferWithInputs):
         else: 
             setattr(self, "mode", "file")
             self.files = FileFinderPGlobalInfo.files
-        vim.command(f"let w:filefinder_mode = \"{self.mode}\"")
-        vim.command("AirlineRefresh")
-        type = self.directory+"@"+self.mode
-        def set_file(cur_type):
-            log("Type is:", cur_type, type)
-            if cur_type != type:
-                rpc_call("filefinder.set_files", None, type, self.files)
-        rpc_call("filefinder.get_type", set_file)
-
-class FileFinderApp(Application):
-    def __init__(self, directory='./'):
-        super().__init__()
-        self.layout = CreateWindowLayout(cmds=["botright new", "resize 15"], active_win="win")
-        self.mainbuf = FileFinderBuffer(directory=directory)
-
-    def start(self):
-        self.layout.create()
-        self.mainbuf.create()
-        self.layout.set_buffer("win", self.mainbuf)
-        self.mainbuf.on_change_focus(None, None)
-        vim.command("setlocal modifiable")
-        vim.command("startinsert")
 
 @vim_register(command="FR", with_args=True, command_completer="file")
 def FileFinderReflesh(args):
@@ -1047,12 +1022,10 @@ def FileFinder(args):
 @vim_register(command="B", with_args=True, command_completer="buffer")
 def BufferFinder(args):
     ff.start()
-    #ff.on_cursor_hold = on_auto_hold
     ff.mainbuf.files = GetBufferList()
     input = "" if len(args)==0 else " ".join(args)
     ff.mainbuf.widgets['input'].text = input
     ff.mainbuf.redraw()
-    ff.mainbuf.on_last_input()
     ff.mainbuf.on_search()
     if len(ff.mainbuf.widgets['result']) == 1: 
         ff.mainbuf.on_enter("b")
@@ -1061,12 +1034,10 @@ def BufferFinder(args):
 def SplitBufferFinder(args):
     ff = FileFinderApp()
     ff.start()
-    #ff.on_cursor_hold = on_auto_hold
     ff.mainbuf.files = GetBufferList()
     input = "" if len(args)==0 else " ".join(args)
     ff.mainbuf.widgets['input'].text = input
     ff.mainbuf.redraw()
-    ff.mainbuf.on_last_input()
     ff.mainbuf.on_search()
     if len(ff.mainbuf.widgets['result']) == 1: 
         ff.mainbuf.on_enter("sb")
@@ -1074,6 +1045,12 @@ def SplitBufferFinder(args):
 @vim_register(command="TestInput")
 def TestInput(args):
     ff = SimpleInputBuffer()
+    ff.create()
+    ff.show()
+    
+@vim_register(command="TestFuzzyList")
+def TestFuzzyList(args):
+    ff = AbbreList("abbre", ['aaa', 'bbb', 'ccc'])
     ff.create()
     ff.show()
     

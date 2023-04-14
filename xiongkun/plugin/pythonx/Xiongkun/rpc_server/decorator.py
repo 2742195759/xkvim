@@ -9,6 +9,7 @@ from threading import Lock, Thread
 import multiprocessing as mp
 from functools import partial
 from queue_loop import queue
+from log import log
 
 class InQueue:
     pass
@@ -23,12 +24,14 @@ def process_function(func):
         id = args[1]
         args = args[2:]
         def worker(*args):
+            log("process function with args:", *args)
             output = func(*args)
             queue.put((id, output))
         nonlocal p
         if p is not None: 
             p.terminate()
-        p = mp.Process(target=worker, args=(self, args))
+        args = tuple([self] + list(args))
+        p = mp.Process(target=worker, args=args)
         p.start()
         return InQueue()
     return wrapper

@@ -1,4 +1,5 @@
 --exclude-dir="/build/*"
+--exclude-dir="/.git/*"
 --exclude-dir="/doc/*"
 --exclude-dir="/docs/*"
 --exclude-dir="/patches/*"
@@ -12,3 +13,5 @@
 --exclude-dir="/__pycache__/*"
 --exclude="*.log"
 --exclude-dir="/node-v*"
+--exclude-dir="/BrowserMetrics*"
+

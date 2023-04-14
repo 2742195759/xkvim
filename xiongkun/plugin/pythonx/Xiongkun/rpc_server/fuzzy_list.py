@@ -26,7 +26,7 @@ class FuzzyList:
             #if basename.endswith(".swp"): return False
             #return True
         #self.files = list(filter(filt, self.files))
-        log(f"[FileFinder] set `{name}` with length:", len(self.files))
+        log(f"[FileFinder] set `{name}` with length:", len(items))
         return None
 
     @server_function
@@ -115,3 +115,4 @@ def test_main():
 
 if __name__ == "__main__":
     test_main()
+

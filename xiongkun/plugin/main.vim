@@ -302,11 +302,16 @@ function! DispatchFilter(winid, key)
     return g:popup_handle
 endfunction!
 
-function! VimPopupExperiment(bufnr)
+function! VimPopupExperiment(bufnr, options)
     "call popup_dialog('hello world', {'pos': 'topleft', 'line': 1, 'col': 1, 'minwidth': 10, 'minheight': 10})
-    return popup_menu(a:bufnr, {
-        \ 'pos': 'center', 'maxwidth': 70, 'maxheight': 15, 'minwidth': 70, 'minheight': 15, 
-        \ 'filtermode': 'n', 'mapping': 0, 'filter': function('DispatchFilter'), 'cursorline': 0, 'title': "FileFinder(@xionkgun)"})
+    let new_dict = a:options
+    let new_dict['filter'] = function('DispatchFilter')
+    let new_dict['callback'] = function('VimPopupClose')
+    return popup_menu(a:bufnr, new_dict)
+endfunction
+
+function! VimPopupClose(id, data)
+    call BufApp_PopupClose([a:id, a:data])
 endfunction
 
 

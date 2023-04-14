@@ -11,7 +11,7 @@ from functools import partial
 from file_finder import fuzzy_match_pool
 from decorator import InQueue, server_function, pool_function, process_function, default_map_fn, time_consume
 from queue_loop import QueueLoop
-from file_finder import Filefinder
+from fuzzy_list import FuzzyList
 from log import log, mutex
 from yiyan_server import Yiyan
 
@@ -26,7 +26,7 @@ def send(obj):
 def echo(s):
     return s
 
-filefinder = Filefinder()
+fuzzyfinder = FuzzyList()
 yiyan = Yiyan()
 
 def get_server_by_name(name):
