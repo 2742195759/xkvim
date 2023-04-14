@@ -1,11 +1,13 @@
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput
 from .func_register import vim_register
-from .vim_utils import SetVimRegister
+from .vim_utils import SetVimRegister, Normal_GI
+import vim
 
 class TranslatorBuffer(WidgetBufferWithInputs): 
     def __init__(self):
         widgets = [
             SimpleInput(prom="input", name="input"),
+            TextWidget("翻译:", name=""),
             TextWidget("", name="show"),
         ]
         options = {
@@ -33,6 +35,10 @@ class TranslatorBuffer(WidgetBufferWithInputs):
     def on_exit(self):
         translated = self.widgets["show"].text
         SetVimRegister('"', translated)
+        if vim.eval("mode()") == 'i': 
+            # insert mode, we just insert the translated text
+            vim.command(f'execute "normal i{translated}"')
+            Normal_GI()
 
 @vim_register(command="Fanyi")
 def TestBaidufanyi(args):

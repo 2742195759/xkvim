@@ -186,10 +186,11 @@ class Buffer:
         if self.state != "exit":
             self._unset_autocmd()
             self.onwipeout()
-            log(f"[BufferDelete] start delete `bwipeout! {self.bufnr}`")
-            vim.command(f"bwipeout! {self.bufnr}")
+            #log(f"[BufferDelete] start delete `bwipeout! {self.bufnr}`")
+            self.execute(f"setlocal bufhidden=wipe") # can't wipeout in popup_windows, so we set bufhidden=wipe to force wipe. it works
+            vim.command(f"bwipeout! {self.bufnr}") # can't wipeout in popup_windows
             del Buffer.instances[self.name]
-            self.state="exit"
+            self.state = "exit"
             self.on_exit()
 
     def _unset_autocmd(self):
@@ -434,6 +435,12 @@ class Widget():
     def post_draw(self, context, position):
         pass
 
+    def get_highlight(self, bufnr, name, hi):
+        if not hasattr(self, name): 
+            setattr(self, name, TextProp(name, bufnr, hi))
+        hi = getattr(self, name)
+        return hi
+
 class TextWidget(Widget):
     def __init__(self, text, name=None):
         opt = WidgetOption()
@@ -495,13 +502,6 @@ class SimpleInput(InputWidget):
         self.position = position
         buffer = draw_context.string_buffer
         buffer[position[0]] = self.show_text
-
-    def get_highlight(self, bufnr, name, hi):
-        if not hasattr(self, name): 
-            setattr(self, name, TextProp(name, bufnr, hi))
-        hi = getattr(self, name)
-        hi.clear()
-        return hi
 
     def post_draw(self, draw_context, position): 
         self.position = position
@@ -782,7 +782,6 @@ class ListBoxWidget(Widget):
         self.search_keyword = None
         self.tmp_mid = None
         self.text_prop = None
-        self.line_highlight = None
     
     def cur_item(self):
         if self.cur >= len(self.items): return None
@@ -792,7 +791,7 @@ class ListBoxWidget(Widget):
         if self.cur > 0 : self.cur -= 1
 
     def cur_down(self):
-        if self.cur < self.height - 1: self.cur += 1
+        if self.cur < min(self.height - 1, len(self.items)-1): self.cur += 1
 
     def set_items(self, items=None): 
         if items is not None: self.items = items
@@ -821,17 +820,12 @@ class ListBoxWidget(Widget):
         # line highlight to indicate current selected items.
         self.position = position
         start, end = position
-
-        if self.line_highlight is None: 
-            self.line_highlight = TextProp("select", draw_context.bufnr, "ListBoxLine")
-        self.line_highlight.clear()
-        self.line_highlight.prop_add(self.cur+1, 1, 1000)
+        self.get_highlight(draw_context.bufnr, "select_item", "ListBoxLine").prop_add(self.cur+1, 1, 1000)
         if self.search_keyword is None:
             return
 
-        if self.text_prop is None: 
-            self.text_prop = TextProp("ff_search", draw_context.bufnr, "ErrorMsg")
-
+        # highlight the search keyword
+        text_prop = self.get_highlight(draw_context.bufnr, "ff_search", "ErrorMsg")
         def find_pos(search, cur_text):
             pointer = 0
             res = []
@@ -847,11 +841,10 @@ class ListBoxWidget(Widget):
             return res
 
         cur_line = start
-        self.text_prop.clear()
         for text in self.items:
             if cur_line >=  end: break
             for col in find_pos(self.search_keyword, text):
-                self.text_prop.prop_add(cur_line, col)
+                text_prop.prop_add(cur_line, col)
             cur_line += 1
 
     def get_widgets(self): 
@@ -942,7 +935,7 @@ class FuzzyList(WidgetBufferWithInputs):
             SimpleInput(prom="input", name="input"),
         ]
         options = {
-            'title': "FuzzyList", 
+            'title': f"{name}", 
             'maxwidth': 100, 
             'maxheight': 15, 
         }
@@ -1022,7 +1015,7 @@ class FuzzyList(WidgetBufferWithInputs):
 
 class CommandList(FuzzyList):
     def __init__(self, type, names, commands):
-        super().__init__(type, names)
+        super().__init__(type, names, type)
         assert (len(names) == len(commands)), "Length should be equal."
         self.name2cmd = {
             n: c for n, c in zip(names, commands)
@@ -1030,8 +1023,9 @@ class CommandList(FuzzyList):
 
     def on_enter(self, cmd):
         cur_name = self.widgets['result'].cur_item()
-        cmd = self.name2cmd[cur_name]
-        vim.command(cmd)
+        if cur_name is not None: 
+            cmd = self.name2cmd[cur_name]
+            vim.command(cmd)
         self.close()
 
 class FileFinderBuffer(FuzzyList):
@@ -1059,9 +1053,9 @@ class FileFinderBuffer(FuzzyList):
         return self.directory+"@"+self.mode
 
     def goto(self, filepath, cmd=None):
-        FileFinderPGlobalInfo.update_mru(filepath)
         self.close()
         if filepath:
+            FileFinderPGlobalInfo.update_mru(filepath)
             loc = Location(filepath)
             GoToLocation(loc, cmd)
 
@@ -1130,7 +1124,6 @@ def TestInput(args):
     
 @vim_register(command="TestFuzzyList")
 def TestFuzzyList(args):
-    ff = AbbreList("abbre", ['aaa', 'bbb', 'ccc'])
+    ff = CommandList("abbre", ['aaa', 'bbb', 'ccc'])
     ff.create()
     ff.show()
-    
