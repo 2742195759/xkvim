@@ -13,23 +13,33 @@ def win_execute(wid, cmd):
     log("[WinExe]", f'win_execute({wid}, "{cmd}")')
     vim.eval(f'win_execute({wid}, "{cmd}")')
 
-vim_key_to_char = {
-    '\x08': '<bs>',
-    '\x04': '<c-d>',
-    '\x06': '<c-f>',
-    '\x17': '<c-w>',
-    '\x15': '<c-u>',
-    '\x0b': '<c-k>',
-    '\r': '<cr>',
-    '\n': '<c-j>',
-    ' ' : '<space>',
-    '\udc80\udcfd`': "<80><fd>",
-    '\udc80kb': "<bs>",
-    '\udc80kd': "<down>",
-    '\udc80kr': "<right>", 
-    '\udc80kl': '<left>',
-    '\udc80ku': '<up>',
-}
+@Singleton
+class VimKeyToChar:
+    def __init__(self):
+        self.vim_key_to_char = {
+            '\x08': '<bs>',
+            '\x04': '<c-d>',
+            '\x06': '<c-f>',
+            '\x17': '<c-w>',
+            '\x15': '<c-u>',
+            '\x0b': '<c-k>',
+            '\r': '<cr>',
+            '\n': '<c-j>',
+            ' ' : '<space>',
+            '\udc80\udcfd`': "<80><fd>",
+            '\udc80kb': "<bs>",
+            '\udc80kd': "<down>",
+            '\udc80kr': "<right>", 
+            '\udc80kl': '<left>',
+            '\udc80ku': '<up>',
+        }
+
+    def __getitem__(self, key):
+        if key in self.vim_key_to_char: 
+            return self.vim_key_to_char[key]
+        if 1 <= ord(key) <= 26: 
+           return f"<c-{chr(ord('a') + ord(key) - 1)}>" 
+        return key
 
 @vim_register(name="BufApp_KeyDispatcher", with_args=True)
 def Dispatcher(args):
@@ -53,8 +63,7 @@ def PopupDispatcher(args):
     bufname = vim.eval(f'bufname(winbufnr({args[0]}))')
     obj = Buffer.instances[bufname]
     key = args[1]
-    if key in vim_key_to_char:
-        key = vim_key_to_char[key]
+    key = VimKeyToChar()[key]
     log("Handling: ", key)
     buf_name = obj.name
     handled = obj.on_key(key)
@@ -446,7 +455,7 @@ class InputWidget(Widget):
         opt.is_input = True
         opt.name = name
         super().__init__(opt)
-        self.text = " "
+        self.text = text
         self.prom = prom
 
     def get_height(self):
@@ -476,16 +485,31 @@ class SimpleInput(InputWidget):
     def __init__(self, prom="", text="", name=None):
         self.match_id = None
         super().__init__(prom, text, name)
+        self.cursor = len(self.text)
+
+    @property
+    def show_text(self):
+        return f">>>{self.text}" + " "
 
     def ondraw(self, draw_context, position):
         self.position = position
         buffer = draw_context.string_buffer
-        buffer[position[0]] = f">>>{self.text}" + "|"
+        buffer[position[0]] = self.show_text
+
+    def get_highlight(self, bufnr, name, hi):
+        if not hasattr(self, name): 
+            setattr(self, name, TextProp(name, bufnr, hi))
+        hi = getattr(self, name)
+        hi.clear()
+        return hi
 
     def post_draw(self, draw_context, position): 
-        # cursor highlight
         self.position = position
-        start, end = position
+        line, _= position
+        # cols is ( 1 + width(self.text) + 3 )
+        #         base       text         >>>
+        cols = 1 + StringBytes(self.text[:self.cursor]) + 3
+        self.get_highlight(draw_context.bufnr, "cursor_hi", "StatusLineTermNC").prop_add(line, cols, 1)
 
     def get_height(self):
         return 1
@@ -493,26 +517,65 @@ class SimpleInput(InputWidget):
     def on_focus(self):
         return (self.position[0], 5)
 
+    def _cursor_move(self, offset):
+        old = self.cursor
+        self.cursor += offset
+        if 0 <= self.cursor and self.cursor <= len(self.text):
+            return 
+        self.cursor = old
+
+    def _insert(self, string):
+        i = self.cursor
+        chars = list(self.text)
+        chars[i:i] = string
+        self.text = "".join(chars)
+        self._cursor_move(len(string))
+
+    def _bs(self):
+        if self.cursor == 0: 
+            return
+        i = self.cursor
+        chars = list(self.text)
+        del chars[self.cursor-1]
+        self.text = "".join(chars)
+        self._cursor_move(-1)
+
+    def _clear(self):
+        self.text = ""
+        self.cursor = 0
+
+    def _bs_word(self):
+        split_char = "_-/+ "
+        i = self.cursor
+        while i > 0 and self.text[i-1] not in split_char:
+            i -= 1
+        # 1. i-1 is first split char, delete [i-1, cursor)
+        # 2. i == 0, delete [0, cursor]
+        left = max(i-1, 0)
+        self.text = self.text[0:left] + self.text[self.cursor:]
+        self.cursor = left
+
     def on_type(self, key):
         if key == "<space>": 
-            self.text = self.text + " "
+            self._insert(' ')
         elif key == "<bs>": 
-            self.text = self.text[:-1]
+            self._bs()
         elif key == "<c-u>": 
-            self.text = ""
-        #elif key == "<left>": 
-        #elif key == "<right>": 
+            self._clear()
+        elif key == "<c-a>": 
+            self.cursor = 0
+        elif key == "<c-e>": 
+            self.cursor = len(self.text)
+        elif key == "<left>": 
+            self._cursor_move(-1)
+        elif key == "<right>": 
+            self._cursor_move(1)
         elif key == "<c-w>":
-            split_char = "_-/+ "
-            tmp = 0
-            for i, c in enumerate(self.text): 
-                if c in split_char: 
-                    tmp = i
-            self.text = self.text[:tmp]
+            self._bs_word()
         else: 
-            self.text = self.text + key
+            self._insert(key)
         return True
-    
+
     def is_input_range_valid(self, cursor):
         if not super().is_input_range_valid(cursor): 
             return False
@@ -639,7 +702,7 @@ class WidgetBufferWithInputs(WidgetBuffer):
         base_key = list(range(ord('a'), ord('z'))) + list(range(ord('A'), ord('Z')))
         base_key = list(map(chr, base_key))
         special_keys = [
-            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/', '<cr>'
+            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/', '<cr>', '<left>', '<right>', "<c-a>", "<c-e>",
         ]
         insert_keys = base_key + special_keys
         if key in insert_keys: 

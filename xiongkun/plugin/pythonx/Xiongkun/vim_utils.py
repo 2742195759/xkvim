@@ -914,7 +914,6 @@ def GetSearchConfig(directory):
             excludes.append(line.split("=")[1].strip()[1:-1])
     return excludes
 
-
 class PopupList:
     # depends on vim_quick#ui
     def __init__(self, items):
@@ -924,3 +923,9 @@ class PopupList:
         _item_var = VimVariable().assign(self._items)
         log("[PopupList]: ", 'call quickui#context#open(%s, {})' % _item_var)
         vim.command('call quickui#context#open(%s, {})' % _item_var)
+
+def StringWidth(string):
+    return int(vim.eval(f"strwidth('{string}')"))
+
+def StringBytes(string):
+    return int(vim.eval(f"len('{string}')"))
