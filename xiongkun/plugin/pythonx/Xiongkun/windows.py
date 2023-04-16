@@ -597,7 +597,10 @@ class GlobalPreviewWindow:# {{{
     
     @staticmethod
     def open_in_preview_window():
-        GoToLocation(GPW.cur_loc(), "p") 
+        if GPW.cur_loc() is not None: 
+            GoToLocation(GPW.cur_loc(), "p") 
+        else: 
+            print("Please set locations of preview windows.")
         GPW.hide()
 
     @classmethod
@@ -832,7 +835,6 @@ class UniverseSearchEngine(Searcher):# {{{
             self.window.on_done()
 
     def render(self):
-        #res_vim = VimVariable(value=self.last_results)
         box_items = [ BoxListItem.from_search_result(r) for r in self.last_results ]
         def onclose(window):
             self.kill_async()

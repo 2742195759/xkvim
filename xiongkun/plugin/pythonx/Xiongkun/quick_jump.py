@@ -9,7 +9,7 @@ from functools import partial
 import re
 from .log import log
 import threading
-from .vim_utils import VimWindow
+from .vim_utils import VimWindow, Singleton, VimKeyToChar, CursorGuard
 
 
 """ 
@@ -19,7 +19,6 @@ TODO:(xiongkun)
 1. Vim 如果全部使用 Python 对 UI 非常不友好。因此我们需要一个机制来进行序列化编程，将不同的函数
 装载入不同的 VimFunction 中进行执行，同时在Vim的Function之间自动插入 redraw! 来实现强制刷新
 UI。
-主要目的，不希望将 State 这类全局变量暴露给不同的脚本。统一流程。
 
 2. 有汉字，其他字符，Unicode等，会扰乱了 col 的坐标。
 3. 统一搜索，将 S 作为统一的搜索语言。可以在window之间进行跳转，如果是S，那么需要输入2个字符。s 输入一个字符。 
@@ -29,7 +28,8 @@ UI。
 
 """
 
-all_labels = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890;'.,/@!#$%^&*()<>{}+-="
+#all_labels = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890;'.,/@!#$%^&*()<>{}+-="
+all_labels = "asdfjkl;ghqwertpoiuyzxcvmnbABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'.,/@!#$%^&*()<>{}+-="
 """
     fontend_type: 
         - 'popup': use popup-window to show labels, slow but unified.
@@ -45,7 +45,6 @@ class JumpItem:
         """
         self.screen_pos = screen_pos
         self.callback = callback
-        #self.buffer_pos = buffer_pos
         self.jump = onjump
 
     @classmethod
@@ -64,7 +63,10 @@ class JumpItem:
         if onjump is None: 
             onjump = buffer_jump
         screen_pos = vim_utils.VimWindow(winid).to_screen_pos(buffer_pos[0], buffer_pos[1])
-        return JumpItem(screen_pos, onjump, callback)
+        log("[InnerWindow]: screen pos: ", screen_pos)
+        item = JumpItem(screen_pos, onjump, callback)
+        item.bufpos = buffer_pos
+        return item
 
     @classmethod
     def from_window_display_pos(cls, window_pos, winid, callback):
@@ -99,31 +101,6 @@ class JumpItem:
         if self.callback is not None: 
             self.callback()
 
-class State:
-    jump_fn = None
-    next_fn=None
-    is_stop=1
-    inputs=[]
-    @classmethod
-    def clear(cls):
-        cls.inputs = []
-        cls.is_stop=1
-        cls.jump_fn=None
-        cls.next_fn=None
-
-
-@vim_register(command="QuickJump", with_args=False)
-def QuickJump(args):
-    try:
-        c = chr(int(vim.eval("getchar()")))
-    except:
-        c = None
-    if c == ' ': 
-        State.next_fn()
-    else: 
-        State.jump_fn(c)
-        State.clear()
-
 def get_pattern(char_num):
     """
     cmd = 's' | 'S'
@@ -131,7 +108,7 @@ def get_pattern(char_num):
     try:
         pattern = []
         for i in range(char_num):
-            pattern.append(chr(int(vim.eval("getchar()"))))
+            pattern.append(get_char_no_throw())
         pattern = "".join(pattern)
         pattern = vim_utils.escape(pattern, '()[]|\\?+.*')
         return pattern
@@ -160,49 +137,30 @@ def search_in_window(pattern, wid):
                         searched.append(JumpItem.from_buffer_pos(bufpos, wid, None))
     return searched
 
-@vim_register(command="BufferJump", with_args=True)
-def BufferJump(args):
-    ## search all the matches
-    pattern = get_pattern(1)
-    if pattern is None: return
-    vim_utils.WindowView.clear()
-    searched = search_in_window(pattern, VimWindow().id)
-    JumpStart(searched)
+def inner_window_lines(wid, on_select):
+    lines = vim_utils.GetAllLines(vim_utils.VimWindow(wid).bufnr)
+    top, bot = vim_utils.VimWindow(wid).display_rows
+    searched = [] # JumpItem
+    for linenr, line in enumerate(lines): 
+        if linenr >= top-1 and linenr <= bot-1: 
+            bufpos = (linenr+1, 1)
+            if VimWindow(wid).in_window_view(*bufpos): 
+                searched.append(JumpItem.from_buffer_pos(bufpos, wid, on_select))
+    return searched
 
+def get_char_no_throw():
+    try:
+        while True:
+            c = vim.eval("getchar()")
+            # TODO: figure out why lots of '\udc80\udcfd`' is typed.
+            if c == '\udc80\udcfd`': continue  
+            break
+        c = chr(int(c))
+    except:
+        c = None
+    return c
 
-@vim_register(command="WindowJump", with_args=True)
-def WindowJump(args):
-    searched = [] # lineno, startpos, endpos: [startpos, endpos)
-    for win_id in vim_utils.IteratorWindowCurrentTab():
-        #log("WindowIter:", win_id)
-        searched.append(JumpItem.from_window_display_pos((1,1), win_id, None))
-        #searched.append(JumpItem.from_window_display_pos(
-            #vim_utils.GetCursorXY(win_id), win_id, None))
-    JumpStart(searched)
-
-
-@vim_register(command="GlobalJump", with_args=True)
-def GlobalJump(args):
-    ## search all the matches
-    pattern = get_pattern(2)
-    if pattern is None: return
-    searched = []
-    vim_utils.WindowView.clear()
-    for win_id in vim_utils.IteratorWindowCurrentTab():
-        searched.extend(search_in_window(pattern, win_id))
-    JumpStart(searched)
-
-
-def JumpStart(searched):
-    # max item is support for len(all_labels)
-    label_map, matches = redraw(searched)
-
-    def clear_last():
-        ### recover
-        recover_buffer(searched)
-        for m in matches:
-            m.delete()
-
+def interactive_buffer_jump(searched): 
     # perform jump
     def jump_procedure(c):
         clear_last()
@@ -217,19 +175,30 @@ def JumpStart(searched):
         searched = searched[len(all_labels):]
         if len(searched) > 0:
             label_map, matches = redraw(searched)
-            State.is_stop = 0
+            return True
         else: 
             print("reach end, exit.")
-            State.is_stop = 1
+            return False
 
-    State.jump_fn = jump_procedure
-    State.next_fn = next_page
-    if len(searched) > 0: 
-        State.is_stop = 0
-    else:
+    def clear_last():
+        ### recover
+        recover_buffer(searched)
+        for m in matches:
+            m.delete()
+    # max item is support for len(all_labels)
+    label_map, matches = redraw(searched)
+    if len(searched) == 0: 
         print("not found!")
-        State.is_stop = 1
-        
+        return 
+    while True: 
+        yield "redraw"
+        c = get_char_no_throw()
+        if c == ' ': 
+            if not next_page(): 
+                break
+        else: 
+            jump_procedure(c)
+            break
 
 def redraw(searched):
     if fontend_type == 'buffer':
@@ -247,7 +216,8 @@ def redraw_popup(searched):
         screen_row, screen_col = item.screen_pos
         label = all_labels[idx]
         mapping[label] = idx
-        popups.append(vim_utils.TextPopup(label, screen_row, screen_col, highlight="CtrlPwhite"))
+        #log("[Redraw Popup]: ", screen_row, screen_col, label)
+        popups.append(vim_utils.TextPopup(label, screen_row, screen_col, highlight="CtrlPwhite", z_index=300))
     return mapping, popups
 
 
@@ -274,3 +244,62 @@ def recover_buffer(searched):
         with vim_utils.CursorGuard():
             # command u will change the cursor position.
             vim.command(':silent u')
+
+@vim_register(command="BufferJump", with_args=True, interactive=True)
+def BufferJump(args):
+    ## search all the matches
+    pattern = get_pattern(1)
+    if pattern is None: return
+    vim_utils.WindowView.clear()
+    searched = search_in_window(pattern, VimWindow().id)
+    from .ijump import DFAContext
+    DFAContext().set_dfa(interactive_buffer_jump(searched))
+
+#@vim_register(command="JumpInnerWindow", with_args=True, interactive=True)
+def JumpLines(args):
+    ## search all the matches
+    vim_utils.WindowView.clear()
+    win_id = int(args[0])
+    def default_select(item):
+        print("Select", item.bufpos[0])
+    on_select = default_select
+    if len(args) >= 2: 
+        on_select = args[1]
+    searched = inner_window_lines(win_id, on_select)
+
+    # finetune by popup windows lines.
+    for search in searched: 
+        screen_pos = search.screen_pos
+        search.screen_pos = screen_pos[0]+1, screen_pos[1]+2
+    searched = searched[:-1]
+
+    from .ijump import DFAContext
+    DFAContext().set_dfa(interactive_buffer_jump(searched))
+    vim.command("call InteractDo()")
+
+@vim_register(command="WindowJump", with_args=True, interactive=True)
+def WindowJump(args):
+    searched = [] # lineno, startpos, endpos: [startpos, endpos)
+    for win_id in vim_utils.IteratorWindowCurrentTab():
+        searched.append(JumpItem.from_window_display_pos((1,1), win_id, None))
+    from .ijump import DFAContext
+    DFAContext().set_dfa(interactive_buffer_jump(searched))
+
+@vim_register(command="GlobalJump", with_args=True, interactive=True)
+def GlobalJump(args):
+    ## search all the matches
+    pattern = get_pattern(2)
+    if pattern is None: return
+    searched = []
+    vim_utils.WindowView.clear()
+    for win_id in vim_utils.IteratorWindowCurrentTab():
+        searched.extend(search_in_window(pattern, win_id))
+    from .ijump import DFAContext
+    DFAContext().set_dfa(interactive_buffer_jump(searched))
+
+@vim_register(command="QuickPeek", with_args=True)
+def QuickPeek(args):
+    ## search all the matches
+    with CursorGuard():
+        vim.command("BufferJump")
+        vim.command('execute "normal \\<m-p>"')

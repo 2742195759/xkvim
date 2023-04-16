@@ -228,7 +228,6 @@ augroup FileIndentAutoCommand
     autocmd BufEnter * call FileTypeBranch()
 augroup END
 
-
 function! JustTestUIReflesh(cmd)
     " test script can update the vim ui in the background.
     " yes: redraw and redraw! is the right way to update
@@ -242,29 +241,7 @@ function! JustTestUIReflesh(cmd)
     endwhile
 endfunction
     
-
-
 """ quickjump config
-function! VimQuickJump(cmd)
-    if a:cmd == 's'
-        exe 'BufferJump '. a:cmd
-    elseif a:cmd == 'S'
-        exe 'GlobalJump '. a:cmd
-    elseif a:cmd == 't'
-        exe 'WindowJump '. a:cmd
-    endif
-    let loop_num = 20
-    while loop_num > 0
-        let t = pyxeval("Xiongkun.jump_state.is_stop")
-        if t == 1
-            break
-        endif
-        redraw
-        QuickJump
-        let loop_num = loop_num - 1
-    endwhile
-endfunc
-
 function! GI()
     execute "normal `^"
     let insert_pos = getpos("'^")
@@ -274,13 +251,6 @@ function! GI()
         startinsert
     endif
 endfunc
-
-function! VimInsertQuickPeek()
-    call VimQuickJump('s')
-    """ normal can't go into insert mode
-    execute "normal \<m-p>"
-    call GI()
-endfunction
 
 function! RPCServer(channel, msg)
     let g:rpc_receive=a:msg
@@ -307,6 +277,10 @@ function! VimPopupExperiment(bufnr, options)
     let new_dict = a:options
     let new_dict['filter'] = function('DispatchFilter')
     let new_dict['callback'] = function('VimPopupClose')
+    let new_dict['filtermode'] = 'a'
+    let new_dict['mapping'] = 0
+    let new_dict['wrap'] = 0
+    let new_dict['cursorline'] = 0
     return popup_menu(a:bufnr, new_dict)
 endfunction
 
@@ -314,22 +288,19 @@ function! VimPopupClose(id, data)
     call BufApp_PopupClose([a:id, a:data])
 endfunction
 
-
-nnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
-nnoremap <silent> S <Cmd>call VimQuickJump('S')<cr>
-nnoremap <silent> <m-w> <Cmd>call VimQuickJump('t')<cr>
-tnoremap <silent> <m-w> <Cmd>call VimQuickJump('t')<cr>
-vnoremap <silent> s <Cmd>call VimQuickJump('s')<cr>
-inoremap <silent> <m-s> <esc>:<c-u>call VimInsertQuickPeek()<esc>
-
+nnoremap <silent> s <Cmd>BufferJump<cr>
+nnoremap <silent> S <Cmd>GlobalJump<cr>
+nnoremap <silent> <m-w> <Cmd>WindowJump<cr>
+tnoremap <silent> <m-w> <Cmd>WindowJump<cr>
+vnoremap <silent> s <Cmd>BufferJump<cr>
+inoremap <silent> <m-s> <Cmd>QuickPeek<cr>
 
 """ conflict with surrounding: cs ds ys
 """ the conflict make the bugs is very hard to find. so i should install less
 """ scripts as i can.
 """ omap: normap + visual selection.
-onoremap <silent> s v<Cmd>call VimQuickJump('s')<cr>
+onoremap <silent> s v<Cmd>BufferJump<cr>
 
 """ surround command is: 
 
 """"""""""""""}}}
-

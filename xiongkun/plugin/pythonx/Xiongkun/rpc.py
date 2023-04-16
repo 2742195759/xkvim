@@ -25,7 +25,7 @@ class RPCServer:
             #'exit_cb': 'RPCServer',
             'noblock': 1,
         }
-        server_path = "python3 /root/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/server.py"
+        server_path = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/server.py"
         self.job_name = "g:rpc_job"
         self.channel_name = "g:rpc_channel"
         self.receive_name = "g:rpc_receive"

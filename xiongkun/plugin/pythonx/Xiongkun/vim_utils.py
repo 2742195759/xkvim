@@ -23,6 +23,16 @@ import os#}}}
 
 HOME_PREFIX=os.environ["HOME"]
 
+def Singleton(cls):
+    instance = None
+    def get_instance():
+        nonlocal instance
+        if instance is None: 
+            instance = cls()
+        return instance
+    return get_instance
+
+
 def absolute_import(module_name, path):
     import importlib.util
     import sys
@@ -555,6 +565,12 @@ def CursorGuard():
     #log("[CursorGuard] Restoring :", saved)
     vim.eval(f'setpos(".", {v.name()})')
 
+#@contextmanager
+#def NormalModeGuard():
+    #is_insert = vim.eval("mode()") == 'i', "Must start with insert mode"
+    #with CursorGuard():
+        #yield
+
 @contextmanager
 def CurrentBufferGuard(bufnr=None):
     saved_buf = vim.eval("bufnr()")
@@ -672,6 +688,35 @@ def GetCommandOutput(command):
             output = vim.eval("@a")
     return output
 
+@Singleton
+class VimKeyToChar:
+    def __init__(self):
+        self.vim_key_to_char = {
+            '\x08': '<bs>',
+            '\x04': '<c-d>',
+            '\x06': '<c-f>',
+            '\x17': '<c-w>',
+            '\x15': '<c-u>',
+            '\x0b': '<c-k>',
+            '\r': '<cr>',
+            '\n': '<c-j>',
+            ' ' : '<space>',
+            '\udc80\udcfd`': "<80><fd>",
+            '\udc80kb': "<bs>",
+            '\udc80kd': "<down>",
+            '\udc80kr': "<right>", 
+            '\udc80kl': '<left>',
+            '\udc80ku': '<up>',
+            '\t': '<tab>',
+        }
+
+    def __getitem__(self, key):
+        if key in self.vim_key_to_char: 
+            return self.vim_key_to_char[key]
+        if 1 <= ord(key) <= 26: 
+           return f"<c-{chr(ord('a') + ord(key) - 1)}>" 
+        return key
+
 class VimKeymap: 
     def __init__(self):
         self.km = {}
@@ -785,11 +830,12 @@ class TextPopup:
             
     @classmethod
     def _create(cls, text, screen_row, screen_col, highlight="Normal", z_index=0): 
-        win_id = int(vim.eval('popup_create("%s", {"line":%s, "col":%s, "highlight": "%s"})' % 
+        win_id = int(vim.eval('popup_create("%s", {"line":%s, "col":%s, "highlight": "%s", "zindex": %d})' % 
             (text, 
              screen_row, 
              screen_col,
-             highlight)))
+             highlight,
+             z_index)))
         return win_id
         
     def delete(self):
@@ -890,15 +936,6 @@ def ui(func):
         vim_dispatcher.call(func, args)
     return wrapper
     
-def Singleton(cls):
-    instance = None
-    def get_instance():
-        nonlocal instance
-        if instance is None: 
-            instance = cls()
-        return instance
-    return get_instance
-
 def GetJumpList():
     return vim.eval("getjumplist(winnr())")
 

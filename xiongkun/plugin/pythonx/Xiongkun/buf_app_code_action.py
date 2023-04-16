@@ -4,7 +4,9 @@ from .vim_utils import SetVimRegister
 import vim
 
 code_action_dict = {
-    "baidu_fanyi   |百度翻译|": "Fanyi"
+    "baidu_fanyi       |  百度翻译  |": "Fanyi",
+    "yiyan             |百度文心一言|": "YiyanTrigger", 
+    "preview window    |  QuickPeek |": "call VimInsertQuickPeek()"
 }
 
 @vim_register(command="CodeAction", keymap="<m-a>")

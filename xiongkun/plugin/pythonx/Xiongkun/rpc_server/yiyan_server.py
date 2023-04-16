@@ -8,7 +8,7 @@ from functions import KillablePool
 
 class Yiyan:
     def __init__(self):
-        self.cmd = "bash /root/xkvim/bash_scripts/yiyan.sh"
+        self.cmd = f"bash {os.environ['HOME']}/xkvim/bash_scripts/yiyan.sh"
         self.child = None
         pass
 

@@ -1,7 +1,5 @@
 import glob
 import platform
-import glob
-import platform
 version = ".".join(platform.python_version().split('.')[0:2])
 prefixs = ["/usr/lib",
            "/usr/local/lib",

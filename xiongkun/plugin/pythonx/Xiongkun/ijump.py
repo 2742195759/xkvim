@@ -97,7 +97,7 @@ class DFAContext:
         except StopIteration:
             return "end"
         except Exception as e: 
-            print(f"Error happens: {e}")
+            print(f"InteractDo: `Error happens`: {e}")
             return "end"
 
 def confirm(message):

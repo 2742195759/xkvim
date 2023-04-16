@@ -13,33 +13,6 @@ def win_execute(wid, cmd):
     log("[WinExe]", f'win_execute({wid}, "{cmd}")')
     vim.eval(f'win_execute({wid}, "{cmd}")')
 
-@Singleton
-class VimKeyToChar:
-    def __init__(self):
-        self.vim_key_to_char = {
-            '\x08': '<bs>',
-            '\x04': '<c-d>',
-            '\x06': '<c-f>',
-            '\x17': '<c-w>',
-            '\x15': '<c-u>',
-            '\x0b': '<c-k>',
-            '\r': '<cr>',
-            '\n': '<c-j>',
-            ' ' : '<space>',
-            '\udc80\udcfd`': "<80><fd>",
-            '\udc80kb': "<bs>",
-            '\udc80kd': "<down>",
-            '\udc80kr': "<right>", 
-            '\udc80kl': '<left>',
-            '\udc80ku': '<up>',
-        }
-
-    def __getitem__(self, key):
-        if key in self.vim_key_to_char: 
-            return self.vim_key_to_char[key]
-        if 1 <= ord(key) <= 26: 
-           return f"<c-{chr(ord('a') + ord(key) - 1)}>" 
-        return key
 
 @vim_register(name="BufApp_KeyDispatcher", with_args=True)
 def Dispatcher(args):
@@ -793,6 +766,12 @@ class ListBoxWidget(Widget):
     def cur_down(self):
         if self.cur < min(self.height - 1, len(self.items)-1): self.cur += 1
 
+    def set_cur(self, cur):
+        if 0 <= cur <= min(self.height - 1, len(self.items)-1): 
+            self.cur = cur
+            return True
+        return False
+
     def set_items(self, items=None): 
         if items is not None: self.items = items
         if self.cur >= len(items): self.cur = max(len(items) - 1, 0)
@@ -972,7 +951,7 @@ class FuzzyList(WidgetBufferWithInputs):
     def on_text_changed_i(self):
         self.on_search()
 
-    def on_enter(self, cmd):
+    def on_enter(self, usr_data):
         pass
 
     def on_item_up(self):
@@ -991,6 +970,13 @@ class FuzzyList(WidgetBufferWithInputs):
                 rpc_call("fuzzyfinder.set_items", None, name, items)
         rpc_call("fuzzyfinder.is_init", _set, name)
 
+    def show_label(self):
+        def on_select(item):
+            if self.widgets['result'].set_cur(item.bufpos[0] - 1): 
+                self.on_enter(None)
+        from .quick_jump import JumpLines
+        JumpLines([self.wid, on_select])
+
     def get_keymap(self):
         """ some special key map for example.
         """
@@ -1005,7 +991,7 @@ class FuzzyList(WidgetBufferWithInputs):
             '<c-t>': lambda x,y: self.on_enter("t"),
             '<c-p><c-p>': lambda x,y: x,
             '<c-p>': lambda x,y: x,
-            '<tab>': lambda x,y: self.on_change_database(),
+            '<tab>': lambda x,y: self.show_label(),
         })
         return m
 
@@ -1021,12 +1007,16 @@ class CommandList(FuzzyList):
             n: c for n, c in zip(names, commands)
         }
 
-    def on_enter(self, cmd):
+    def on_enter(self, usr_data):
         cur_name = self.widgets['result'].cur_item()
+        self.close()
         if cur_name is not None: 
             cmd = self.name2cmd[cur_name]
             vim.command(cmd)
-        self.close()
+
+    def oninit(self):
+        super().oninit()
+        vim.command("set syntax=commandlist")
 
 class FileFinderBuffer(FuzzyList):
     def __init__(self, directory="./", name="FileFinder", history=None, options=None):
