@@ -6,7 +6,7 @@ import vim
 code_action_dict = {
     "baidu_fanyi       |  百度翻译  |": "Fanyi",
     "yiyan             |百度文心一言|": "YiyanTrigger", 
-    "preview window    |  QuickPeek |": "call VimInsertQuickPeek()"
+    "preview window    |  QuickPeek |": "QuickPeek"
 }
 
 @vim_register(command="CodeAction", keymap="<m-a>")
