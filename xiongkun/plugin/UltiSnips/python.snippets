@@ -1189,3 +1189,21 @@ def execute_time(func):
         return result  
     return wrapper #}}}
 endsnippet 
+
+snippet bytecode_ast "execute time of function." #{{{
+import os
+import sys
+import dis
+sys.path.append("/home/data/xiongkun/paddle_bytecode/")
+
+import pprint
+from paddle_bytecode.convert_to_bytecode_ast import convert_to_bytecode_ast
+from paddle_bytecode.dump_transform import DumpTransform
+
+def func(a, b):
+    return a + b 
+
+output = convert_to_bytecode_ast(dis.get_instructions(func))
+pprint.pprint(DumpTransform()(output))
+endsnippet  
+#}}}
