@@ -49,6 +49,10 @@ def CreateTmpfile(args):
 
 @vim_register(command="ChangeDirectory")
 def ChangeDirectoryCommand(args):
+    """ 
+    更换当前的目录，包含两者：search directory 和 filefinder directory
+    但是不包含NERDTree 和 vim 的根目录.
+    """
     try:
         directory_path = vim.eval("input('输入一个新的目录路径:', '', 'file')")
     except: 

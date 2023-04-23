@@ -917,6 +917,8 @@ class FuzzyList(WidgetBufferWithInputs):
             'title': f"{name}", 
             'maxwidth': 100, 
             'maxheight': 15, 
+            'minwidth': 100, 
+            'minheight': 15, 
         }
         root = WidgetList("", widgets, reverse=False)
         self.items = items
