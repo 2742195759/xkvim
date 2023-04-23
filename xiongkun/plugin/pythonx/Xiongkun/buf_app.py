@@ -1077,7 +1077,7 @@ def FileFinder(args):
         3. normal files
         4. with build / build_svd
     """
-    directory = "./"
+    directory = "./" if FileFinderPGlobalInfo.directory is None else FileFinderPGlobalInfo.directory
     if len(args) == 1: 
         directory = args[0]
     ff = FileFinderBuffer(directory=directory)
