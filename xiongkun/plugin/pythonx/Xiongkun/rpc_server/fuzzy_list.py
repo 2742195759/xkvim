@@ -30,8 +30,8 @@ class FuzzyList:
         return None
 
     @server_function
-    def is_init(self, name):
-        return name in self.lists_dict
+    def is_init(self, name, hashid):
+        return name in self.lists_dict and hash(tuple(self.lists_dict[name])) == hashid
         
     # TODO: error handle is not prefect
     #       when we have processes: Main -> Search -> Pool, 

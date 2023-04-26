@@ -968,10 +968,11 @@ class FuzzyList(WidgetBufferWithInputs):
         return True
 
     def set_items(self, name, items):
-        def _set(cur_type):
+        def do_set(cur_type):
             if cur_type is False:
                 rpc_call("fuzzyfinder.set_items", None, name, items)
-        rpc_call("fuzzyfinder.is_init", _set, name)
+        hashid = hash(tuple(items))
+        rpc_call("fuzzyfinder.is_init", do_set, name, hashid)
 
     def show_label(self):
         def on_select(item):
