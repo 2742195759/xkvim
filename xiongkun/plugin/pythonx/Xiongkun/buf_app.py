@@ -908,22 +908,23 @@ class SimpleInputBuffer(WidgetBufferWithInputs):
         return True
 
 class FuzzyList(WidgetBufferWithInputs):
-    def __init__(self, type, items, name="FuzzyList", history=None, options=None):
+    def __init__(self, type, items, name="FuzzyList", history=None, options={}):
         widgets = [
             ListBoxWidget(name="result", height=14, items=[]),
             SimpleInput(prom="input", name="input"),
         ]
-        options = {
+        default_options = {
             'title': f"{name}", 
             'maxwidth': 100, 
             'maxheight': 15, 
             'minwidth': 100, 
             'minheight': 15, 
         }
+        default_options.update(options)
         root = WidgetList("", widgets, reverse=False)
         self.items = items
         self.type = type
-        super().__init__(root, name, history, options)
+        super().__init__(root, name, history, default_options)
         self.set_items(self.type, self.items)
 
     def on_insert_input(self, key):
@@ -974,6 +975,7 @@ class FuzzyList(WidgetBufferWithInputs):
 
     def show_label(self):
         def on_select(item):
+            log(f"Select: {item.bufpos[0]-1}")
             if self.widgets['result'].set_cur(item.bufpos[0] - 1): 
                 self.on_enter(None)
         from .quick_jump import JumpLines
@@ -1002,8 +1004,8 @@ class FuzzyList(WidgetBufferWithInputs):
         self.update_ui(([], None))
 
 class CommandList(FuzzyList):
-    def __init__(self, type, names, commands):
-        super().__init__(type, names, type)
+    def __init__(self, type, names, commands, options={}):
+        super().__init__(type, names, type, None, options)
         assert (len(names) == len(commands)), "Length should be equal."
         self.name2cmd = {
             n: c for n, c in zip(names, commands)
@@ -1021,7 +1023,7 @@ class CommandList(FuzzyList):
         vim.command("set syntax=commandlist")
 
 class FileFinderBuffer(FuzzyList):
-    def __init__(self, directory="./", name="FileFinder", history=None, options=None):
+    def __init__(self, directory="./", name="FileFinder", history=None, options={}):
         self.directory = directory
         if FileFinderPGlobalInfo.directory != directory: 
             FileFinderPGlobalInfo.preprocess(directory)
@@ -1038,6 +1040,7 @@ class FileFinderBuffer(FuzzyList):
 
     def on_enter(self, cmd):
         item = self.widgets['result'].cur_item()
+        log(f"[FileFinder] start goto. item {item} with cmd: {cmd}")
         self.goto(item, cmd)
 
     @property
@@ -1049,6 +1052,7 @@ class FileFinderBuffer(FuzzyList):
         if filepath:
             FileFinderPGlobalInfo.update_mru(filepath)
             loc = Location(filepath)
+            if cmd is None: cmd = '.'
             GoToLocation(loc, cmd)
 
     def on_exit(self):

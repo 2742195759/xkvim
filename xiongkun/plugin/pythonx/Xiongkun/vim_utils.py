@@ -939,12 +939,20 @@ def ui(func):
 def GetJumpList():
     return vim.eval("getjumplist(winnr())")
 
-def GetSearchConfig(directory):
-    path = directory + "search_config"
+def GetConfigByKey(key, directory='./'):
+    import yaml  
+    # 打开 YAML 文件  
+    path = directory + ".vim_config.yaml"
     if not os.path.exists(path): 
         return []
-    with open(path, "r") as fp :
-        config_lines = fp.readlines()
+    with open(path, 'r') as f:  
+        # 读取文件内容  
+        data = yaml.safe_load(f)  
+    # 输出解析结果  
+    return data[key]
+
+def GetSearchConfig(directory):
+    config_lines = GetConfigByKey("search_config", directory)
     excludes = []
     for line in config_lines: 
         if line.startswith("--exclude-dir="):

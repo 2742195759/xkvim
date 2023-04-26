@@ -63,7 +63,7 @@ class JumpItem:
         if onjump is None: 
             onjump = buffer_jump
         screen_pos = vim_utils.VimWindow(winid).to_screen_pos(buffer_pos[0], buffer_pos[1])
-        log("[InnerWindow]: screen pos: ", screen_pos)
+        #log("[InnerWindow]: screen pos: ", screen_pos)
         item = JumpItem(screen_pos, onjump, callback)
         item.bufpos = buffer_pos
         return item

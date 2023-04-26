@@ -23,7 +23,13 @@ def CodeAction(args):
     for key, val in code_action_dict.items():
         keys.append(key)
         vals.append(val)
-    code_action = CommandList("[ CodeAction ]", keys, vals)
+    options = dict(
+        minwidth=40,
+        maxwidth=40,
+        minheight=15,
+        maxheight=15,
+    )
+    code_action = CommandList("[ CodeAction ]", keys, vals, options)
     code_action.create()
     code_action.show()
 

@@ -129,13 +129,11 @@ def CopyFileName(args):
     cmd = "/bin/cp ../%s ./%s" % (filename, filename)
     os.system("echo %s >> /home/data/web/scripts/copy_file.sh" % cmd)
 
-@vim_register(command="SearchConfig")
+@vim_register(command="VimConfig")
 def EditSearchConfig(args):
-    vim.command("tabe search_config")
+    vim.command("tabe .vim_config.yaml")
     if EmptyBuffer(): 
-        vim.command("read ~/xkvim/search_config")
-        vim.command("normal 0d_")
-
+        vim.command("read ~/xkvim/vim_config.yaml")
 
 @vim_register(command="YankLine")
 def YankLine(args):

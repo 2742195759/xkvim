@@ -104,21 +104,10 @@ def TerminalWriteFile(args):
         time.sleep(1.0)
         vim.command(f"read {tmpfile}")
 
-terminal_abbreviate = [
-    ["PYTHONPATH", 'PYTHONPATH=/home/data/Paddle/build/python'], 
-    ["breakpoint", "breakpoint()"], 
-    ["proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\nexport no_proxy=localhost,bj.bcebos.com,su.bcebos.com,paddle-wheel.bj.bcebos.com\n"], 
-    ["noproxy", "unset http_proxy\nunset https_proxy"], 
-    ["xk", "xiongkun"], 
-    ["CUDA_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES=2"], 
-    ["copy_file.sh", "/home/data/web/scripts/copy_file.sh"],
-    ["main_program", "paddle.static.default_main_program()"],
-    ["FLAGS_cudnn_deterministic", "FLAGS_cudnn_deterministic=True"]
-]
-
-def get_abbreviate_list(bufnr, lists): 
+def get_abbreviate_list(bufnr): 
+    terminal_abbreviate = GetConfigByKey("terminal_abbreviate", directory='./')
     results = []
-    for item in terminal_abbreviate:
+    for item in terminal_abbreviate :
         key, val = item
         new_item = [key, f'call term_sendkeys({bufnr}, "{val}")']
         results.append(new_item)
@@ -134,6 +123,6 @@ def TerminalAbbre(args):
     def prediction(wnr):
         return vim.eval(f"getwinvar({wnr}, '&buftype')") == "terminal"
     bufnr = int(FindWindowInCurrentTabIf(prediction))
-    abbres = get_abbreviate_list(bufnr, terminal_abbreviate)
+    abbres = get_abbreviate_list(bufnr)
     from .buf_app import CommandList
     CommandList("terminal_abbreviates", [n[0] for n in abbres], [n[1] for n in abbres]).start()
