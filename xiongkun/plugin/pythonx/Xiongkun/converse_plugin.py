@@ -13,46 +13,13 @@ import os.path as osp
 from .log import log, log_google
 from urllib.parse import quote
 import shlex
-
-@vim_utils.Singleton
-class RemoteConfig:
-    def __init__(self):
-        self.default_remote = "mac"
-        self.remote_name = self.default_remote
-        pass
-
-    def set_remote(self, remote_name):
-        self.remote_name = remote_name
-
-    def get_remote(self):
-        assert self.remote_name is not None, "Please set remote first."
-        return self.remote_name
-
-def open_url_on_mac(url):
-    cmd = """open "%s" """ % url
-    ExecuteCommand("mac", cmd, silent=True)
-    
-def ExecuteCommand(name, cmd, silent=True):
-    import json
-    import requests
-    headers = {"Content-Type":"application/json"}
-    headers['Type'] = 'snd'
-    headers['Name'] = name
-    try:
-        ret = requests.post("http://10.255.125.22:8084", data=json.dumps({"cmd": cmd, 'password':'807377414'}), headers=headers, timeout=3)
-    except Exception as e:
-        print(f"Failed to connect to server. {e}")
-        return 
-    if not silent or ret.status_code != 200:
-        print (f"Return Code is {ret.status_code}, please check the server.")
-        print (f"{ret.reason}")
-    if not silent: 
-        print (ret.text)
+from .remote_machine import RemoteConfig
 
 @vim_register(command="SetRemote", with_args=True)
 def SetRemote(args):
     RemoteConfig().set_remote(args[0])
     print(f"set the remote name to -> {args[0]}")
+    print(f"    the os machine is  -> {RemoteConfig().get_machine()}")
 
 @vim_register(command="Google", with_args=True)
 def Google(args):
@@ -65,9 +32,8 @@ def Google(args):
     """ 
     MacOs: open "http://" can open a http website in default browser.
     """
-    cmd = """open "https://www.google.com.hk/search?q=%s" """ % url_text
-    log(cmd)
-    ExecuteCommand("mac", cmd, silent=True)
+    url = """https://www.google.com.hk/search?q=%s""" % url_text
+    RemoteConfig().get_machine().chrome(url)
 
 @vim_register(command="Paper", with_args=True)
 def RandomReadPaper(args):
@@ -85,9 +51,7 @@ def RandomReadPaper(args):
     ]
     lis = vim_utils.VimVariable(papers)
     selected = int(vim.eval(f"inputlist({lis.name()})"))
-    open_url_on_mac(link[selected])
-    #open_url_on_mac("https://www.ccf.org.cn/Academic_Evaluation/TCS/")
-    #"http://acm-stoc.org/stoc2021/accepted-papers.html"
+    RemoteConfig().get_machine().chrome(link[selected])
 
 @vim_register(command="ProfileProject", with_args=True)
 def ProfileProject(args):
@@ -219,7 +183,7 @@ def PaddleDocumentFile(args):
         text = vim_utils.GetCurrentWord()
     url_text = quote(text)
     url = f"https://www.paddlepaddle.org.cn/searchall?q={url_text}&language=zh&version=2.3"
-    open_url_on_mac(url)
+    RemoteConfig().get_machine().chrome(url)
 
 @vim_register(command="ShareCode")
 def ShareCode(args):
@@ -231,7 +195,7 @@ def ShareCode(args):
         print ("Your code is shared into http://10.255.125.22:8082/share.txt")
 
 @vim_register(command="Share")
-def ShareCodeToMac(args):
+def ShareCodeToClipboard(args):
     """ we share code into 0007 server.
     """
     word = vim_utils.GetVisualWords()
@@ -267,16 +231,16 @@ def SendFile(args):
     if len(args) <= 1:
         exe_machine = "mac"
     exe_machine = args[1]
-    cmd = [
-        "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
-        "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
-        "cd /tmp/tmpfile ",
-        open_cmd
-    ]
-    ExecuteCommand(exe_machine, "&&".join(cmd), silent=True)
+    with remote_machine_guard(exe_machine): 
+        cmd = [
+            "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
+            "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
+            "cd /tmp/tmpfile ",
+            open_cmd
+        ]
+        RemoteConfig().get_machine().execute(cmd)
 
 @vim_register(command="ShareCodeCopyClipboard")
 def CopyClipboard(args):
-    cmd = "curl http://10.255.125.22:8082/share.txt | pbcopy "
-    ExecuteCommand(RemoteConfig().get_remote(), cmd, silent=True)
+    RemoteConfig().get_machine().set_clipboard()
     print("Shared!.")

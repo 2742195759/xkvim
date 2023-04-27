@@ -4,7 +4,6 @@ import os
 import os.path as osp
 from .func_register import *
 from .vim_utils import *
-from .converse_plugin import open_url_on_mac
 from .buf_app import *
 import re
 
@@ -23,7 +22,7 @@ def OpenPR(pr_str):#{{{
         return
     if url_first.endswith('.git'): url_first = url_first[:-4]
     url = f'{url_first}/pull/{pr_str}'
-    open_url_on_mac(url)#}}}
+    RemoteConfig().get_machine().chrome(url) #}}}
 
 def _ParsePR(filepath, line_nr):#{{{
     commit_id, info, content, comment = GetGitComment(filepath, line_nr)
