@@ -1017,7 +1017,13 @@ class CommandList(FuzzyList):
         self.close()
         if cur_name is not None: 
             cmd = self.name2cmd[cur_name]
-            vim.command(cmd)
+            if cmd[0] == '@': 
+                """ promote mode:
+                """
+                keys = f":{cmd[1:]} "
+                vim.eval(f'feedkeys("{keys}")')
+            else: 
+                vim.command(cmd)
 
     def oninit(self):
         super().oninit()

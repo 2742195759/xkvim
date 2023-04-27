@@ -26,6 +26,7 @@ terminal_abbreviate: [
     ["copy_file.sh", "/home/data/web/scripts/copy_file.sh"],
     ["main_program", "paddle.static.default_main_program()"],
     ["FLAGS_cudnn_deterministic", "FLAGS_cudnn_deterministic=True"],
+    ["git-push", "git push origin develop\n"],
 ]
 
 

@@ -15,6 +15,7 @@ code_action_dict = {
     "preview window    |   QuickPeek    |": "QuickPeek",
     "create tmp file   | 创建新临时文件 |": "CreateTmp",
     "change directory  |    更换目录    |": "ChangeDirectory",
+    "set remote        |  更换远程机器  |": "@SetRemote",
 }
 
 @vim_register(command="CodeAction", keymap="<m-a>")

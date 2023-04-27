@@ -17,7 +17,8 @@ import shlex
 @vim_utils.Singleton
 class RemoteConfig:
     def __init__(self):
-        self.remote_name = None
+        self.default_remote = "mac"
+        self.remote_name = self.default_remote
         pass
 
     def set_remote(self, remote_name):
@@ -37,12 +38,21 @@ def ExecuteCommand(name, cmd, silent=True):
     headers = {"Content-Type":"application/json"}
     headers['Type'] = 'snd'
     headers['Name'] = name
-    ret = requests.post("http://10.255.125.22:8084", data=json.dumps({"cmd": cmd, 'password':'807377414'}), headers=headers)
+    try:
+        ret = requests.post("http://10.255.125.22:8084", data=json.dumps({"cmd": cmd, 'password':'807377414'}), headers=headers, timeout=3)
+    except Exception as e:
+        print(f"Failed to connect to server. {e}")
+        return 
     if not silent or ret.status_code != 200:
         print (f"Return Code is {ret.status_code}, please check the server.")
         print (f"{ret.reason}")
     if not silent: 
         print (ret.text)
+
+@vim_register(command="SetRemote", with_args=True)
+def SetRemote(args):
+    RemoteConfig().set_remote(args[0])
+    print(f"set the remote name to -> {args[0]}")
 
 @vim_register(command="Google", with_args=True)
 def Google(args):
@@ -211,7 +221,7 @@ def PaddleDocumentFile(args):
     url = f"https://www.paddlepaddle.org.cn/searchall?q={url_text}&language=zh&version=2.3"
     open_url_on_mac(url)
 
-@vim_register(command="Share")
+@vim_register(command="ShareCode")
 def ShareCode(args):
     """ we share code into 0007 server.
     """
@@ -219,6 +229,16 @@ def ShareCode(args):
     open("/tmp/share.txt", "w").write(word)
     if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt")[0]: 
         print ("Your code is shared into http://10.255.125.22:8082/share.txt")
+
+@vim_register(command="Share")
+def ShareCodeToMac(args):
+    """ we share code into 0007 server.
+    """
+    word = vim_utils.GetVisualWords()
+    open("/tmp/share.txt", "w").write(word)
+    if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt")[0]: 
+        vim.command("ShareCodeCopyClipboard")
+        
 
 @vim_register(command="UploadFile", with_args=True)
 def UploadFile(args):
@@ -254,3 +274,9 @@ def SendFile(args):
         open_cmd
     ]
     ExecuteCommand(exe_machine, "&&".join(cmd), silent=True)
+
+@vim_register(command="ShareCodeCopyClipboard")
+def CopyClipboard(args):
+    cmd = "curl http://10.255.125.22:8082/share.txt | pbcopy "
+    ExecuteCommand(RemoteConfig().get_remote(), cmd, silent=True)
+    print("Shared!.")
