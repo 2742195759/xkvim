@@ -48,6 +48,18 @@ def get_docs(command):
         return "No Docs."
     return ret
 
+def get_all_command():
+    """
+    generator return all the registered command. 
+    [(command_prefix, command_docs)]
+    """
+    for command, docs in DOC_STRING.items():
+        doc = ""
+        if docs is not None: 
+            doc = docs.split("\n")[0]
+        yield (command, doc)
+    
+
 def vim_register(name="", keymap="", command="", with_args=False, command_completer="", interactive=False):
     """
     keymap: i:MAP | MAP

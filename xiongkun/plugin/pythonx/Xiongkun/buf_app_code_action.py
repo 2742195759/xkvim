@@ -1,5 +1,5 @@
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, CommandList
-from .func_register import vim_register
+from .func_register import vim_register, get_all_command
 from .vim_utils import SetVimRegister
 import vim
 
@@ -25,6 +25,11 @@ def CodeAction(args):
     for key, val in code_action_dict.items():
         keys.append(key)
         vals.append(val)
+
+    for command, doc in get_all_command():
+        keys.append("CMD: " + command + " | " + doc)
+        vals.append("@" + command)
+        
     options = dict(
         minwidth=40,
         maxwidth=40,
