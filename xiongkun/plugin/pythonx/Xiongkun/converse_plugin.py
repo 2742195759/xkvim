@@ -15,7 +15,7 @@ from urllib.parse import quote
 import shlex
 from .remote_machine import RemoteConfig
 
-@vim_register(command="SetRemote", with_args=True)
+@vim_register(command="SetRemote", with_args=True, action_tag="set remote")
 def SetRemote(args):
     """ 
     `SetRemote <remote-name>`: 设置远程的机器，用于远程操作

@@ -45,8 +45,12 @@ def GetGitComment(filepath, line_nr):#{{{
     comment = str(comment.read())
     return commit_id, info, content, comment#}}}
 
-@vim_register(command="GG")
+@vim_register(command="GG", action_tag="git blame")
 def ShowGitComment(args):#{{{
+    """
+    `GG`: show git comment of current line
+    >>> GG
+    """
     try:
         filepath = CurrentEditFile()
         line_nr = GetCursorXY()[0]
@@ -279,7 +283,7 @@ class GitPreviewApp(Application):#{{{
         self.git_log_layout.create({'win': self.git_log_buf})
 #}}}
 
-@vim_register(command="GF", with_args=True)
+@vim_register(command="GF", with_args=True, action_tag="git history")
 def GitFileHistory(args):#{{{
     """ 
     ## Overview

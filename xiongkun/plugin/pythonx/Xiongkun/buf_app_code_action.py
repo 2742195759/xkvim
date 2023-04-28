@@ -1,5 +1,5 @@
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, CommandList
-from .func_register import vim_register, get_all_command
+from .func_register import vim_register, get_all_action
 from .vim_utils import SetVimRegister
 import vim
 
@@ -16,7 +16,6 @@ code_action_dict = {
     "create tmp file   | 创建新临时文件 |": "@CreateTmp",
     "change directory  |    更换目录    |": "@ChangeDirectory",
     "set remote        |  更换远程机器  |": "@SetRemote",
-    "git commit show   |  查看git的提交 |": "@GF",
 }
 
 @vim_register(command="CodeAction", keymap="<m-a>")
@@ -26,9 +25,10 @@ def CodeAction(args):
         keys.append(key)
         vals.append(val)
 
-    for command, doc in get_all_command():
-        keys.append("CMD: " + command + " | " + doc)
-        vals.append("@" + command)
+    for command, tags, direct_do in get_all_action():
+        keys.append(tags)
+        if not direct_do: command = "@" + command
+        vals.append(command)
         
     options = dict(
         minwidth=40,
