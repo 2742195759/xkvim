@@ -93,7 +93,8 @@ def DocPreviewUpdate(args):
     ## Overview
     *show* the CommandDocPreview window for promote.
     """
-    DocPreviewBuffer().set_command_doc().show()
+    cmd_type = vim.eval("expand('<afile>')")
+    if cmd_type == ':': DocPreviewBuffer().set_command_doc().show()
 
 @vim_register(command="DocPreviewHide")
 def DocPreviewHide(args):
@@ -101,7 +102,8 @@ def DocPreviewHide(args):
     ## Overview
     *hide* the CommandDocPreview window for promote.
     """
-    DocPreviewBuffer().set_command_doc().hide()
+    cmd_type = vim.eval("expand('<afile>')")
+    if cmd_type == ':': DocPreviewBuffer().hide()
 
 ### AutoCmd for DocPreview
 commands("""
