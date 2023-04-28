@@ -32,6 +32,15 @@ def SetRemote(args):
 
 @vim_register(command="Google", with_args=True)
 def Google(args):
+    """ 
+    # Overview
+    Google <text>
+    # Usage 
+    Google hello world
+    # Description
+    google the <text> in remote machine.
+    - <text> can be space split.
+    """
     from os import path as ops
     text = " ".join(args)
     if not text: 
@@ -46,6 +55,10 @@ def Google(args):
 
 @vim_register(command="Paper", with_args=True)
 def RandomReadPaper(args):
+    """ 
+    `Paper` command will open a paper list.
+    >>> Paper
+    """
     papers = [
         'Selected the Conference:',
         '1. 计算机自动化: Automated Software Engineering', 

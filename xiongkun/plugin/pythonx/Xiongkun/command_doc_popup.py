@@ -22,9 +22,12 @@ class DocPreviewBuffer(Buffer):
         }
         super().__init__("doc-preview", None, self.win_options)
         self.markdown_doc = "EmptyBuffer"
+        self.dirty = False
         self.create()
 
     def set_markdown_doc(self, markdown_doc):
+        if self.markdown_doc != markdown_doc and markdown_doc != "No Docs.":
+            self.dirty = True
         self.markdown_doc = markdown_doc
         self.onredraw()
         return self
@@ -47,8 +50,12 @@ class DocPreviewBuffer(Buffer):
 
     def show(self):
         super().show()
+        if self.dirty: 
+            vim.command("redraw")
+        self.dirty = False
         config = dict2str(self.win_options)
         vim.eval(f"popup_move({self.wid}, {config})")
+            
 
     def set_command_doc(self):
         vim.command("set eventignore=all")
@@ -61,6 +68,9 @@ class DocPreviewBuffer(Buffer):
         self.set_markdown_doc(get_docs(command))
         vim.command("set eventignore=")
         return self
+
+    def is_dirty(self):
+        self.dirty
 
 @vim_register(command="TestDocPreview", with_args=True)
 def TestDocPreview(args):
@@ -86,7 +96,6 @@ def DocPreviewUpdate(args):
     *show* the CommandDocPreview window for promote.
     """
     DocPreviewBuffer().set_command_doc().show()
-    vim.command("redraw")
 
 @vim_register(command="DocPreviewHide")
 def DocPreviewHide(args):
@@ -95,7 +104,6 @@ def DocPreviewHide(args):
     *hide* the CommandDocPreview window for promote.
     """
     DocPreviewBuffer().set_command_doc().hide()
-    vim.command("redraw")
 
 ### AutoCmd for DocPreview
 commands("""
