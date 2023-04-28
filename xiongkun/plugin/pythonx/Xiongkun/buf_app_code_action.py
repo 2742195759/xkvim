@@ -13,8 +13,8 @@ code_action_dict = {
     "yiyan login       |百度文心一言登录|": "YiyanLogin",
     "yiyan code        |文心一言代码生成|": "YiyanCode",
     "preview window    |   QuickPeek    |": "QuickPeek",
-    "create tmp file   | 创建新临时文件 |": "CreateTmp",
-    "change directory  |    更换目录    |": "ChangeDirectory",
+    "create tmp file   | 创建新临时文件 |": "@CreateTmp",
+    "change directory  |    更换目录    |": "@ChangeDirectory",
     "set remote        |  更换远程机器  |": "@SetRemote",
     "git commit show   |  查看git的提交 |": "@GF",
 }
@@ -51,28 +51,27 @@ def YiyanDebug(args):
     bufnr = int(vim.eval("bufnr()"))
     send_keys(bufnr, command + '\n')
 
-@vim_register(command="CreateTmp")
+@vim_register(command="CreateTmp", with_args=True)
 def CreateTmpfile(args):
-    try:
-        prefix = vim.eval("input('输入文件名后缀名:')")
-    except: 
-        return 
+    """
+    `CreateTmp <sufix>`: 创建一个临时文件，后缀为sufix
+    >>> CreateTmp py # 创建一个临时的python文件
+    >>> CreateTmp cc # 创建一个临时的c++文件
+    """
     tmp_name = vim.eval("tempname()")
-    vim.command(f"tabe {tmp_name}.{prefix}")
+    vim.command(f"tabe {tmp_name}.{args[0]}")
 
-@vim_register(command="ChangeDirectory")
+@vim_register(command="ChangeDirectory", with_args=True, command_completer="file")
 def ChangeDirectoryCommand(args):
     """ 
+    `ChangeDirectoryCommand <new-directory>`: change search directory and filefinder directory.
+    >>> ChangeDirectoryCommand /home/data/xkvim/
+    >>> ChangeDirectoryCommand /home/data/Paddle/
     更换当前的目录，包含两者：search directory 和 filefinder directory
     但是不包含NERDTree 和 vim 的根目录.
     """
-    try:
-        directory_path = vim.eval("input('输入一个新的目录路径:', '', 'file')")
-    except: 
-        return 
-    #vim.command(f"cd {directory_path}")
     vim.command(f"FR {directory_path}")
-    vim.command(f"ChangeSearchDirectory {directory_path}")
+    vim.command(f"ChangeSearchDirectory {args[0]}")
 
 def send_keys(bufnr, keys):
     vim.eval(f"term_sendkeys({bufnr}, \"{keys}\")")

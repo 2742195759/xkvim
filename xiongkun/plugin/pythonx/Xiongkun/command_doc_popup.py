@@ -4,14 +4,12 @@ from .vim_utils import Singleton, dict2str, TotalWidthHeight, commands
 import vim
 from .log import log
 
-# main.vim: DocPreviewGroup
-
 @Singleton
 class DocPreviewBuffer(Buffer):
     def __init__(self):
         col, line = TotalWidthHeight()
         self.win_options = {
-            'maxwidth': 80,
+            'maxwidth': 120,
             'minwidth': 50,
             'maxheight': 10,
             'filter': None,
