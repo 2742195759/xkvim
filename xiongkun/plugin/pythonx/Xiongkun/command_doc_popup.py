@@ -48,6 +48,7 @@ class DocPreviewBuffer(Buffer):
 
     def show(self):
         super().show()
+        self.execute(f'set conceallevel=3')
         if self.dirty: 
             vim.command("redraw")
         self.dirty = False

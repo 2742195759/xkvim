@@ -54,7 +54,7 @@ def YiyanDebug(args):
 @vim_register(command="CreateTmp", with_args=True)
 def CreateTmpfile(args):
     """
-    `CreateTmp <sufix>`: 创建一个临时文件，后缀为sufix
+    `CreateTmp <sufix>`: 创建一个临时文件，后缀为 _<sufix>_
     >>> CreateTmp py # 创建一个临时的python文件
     >>> CreateTmp cc # 创建一个临时的c++文件
     """

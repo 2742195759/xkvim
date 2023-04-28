@@ -18,13 +18,10 @@ from .remote_machine import RemoteConfig
 @vim_register(command="SetRemote", with_args=True)
 def SetRemote(args):
     """ 
-    ## SetRemote <remote-name>
-    ## Usage
-        >>> SetRemote pc
-        >>> SetRemote mac
-    ## valid remote name
-        - pc
-        - mac
+    `SetRemote <remote-name>`: 设置远程的机器，用于远程操作
+    1. _<remote-name>_ in [ pc | mac ]
+    >>> SetRemote pc
+    >>> SetRemote mac
     """
     RemoteConfig().set_remote(args[0])
     print(f"set the remote name to -> {args[0]}")
@@ -33,13 +30,9 @@ def SetRemote(args):
 @vim_register(command="Google", with_args=True)
 def Google(args):
     """ 
-    # Overview
-    Google <text>
-    # Usage 
-    Google hello world
-    # Description
-    google the <text> in remote machine.
-    - <text> can be space split.
+    `Google <text>`: google the _<text>_ in remote machine.
+    1. _<text>_ can be space split.
+    >>> Google hello world
     """
     from os import path as ops
     text = " ".join(args)
@@ -56,7 +49,7 @@ def Google(args):
 @vim_register(command="Paper", with_args=True)
 def RandomReadPaper(args):
     """ 
-    `Paper` command will open a paper list.
+    `Paper`: open a paper list.
     >>> Paper
     """
     papers = [
