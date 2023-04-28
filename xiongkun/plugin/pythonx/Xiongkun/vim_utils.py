@@ -974,3 +974,6 @@ def StringWidth(string):
 
 def StringBytes(string):
     return int(vim.eval(f"len('{string}')"))
+
+def TotalWidthHeight():
+    return int(vim.eval("&columns")), int(vim.eval("&lines"))

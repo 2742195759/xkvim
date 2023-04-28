@@ -34,6 +34,20 @@ import vim
 import sys
 import os
 
+DOC_STRING = {
+    
+}
+
+def register_docs(command, docs): 
+    if command: 
+        DOC_STRING[command] = docs
+
+def get_docs(command):
+    ret = DOC_STRING.get(command, None)
+    if ret is None: 
+        return "No Docs."
+    return ret
+
 def vim_register(name="", keymap="", command="", with_args=False, command_completer="", interactive=False):
     """
     keymap: i:MAP | MAP
@@ -41,6 +55,7 @@ def vim_register(name="", keymap="", command="", with_args=False, command_comple
     def decorator(func):
         # register in vim
         nonlocal keymap
+        register_docs(command, func.__doc__)
         keymap_mode = "nnoremap"
         if keymap.startswith("i:"):
             keymap_mode = "inoremap"

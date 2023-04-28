@@ -5,6 +5,7 @@ import os.path as osp
 from .func_register import *
 from .vim_utils import *
 from .buf_app import *
+from .remote_machine import RemoteConfig
 import re
 
 def OpenPR(pr_str):#{{{
@@ -280,6 +281,16 @@ class GitPreviewApp(Application):#{{{
 
 @vim_register(command="GF", with_args=True)
 def GitFileHistory(args):#{{{
+    """ 
+    ## Overview
+    GF [<author>]
+    ## Usage
+    >>> GF xiongkun03
+    >>> GF
+    ## Description
+    1. 如果GF没有参数，打印所有的 commit
+    2. 如果GF带author参数，打印所有Authro的commit
+    """
     command_getter  = None
     init_file = None
     if len(args) == 0: 

@@ -110,14 +110,15 @@ class Buffer:
     
     def _put_string(self, text, pos=1):
         text = escape(text)
-        vim.eval(f"setbufline({self.bufnr}, {pos}, \"{text}\")")
+        self.execute(f"call setbufline({self.bufnr}, {pos}, \"{text}\")")
+        #vim.eval(f"setbufline({self.bufnr}, {pos}, \"{text}\")")
 
     def _put_strings(self, texts):
         for idx, text in enumerate(texts):
             self._put_string(text, idx+1)
 
     def onredraw(self):
-        pass
+        raise NotImplementedError()
     
     def oninit(self):
         pass
@@ -143,10 +144,10 @@ class Buffer:
             if self.history: 
                 self.onrestore(self.history)
             self._set_keymap()
-            self._set_syntax()
             # custom initialized buffer options.
             self._set_autocmd()
             self._set_default_options()
+            self._set_syntax()
             self.oninit()
             self.redraw()
             self.after_redraw()
@@ -154,6 +155,9 @@ class Buffer:
 
     def after_redraw(self):
         pass
+
+    def hide(self):
+        if hasattr(self, "wid"): vim.eval(f"popup_hide({self.wid})")
 
     def delete(self):
         if self.state != "exit":
@@ -176,9 +180,16 @@ class Buffer:
 
     def show(self):
         assert hasattr(self, "bufnr")
+        if hasattr(self, "wid"): 
+            vim.eval(f"popup_show({self.wid})")
+            return
         self.options['cursorline'] = 0
+        with_filter = 1
+        if 'filter' in self.options and self.options['filter'] is None:
+            del self.options['filter']
+            with_filter = 0
         config = dict2str(self.options)
-        self.wid = vim.eval(f"VimPopupExperiment({self.bufnr}, {config})")
+        self.wid = vim.eval(f"VimPopupExperiment({self.bufnr}, {with_filter}, {config})")
 
     def start(self):
         self.create()
@@ -321,17 +332,6 @@ class FixStringBuffer(Buffer):
         self._clear()
         self._put_string(self.text)
 
-    def get_keymap(self):
-        """ some special key map for example.
-        """
-        return {
-            '<enter>': lambda x,y: print ("<enter>"),
-            '<space>': lambda x,y: print ("<space>"),
-            '<up>': lambda x,y: print ("<up>"),
-            '<f1>': lambda x,y: print ("<f1>"),
-            '<bs>': lambda x,y: print ("<bs>"),
-        }
-
 class BashCommandResultBuffer(Buffer):
     def __init__(self, bash_cmd, syntax=None, history=None, options=None):
         super().__init__("bash_cmd", history, options)
@@ -347,17 +347,6 @@ class BashCommandResultBuffer(Buffer):
         if self.bash_cmd: 
             self.execute(f"silent! 0read! {self.bash_cmd}")
         self.execute(f"normal! gg")
-
-class HelloworldApp(Application):
-    def __init__(self):
-        super().__init__()
-        self.layout = CreateWindowLayout(active_win="win")
-        self.mainbuf = FixStringBuffer("Hellow World")
-
-    def start(self):
-        self.layout.create()
-        self.mainbuf.create()
-        self.layout.set_buffer("win", self.mainbuf)
 
 class WidgetOption:
     def __init__(self):
@@ -1018,10 +1007,10 @@ class CommandList(FuzzyList):
         if cur_name is not None: 
             cmd = self.name2cmd[cur_name]
             if cmd[0] == '@': 
-                """ promote mode:
+                """ promote mode, with DocPreviewEnable
                 """
-                keys = f":{cmd[1:]} "
-                vim.eval(f'feedkeys("{keys}")')
+                prefix = cmd[1:]
+                vim.eval(f'feedkeys(":{prefix} ")')
             else: 
                 vim.command(cmd)
 

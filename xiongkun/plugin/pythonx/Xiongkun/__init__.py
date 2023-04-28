@@ -23,6 +23,7 @@ from .rpc import *
 from .yiyan import *
 from .buf_app_translate import *
 from .buf_app_code_action import *
+from .command_doc_popup import *
 
 pro = None; 
 

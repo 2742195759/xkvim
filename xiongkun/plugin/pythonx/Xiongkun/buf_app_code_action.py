@@ -16,6 +16,7 @@ code_action_dict = {
     "create tmp file   | 创建新临时文件 |": "CreateTmp",
     "change directory  |    更换目录    |": "ChangeDirectory",
     "set remote        |  更换远程机器  |": "@SetRemote",
+    "git commit show   |  查看git的提交 |": "@GF",
 }
 
 @vim_register(command="CodeAction", keymap="<m-a>")

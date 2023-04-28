@@ -17,6 +17,15 @@ from .remote_machine import RemoteConfig
 
 @vim_register(command="SetRemote", with_args=True)
 def SetRemote(args):
+    """ 
+    ## SetRemote <remote-name>
+    ## Usage
+        >>> SetRemote pc
+        >>> SetRemote mac
+    ## valid remote name
+        - pc
+        - mac
+    """
     RemoteConfig().set_remote(args[0])
     print(f"set the remote name to -> {args[0]}")
     print(f"    the os machine is  -> {RemoteConfig().get_machine()}")
