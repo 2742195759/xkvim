@@ -18,6 +18,10 @@ code_action_dict = {
     "set remote        |  更换远程机器  |": "@SetRemote",
 }
 
+vim.command(""" 
+inoremap <silent> <m-a> <cmd>CodeAction<cr>
+""")
+
 @vim_register(command="CodeAction", keymap="<m-a>")
 def CodeAction(args):
     keys, vals = [], []
@@ -40,9 +44,6 @@ def CodeAction(args):
     code_action.create()
     code_action.show()
 
-vim.command(""" 
-inoremap <silent> <m-a> <cmd>CodeAction<cr>
-""")
 
 @vim_register(command="YiyanLogin")
 def YiyanDebug(args):

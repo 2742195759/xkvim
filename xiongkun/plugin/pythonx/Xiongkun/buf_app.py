@@ -106,7 +106,8 @@ class Buffer:
         pass
 
     def _clear(self):
-        self.execute('execute "normal! ggdG"')
+        with NotChangeRegisterGuard('"'):
+            self.execute('execute "normal! ggdG"')
     
     def _put_string(self, text, pos=1):
         text = escape(text)
