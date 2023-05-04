@@ -1,4 +1,4 @@
-from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, CommandList
+from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, CommandList, BufferHistory
 from .func_register import vim_register, get_all_action
 from .vim_utils import SetVimRegister
 import vim
@@ -21,6 +21,11 @@ code_action_dict = {
 vim.command(""" 
 inoremap <silent> <m-a> <cmd>CodeAction<cr>
 """)
+vim.command(""" 
+inoremap <silent> <m-.> <cmd>CodeActionLast<cr>
+""")
+
+code_action_history = BufferHistory("code_action_history")
 
 @vim_register(command="CodeAction", keymap="<m-a>")
 def CodeAction(args):
@@ -40,10 +45,18 @@ def CodeAction(args):
         minheight=15,
         maxheight=15,
     )
-    code_action = CommandList("[ CodeAction ]", keys, vals, options)
+    code_action = CommandList("[ CodeAction ]", keys, vals, options, code_action_history)
     code_action.create()
     code_action.show()
 
+@vim_register(command="CodeActionLast", keymap="<m-.>")
+def CodeActionLast(args):
+    """ 
+    Code Action Last Repeat.
+    """
+    if code_action_history.is_empty():
+        return
+    CommandList.run_command(code_action_history._value['cmd'])
 
 @vim_register(command="YiyanLogin")
 def YiyanDebug(args):

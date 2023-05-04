@@ -57,6 +57,18 @@ def WindowQuit(args):
     obj = Buffer.instances[bufname]
     obj.delete()
 
+class BufferHistory:
+    def __init__(self, name):
+        self._value = None
+        self._name = name
+        pass
+
+    def set_value(self, value):
+        self._value = value
+
+    def is_empty(self):
+        return self._value is None
+
 class Buffer:
     instances = {}
     number = 0
@@ -73,6 +85,7 @@ class Buffer:
         self.options = options if options else {}
         self.appname = appname
         self.name = appname + self._name_generator()
+        assert isinstance(history, (BufferHistory, type(None)))
         self.history = history
         Buffer.instances[self.name] = self
         # TODO: add status here
@@ -98,12 +111,12 @@ class Buffer:
     def save(self):
         """ return the history to save.
         """
-        return None
+        raise NotImplementedError("Please implement save method in your buffer app.")
 
-    def onrestore(self, history):
+    def restore(self, history):
         """ restore object by history.
         """
-        pass
+        raise NotImplementedError("Please implement restore method in your buffer app.")
 
     def _clear(self):
         with NotChangeRegisterGuard('"'):
@@ -142,8 +155,8 @@ class Buffer:
     def create(self):
         self._create_buffer()
         with CursorGuard(), CurrentBufferGuard(self.bufnr):
-            if self.history: 
-                self.onrestore(self.history)
+            #if self.history: 
+                #self.onrestore(self.history)
             self._set_keymap()
             # custom initialized buffer options.
             self._set_autocmd()
@@ -168,6 +181,9 @@ class Buffer:
             self.execute(f"setlocal bufhidden=wipe") # can't wipeout in popup_windows, so we set bufhidden=wipe to force wipe. it works
             vim.command(f"bwipeout! {self.bufnr}") # can't wipeout in popup_windows
             del Buffer.instances[self.name]
+            self.state = "saving"
+            if self.history is not None:
+                self.history.set_value(self.save())
             self.state = "exit"
             self.on_exit()
 
@@ -995,8 +1011,8 @@ class FuzzyList(WidgetBufferWithInputs):
         self.update_ui(([], None))
 
 class CommandList(FuzzyList):
-    def __init__(self, type, names, commands, options={}):
-        super().__init__(type, names, type, None, options)
+    def __init__(self, type, names, commands, options={}, history=None):
+        super().__init__(type, names, type, history, options)
         assert (len(names) == len(commands)), "Length should be equal."
         self.name2cmd = {
             n: c for n, c in zip(names, commands)
@@ -1007,13 +1023,24 @@ class CommandList(FuzzyList):
         self.close()
         if cur_name is not None: 
             cmd = self.name2cmd[cur_name]
-            if cmd[0] == '@': 
-                """ promote mode, with DocPreviewEnable
-                """
-                prefix = cmd[1:]
-                vim.eval(f'feedkeys(":{prefix} ")')
-            else: 
-                vim.command(cmd)
+            CommandList.run_command(cmd)
+
+    @staticmethod
+    def run_command(cmd):
+        if cmd[0] == '@': 
+            """ promote mode, with DocPreviewEnable
+            """
+            prefix = cmd[1:]
+            vim.eval(f'feedkeys(":{prefix} ")')
+        else: 
+            vim.command(cmd)
+
+    def save(self):
+        history = {}
+        history['cur_item'] = self.widgets['result'].cur_item()
+        history['name2cmd'] = self.name2cmd
+        history['cmd'] = self.name2cmd[history['cur_item']]
+        return history
 
     def oninit(self):
         super().oninit()
