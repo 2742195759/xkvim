@@ -264,6 +264,7 @@ def SendFile(args):
     Usage: SendFile <local-file> | <local-dir> <remote-machine>
     upload file to 007 server and let remote machine open it.
     """
+    assert RemoteConfig().get_remote() == "mac", "Only support in mac."
     UploadFile(args[:1])
     if os.path.isfile(args[0]):
         open_cmd = f"open /tmp/tmpfile/{os.path.basename(args[0])}"

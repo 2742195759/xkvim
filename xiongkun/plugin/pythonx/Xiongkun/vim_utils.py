@@ -574,13 +574,16 @@ def CursorGuard():
 @contextmanager
 def CurrentBufferGuard(bufnr=None):
     saved_buf = vim.eval("bufnr()")
-    if bufnr: vim.command(f'b {bufnr}')
+    saved_view = vim.eval("winsaveview()")
+    if bufnr: vim.command(f'silent b {bufnr}')
     yield
-    vim.command(f'b {saved_buf}')
+    vim.command(f'silent b {saved_buf}')
+    vim.eval(f"winrestview({dict2str(saved_view)})")
 
 @contextmanager
 def CurrentWindowGuard(win_id=None):
     saved_id = vim.eval("win_getid()")
+    vim.eval("let ")
     if win_id is not None: 
         vim.eval(f'win_gotoid({win_id})')
     yield
@@ -605,7 +608,7 @@ def RedirGuard(name, mode='w'):
         redir_cmd = f"redir! {append}{name}"
     vim.command(redir_cmd)
     yield
-    vim.command("redir END")
+    vim.command("silent redir END")
 
 def ExecuteCommandInBuffer(bufnr, command):
     # TODO
