@@ -137,6 +137,33 @@ def run_python_file(python_file, **kwargs):
         return ""
     return info
 
+def run_file_in_terminal_window(file, **kwargs):
+    import subprocess
+    args_str = []
+    pre_command = ["source ~/.bashrc"]
+    with open(file, "r") as fp :
+        lines = fp.readlines()
+        for line in lines:
+            if line.startswith("#cmd:"):
+                line = line.replace("#cmd:", "").strip()
+                pre_command.append(line)
+                
+    for key, val in kwargs.items():
+        args_str.append(f"--{key} {val}")
+    args_str = " ".join(args_str)
+    if file.split(".")[-1] == 'py': 
+        pre_command.append(f"python3 ")
+    else: 
+        raise NotImplementedError("Not support file type.")
+    command_str = "&&".join(pre_command)
+    cmd = f"bash -c '{command_str} {file} {args_str}'"
+    log(f"Start run `{cmd}` in terminal windows.")
+    vim.command("bot terminal")
+    bufnr = vim.eval("bufnr()")
+    time.sleep(0.2)
+    from .remote_terminal import send_keys
+    send_keys(bufnr, cmd + "\n")
+
 @vim_register(command="Trans")
 def TranslateAndReplace(args):
     """ translate and replace the current visual highlight sentence.
@@ -171,12 +198,13 @@ def GastDump(args):
 
 @vim_register(command="Run", keymap="<F9>")
 def RunCurrentFile(args):
-    """ Dump a function's bytecode into screen.
     """
-    tmp_file = vim_utils.tempfile()
-    vim.command(f"silent! w {tmp_file}")
-    info = run_python_file(tmp_file)
-    print (info)
+    `Run`: Run a python file and print the output.
+    >>> Run
+    >>> <F9>
+    """
+    file = vim_utils.CurrentEditFile(True)
+    run_file_in_terminal_window(file)
 
 @vim_register(command="Copyfile")
 def PaddleCopyfile(args):

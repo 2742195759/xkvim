@@ -27,7 +27,7 @@ class DocPreviewBuffer(Buffer):
         if self.markdown_doc != markdown_doc and markdown_doc != "No Docs.":
             self.dirty = True
         self.markdown_doc = markdown_doc
-        self.onredraw()
+        self.redraw()
         return self
 
     def _set_syntax(self):

@@ -138,7 +138,7 @@ class Buffer:
         pass
     
     def redraw(self):
-        with CursorGuard():
+        with CursorGuard(), CurrentBufferGuard(self.bufnr):
             self.onredraw()
 
     def onwipeout(self):
