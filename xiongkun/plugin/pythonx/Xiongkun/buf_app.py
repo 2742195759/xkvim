@@ -1036,10 +1036,12 @@ class CommandList(FuzzyList):
             vim.command(cmd)
 
     def save(self):
-        history = {}
-        history['cur_item'] = self.widgets['result'].cur_item()
-        history['name2cmd'] = self.name2cmd
-        history['cmd'] = self.name2cmd[history['cur_item']]
+        history = None
+        if self.widgets['result'].cur_item() is not None:
+            history = {}
+            history['cur_item'] = self.widgets['result'].cur_item()
+            history['name2cmd'] = self.name2cmd
+            history['cmd'] = self.name2cmd[history['cur_item']]
         return history
 
     def oninit(self):
