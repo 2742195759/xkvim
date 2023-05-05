@@ -269,20 +269,14 @@ def SendFile(args):
     >>> SendFile /home/data/tmp.py # send a single file and open it.
     >>> SendFile /home/data/ # send a directory and open it.
     """
-    assert RemoteConfig().get_remote() == "mac", "Only support in mac."
     if not os.path.isfile(args[0]) and not os.path.isdir(args[0]): 
         print("Please inputs a valid direcotry or file path.")
         return
-    UploadFile(args[:1])
-    exe_machine = "mac"
+    exe_machine = RemoteConfig().get_remote()
     if len(args) >= 2: exe_machine = args[1]
+    assert exe_machine in ["mac", "pc"], "Only support in mac and windows."
     with remote_machine_guard(exe_machine): 
-        cmd = [
-            "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
-            "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
-            "cd /tmp/tmpfile ",
-        ]
-        RemoteConfig().get_machine().execute(cmd)
+        RemoteConfig().get_machine().send_file(args[0])
 
 @vim_register(command="PreviewFile", with_args=True, command_completer="file")
 def PreviewFile(args):
@@ -292,22 +286,14 @@ def PreviewFile(args):
     >>> PreviewFile /home/data/tmp.py # send a single file and open it.
     >>> PreviewFile /home/data/ # send a directory and open it.
     """
-    assert RemoteConfig().get_remote() == "mac", "Only support in mac."
-    if os.path.isfile(args[0]):
-        open_cmd = f"open /tmp/tmpfile/{os.path.basename(args[0])}"
-    elif os.path.isdir(args[0]): 
-        open_cmd = f"open /tmp/tmpfile"
-    else: 
+    if not os.path.isfile(args[0]) and not os.path.isdir(args[0]): 
         print("Please inputs a valid direcotry or file path.")
         return
-    exe_machine = "mac"
+    exe_machine = RemoteConfig().get_remote()
     if len(args) >= 2: exe_machine = args[1]
     SendFile(args)
     with remote_machine_guard(exe_machine): 
-        cmd = [
-            open_cmd
-        ]
-        RemoteConfig().get_machine().execute(cmd)
+        RemoteConfig().get_machine().preview_file(args[0])
 
 @vim_register(command="ShareCodeCopyClipboard")
 def CopyClipboard(args):

@@ -36,7 +36,7 @@ class OSMachine:
         self.name = remote_name
 
     def _join_cmd(self, cmd_list): 
-        raise NotImplementedError()
+        return " && ".join(cmd_list)
 
     def _command_escape(self, cmd):
         return cmd
@@ -44,13 +44,16 @@ class OSMachine:
     def execute(self, cmd):
         if isinstance(cmd, list):
             cmd = self._join_cmd(cmd)
-        cmd = self._command_escape(cmd)
+        #cmd = self._command_escape(cmd)
         ExecuteCommand(self.name, cmd, silent=True)
         
     def chrome(self, url):
         raise NotImplementedError()
 
-    def show_file(self, url):
+    def send_file(self, filepath):
+        raise NotImplementedError()
+
+    def preview_file(self, filepath):
         raise NotImplementedError()
 
     def set_clipboard(self):
@@ -67,8 +70,26 @@ class MacMachine(OSMachine):
         cmd = """open "%s" """ % url
         self.execute(cmd)
 
-    def show_file(self, url):
-        raise NotImplementedError()
+    def send_file(self, filepath):
+        from .converse_plugin import UploadFile
+        UploadFile([filepath])
+        cmd = [
+            "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
+            "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
+            "cd /tmp/tmpfile ",
+        ]
+        self.execute(cmd)
+
+    def preview_file(self, filepath):
+        if os.path.isfile(filepath):
+            open_cmd = f"open /tmp/tmpfile/{os.path.basename(filepath)}"
+        elif os.path.isdir(filepath): 
+            open_cmd = f"open /tmp/tmpfile"
+        else: 
+            print("Please inputs a valid direcotry or file path.")
+            return
+        cmd = [ open_cmd ]
+        self.execute(cmd)
 
     def set_clipboard(self):
         cmd = "curl http://10.255.125.22:8082/share.txt | pbcopy "
@@ -86,8 +107,29 @@ class WindowMachine(OSMachine):
         cmd = cmd.replace('&', '"&"')
         return cmd
 
-    def show_file(self, url):
-        raise NotImplementedError()
+    def send_file(self, filepath):
+        from .converse_plugin import UploadFile
+        UploadFile([filepath])
+        cmd = [
+            "curl http://10.255.125.22:8082/tmpfile.tar --output C:\\Users\\xiongkun\\Desktop\\linux\\XKConverser-develop\\tmpfile.tar",
+            "cd C:\\Users\\xiongkun\\Desktop\\linux\\XKConverser-develop",
+            "tar -zxvf tmpfile.tar && del tmpfile.tar " , 
+        ]
+        self.execute(cmd)
+
+    def preview_file(self, filepath):
+        if os.path.isfile(filepath):
+            open_cmd = f"start tmpfile\\{os.path.basename(filepath)}"
+        elif os.path.isdir(filepath): 
+            open_cmd = f"start tmpfile"
+        else: 
+            print("Please inputs a valid direcotry or file path.")
+            return
+        cmd = [ 
+            "cd C:\\Users\\xiongkun\\Desktop\\linux\\XKConverser-develop",
+            open_cmd 
+        ]
+        self.execute(cmd)
 
     def set_clipboard(self):
         cmd = "curl http://10.255.125.22:8082/share.txt | clip "
