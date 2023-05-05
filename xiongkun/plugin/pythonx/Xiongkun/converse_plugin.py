@@ -225,7 +225,7 @@ def PaddleDocumentFile(args):
     if not text: 
         text = vim_utils.GetCurrentWord()
     url_text = quote(text)
-    url = f"https://www.paddlepaddle.org.cn/searchall?q={url_text}&language=zh&version=2.3"
+    url = RemoteConfig().get_machine()._command_escape(f"https://www.paddlepaddle.org.cn/searchall?q={url_text}&language=zh&version=2.3")
     RemoteConfig().get_machine().chrome(url)
 
 @vim_register(command="ShareCode")
