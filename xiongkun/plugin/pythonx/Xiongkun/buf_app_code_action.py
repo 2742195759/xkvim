@@ -2,6 +2,7 @@ from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput
 from .func_register import vim_register, get_all_action
 from .vim_utils import SetVimRegister
 import vim
+import os
 
 code_action_dict = {
     "file finder       |  文件模糊查找  |": "FF",
@@ -84,6 +85,8 @@ def ChangeDirectoryCommand(args):
     更换当前的目录，包含两者：search directory 和 filefinder directory
     但是不包含NERDTree 和 vim 的根目录.
     """
+    assert len(args) == 1 and os.path.isdir(args[0]), "Please input a directory."
+    directory_path = args[0]
     vim.command(f"FR {directory_path}")
     vim.command(f"ChangeSearchDirectory {args[0]}")
 
