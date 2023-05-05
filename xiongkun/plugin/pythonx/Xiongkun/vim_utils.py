@@ -575,9 +575,9 @@ def CursorGuard():
 def CurrentBufferGuard(bufnr=None):
     saved_buf = vim.eval("bufnr()")
     saved_view = vim.eval("winsaveview()")
-    if bufnr: vim.command(f'silent b {bufnr}')
+    if bufnr: vim.command(f'silent keepjump b {bufnr}')
     yield
-    vim.command(f'silent b {saved_buf}')
+    vim.command(f'silent keepjump b {saved_buf}')
     vim.eval(f"winrestview({dict2str(saved_view)})")
 
 @contextmanager

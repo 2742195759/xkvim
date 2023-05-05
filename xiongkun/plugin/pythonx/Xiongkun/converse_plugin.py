@@ -13,7 +13,7 @@ import os.path as osp
 from .log import log, log_google
 from urllib.parse import quote
 import shlex
-from .remote_machine import RemoteConfig
+from .remote_machine import RemoteConfig, remote_machine_guard
 
 @vim_register(command="SetRemote", with_args=True, action_tag="set remote")
 def SetRemote(args):
@@ -249,7 +249,10 @@ def ShareCodeToClipboard(args):
 
 @vim_register(command="UploadFile", with_args=True)
 def UploadFile(args):
-    """ send a compressed file in local machine into 007 server and renamed to tmpfile.tar
+    """ 
+    `UploadFile (<local-file>|<local-dir>) `: send a compressed file in local machine into 007 server and renamed to tmpfile.tar
+    >>> UploadFile /home/data/tmp.py # upload a single file.
+    >>> UploadFile /home/data/ # upload a directory.
     """
     if len(args) != 1: 
         print ("Usage: SendFile <local_file>|<local_dir>")
@@ -261,25 +264,47 @@ def UploadFile(args):
 @vim_register(command="SendFile", with_args=True, command_completer="file")
 def SendFile(args):
     """ 
-    Usage: SendFile <local-file> | <local-dir> <remote-machine>
-    upload file to 007 server and let remote machine open it.
+    `SendFile (<local-file> | <local-dir>) <remote-machine>`: upload file to 007 server and let remote machine open it.
+    ----------------------------------------------------
+    >>> SendFile /home/data/tmp.py # send a single file and open it.
+    >>> SendFile /home/data/ # send a directory and open it.
     """
     assert RemoteConfig().get_remote() == "mac", "Only support in mac."
+    if not os.path.isfile(args[0]) and not os.path.isdir(args[0]): 
+        print("Please inputs a valid direcotry or file path.")
+        return
     UploadFile(args[:1])
+    exe_machine = "mac"
+    if len(args) >= 2: exe_machine = args[1]
+    with remote_machine_guard(exe_machine): 
+        cmd = [
+            "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
+            "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
+            "cd /tmp/tmpfile ",
+        ]
+        RemoteConfig().get_machine().execute(cmd)
+
+@vim_register(command="PreviewFile", with_args=True, command_completer="file")
+def PreviewFile(args):
+    """ 
+    `PreviewFile (<local-file> | <local-dir>) <remote-machine>`: upload file to 007 server and let remote machine open it.
+    ----------------------------------------------------
+    >>> PreviewFile /home/data/tmp.py # send a single file and open it.
+    >>> PreviewFile /home/data/ # send a directory and open it.
+    """
+    assert RemoteConfig().get_remote() == "mac", "Only support in mac."
     if os.path.isfile(args[0]):
         open_cmd = f"open /tmp/tmpfile/{os.path.basename(args[0])}"
     elif os.path.isdir(args[0]): 
         open_cmd = f"open /tmp/tmpfile"
     else: 
         print("Please inputs a valid direcotry or file path.")
-    if len(args) <= 1:
-        exe_machine = "mac"
-    exe_machine = args[1]
+        return
+    exe_machine = "mac"
+    if len(args) >= 2: exe_machine = args[1]
+    SendFile(args)
     with remote_machine_guard(exe_machine): 
         cmd = [
-            "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
-            "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
-            "cd /tmp/tmpfile ",
             open_cmd
         ]
         RemoteConfig().get_machine().execute(cmd)

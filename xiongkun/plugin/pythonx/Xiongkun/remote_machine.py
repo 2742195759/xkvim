@@ -61,7 +61,7 @@ class MacMachine(OSMachine):
         super().__init__(remote_name)
 
     def _join_cmd(self, cmd_list): 
-        raise " && ".join(cmd_list)
+        return " && ".join(cmd_list)
 
     def chrome(self, url):
         cmd = """open "%s" """ % url
