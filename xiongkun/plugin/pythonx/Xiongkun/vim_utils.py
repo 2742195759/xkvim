@@ -488,7 +488,6 @@ def vimcommand(cmd):
     vim_dispatcher.call(vim.command, [cmd])
 
 def vimeval(cmd):
-    #log("VIMEVAL:", cmd)
     ret = vim.eval(cmd)
     return ret
     ret = vim_dispatcher.call(vim.eval, [cmd])
@@ -583,7 +582,6 @@ def CurrentBufferGuard(bufnr=None):
 @contextmanager
 def CurrentWindowGuard(win_id=None):
     saved_id = vim.eval("win_getid()")
-    vim.eval("let ")
     if win_id is not None: 
         vim.eval(f'win_gotoid({win_id})')
     yield
