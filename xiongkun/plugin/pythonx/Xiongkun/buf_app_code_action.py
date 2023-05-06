@@ -5,13 +5,6 @@ import vim
 import os
 
 code_action_dict = {
-<<<<<<< HEAD
-    "file finder       |  文件查找  |": "FF", 
-    "universe search   | 关键字查找 |": "call UniverseSearch()", 
-    "baidu_fanyi       |  百度翻译  |": "Fanyi",
-    "yiyan             |百度文心一言|": "YiyanTrigger", 
-    "preview window    |  QuickPeek |": "QuickPeek",
-=======
     "file finder       |  文件模糊查找  |": "FF",
     "universe find     |   关键字查找   |": "call UniverseSearch()",
     "google            |    谷歌查找    |": "GoogleUI",
@@ -24,7 +17,6 @@ code_action_dict = {
     "create tmp file   | 创建新临时文件 |": "@CreateTmp",
     "change directory  |    更换目录    |": "@ChangeDirectory",
     "set remote        |  更换远程机器  |": "@SetRemote",
->>>>>>> 2973ea9367b22f723f3225771942652c98836425
 }
 
 vim.command(""" 
