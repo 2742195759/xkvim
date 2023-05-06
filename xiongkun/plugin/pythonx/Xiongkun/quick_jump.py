@@ -63,7 +63,7 @@ class JumpItem:
         if onjump is None: 
             onjump = buffer_jump
         screen_pos = vim_utils.VimWindow(winid).to_screen_pos(buffer_pos[0], buffer_pos[1])
-        log("[InnerWindow]: screen pos: ", screen_pos)
+        #log("[InnerWindow]: screen pos: ", screen_pos)
         item = JumpItem(screen_pos, onjump, callback)
         item.bufpos = buffer_pos
         return item
@@ -160,7 +160,7 @@ def get_char_no_throw():
         c = None
     return c
 
-def interactive_buffer_jump(searched): 
+def interactive_buffer_jump(keys, search_fn): 
     # perform jump
     def jump_procedure(c):
         clear_last()
@@ -186,6 +186,13 @@ def interactive_buffer_jump(searched):
         for m in matches:
             m.delete()
     # max item is support for len(all_labels)
+    yield "redraw"
+    inp = None
+    if keys > 0: 
+        inp = get_pattern(keys)
+        if inp is None: 
+            return 
+    searched = search_fn(inp)
     label_map, matches = redraw(searched)
     if len(searched) == 0: 
         print("not found!")
@@ -248,12 +255,11 @@ def recover_buffer(searched):
 @vim_register(command="BufferJump", with_args=True, interactive=True)
 def BufferJump(args):
     ## search all the matches
-    pattern = get_pattern(1)
-    if pattern is None: return
     vim_utils.WindowView.clear()
-    searched = search_in_window(pattern, VimWindow().id)
+    def search_fn(pattern):
+        return search_in_window(pattern, VimWindow().id)
     from .ijump import DFAContext
-    DFAContext().set_dfa(interactive_buffer_jump(searched))
+    DFAContext().set_dfa(interactive_buffer_jump(1, search_fn))
 
 #@vim_register(command="JumpInnerWindow", with_args=True, interactive=True)
 def JumpLines(args):
@@ -265,37 +271,40 @@ def JumpLines(args):
     on_select = default_select
     if len(args) >= 2: 
         on_select = args[1]
-    searched = inner_window_lines(win_id, on_select)
-
-    # finetune by popup windows lines.
-    for search in searched: 
-        screen_pos = search.screen_pos
-        search.screen_pos = screen_pos[0]+1, screen_pos[1]+2
-    searched = searched[:-1]
+    def search_fn(pattern):
+        searched = inner_window_lines(win_id, on_select)
+        for search in searched: 
+            screen_pos = search.screen_pos
+            search.screen_pos = screen_pos[0]+1, screen_pos[1]+2
+        searched = searched[:-1]
+        return searched
 
     from .ijump import DFAContext
-    DFAContext().set_dfa(interactive_buffer_jump(searched))
+    DFAContext().set_dfa(interactive_buffer_jump(0, search_fn))
     vim.command("call InteractDo()")
 
 @vim_register(command="WindowJump", with_args=True, interactive=True)
 def WindowJump(args):
-    searched = [] # lineno, startpos, endpos: [startpos, endpos)
-    for win_id in vim_utils.IteratorWindowCurrentTab():
-        searched.append(JumpItem.from_window_display_pos((1,1), win_id, None))
+    vim_utils.WindowView.clear()
+    def search_fn(pattern):
+        searched = [] # lineno, startpos, endpos: [startpos, endpos)
+        for win_id in vim_utils.IteratorWindowCurrentTab():
+            searched.append(JumpItem.from_window_display_pos((1,1), win_id, None))
+        return searched 
     from .ijump import DFAContext
-    DFAContext().set_dfa(interactive_buffer_jump(searched))
+    DFAContext().set_dfa(interactive_buffer_jump(0, search_fn))
 
 @vim_register(command="GlobalJump", with_args=True, interactive=True)
 def GlobalJump(args):
     ## search all the matches
-    pattern = get_pattern(2)
-    if pattern is None: return
-    searched = []
-    vim_utils.WindowView.clear()
-    for win_id in vim_utils.IteratorWindowCurrentTab():
-        searched.extend(search_in_window(pattern, win_id))
     from .ijump import DFAContext
-    DFAContext().set_dfa(interactive_buffer_jump(searched))
+    def search_fn(pattern):
+        searched = []
+        vim_utils.WindowView.clear()
+        for win_id in vim_utils.IteratorWindowCurrentTab():
+            searched.extend(search_in_window(pattern, win_id))
+        return searched 
+    DFAContext().set_dfa(interactive_buffer_jump(2, search_fn))
 
 @vim_register(command="QuickPeek", with_args=True)
 def QuickPeek(args):

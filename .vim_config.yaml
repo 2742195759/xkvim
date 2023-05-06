@@ -1,0 +1,32 @@
+search_config: [
+    '--exclude-dir="/build/*"',
+    '--exclude-dir="/.git/*"',
+    '--exclude-dir="/doc/*"',
+    '--exclude-dir="/docs/*"',
+    '--exclude-dir="/patches/*"',
+    '--exclude-dir="/r/*"',
+    '--exclude-dir="/tools/*"',
+    '--exclude-dir="/Default/*"',
+    '--exclude="tags"',
+    '--exclude="*.cmake"',
+    '--exclude="*.json"',
+    '--exclude="*.sh"',
+    '--exclude-dir="/__pycache__/*"',
+    '--exclude="*.log"',
+    '--exclude-dir="/node-v*"',
+    '--exclude-dir="/BrowserMetrics*"',
+]
+
+terminal_abbreviate: [
+    ["PYTHONPATH", 'PYTHONPATH=/home/data/Paddle/build/python'], 
+    ["xkpdb", "breakpoint()"], 
+    ["proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\nexport no_proxy=localhost,bj.bcebos.com,su.bcebos.com,paddle-wheel.bj.bcebos.com\n"], 
+    ["noproxy", "unset http_proxy\nunset https_proxy\n"], 
+    ["CUDA_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES=2"], 
+    ["copy_file.sh", "/home/data/web/scripts/copy_file.sh"],
+    ["main_program", "paddle.static.default_main_program()"],
+    ["FLAGS_cudnn_deterministic", "FLAGS_cudnn_deterministic=True"],
+    ["git-push", "git push origin develop\n"],
+]
+
+

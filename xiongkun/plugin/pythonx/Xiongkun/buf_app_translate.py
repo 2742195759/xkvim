@@ -3,6 +3,50 @@ from .func_register import vim_register
 from .vim_utils import SetVimRegister, Normal_GI
 import vim
 
+class BrowserSearchBuffer(WidgetBufferWithInputs): 
+    def __init__(self, name, title, hint=None):
+        if not hint:
+            hint = "输入enter键，在mac上打开网页:"
+        widgets = [
+            SimpleInput(prom="input", name="input"),
+            TextWidget(hint, name=""),
+        ]
+        options = {
+            'title': title, 
+            'maxwidth': 100, 
+            'minwidth': 50,
+            'maxheight': 3, 
+        }
+        root = WidgetList("", widgets, reverse=False)
+        super().__init__(root, name, None, options)
+
+    def on_insert_input(self, key):
+        if key == '<cr>': 
+            text = self.widgets["input"].text
+            self.on_enter(text)
+            self.close()
+            return True
+        self.widgets["input"].on_type(key)
+        self.redraw()
+        return True
+
+    def on_enter(self, text):
+        raise NotImplementedError("Please implement the on_enter method")
+
+class GoogleSearch(BrowserSearchBuffer): 
+    def __init__(self):
+        super().__init__("Google", "Google搜索")
+
+    def on_enter(self, text):
+        vim.command(f"Google {text}")
+
+class PaddleDocSearch(BrowserSearchBuffer): 
+    def __init__(self):
+        super().__init__("PaddleDoc", "Paddle文档搜索")
+
+    def on_enter(self, text):
+        vim.command(f"Pdoc {text}")
+
 class TranslatorBuffer(WidgetBufferWithInputs): 
     def __init__(self):
         widgets = [
@@ -45,4 +89,17 @@ def TestBaidufanyi(args):
     ff = TranslatorBuffer()
     ff.create()
     ff.show()
+    
+@vim_register(command="GoogleUI")
+def TestGoogleUI(args):
+    ff = GoogleSearch()
+    ff.create()
+    ff.show()
+
+@vim_register(command="PdocUI")
+def TestPdocUI(args):
+    ff = PaddleDocSearch()
+    ff.create()
+    ff.show()
+    
     

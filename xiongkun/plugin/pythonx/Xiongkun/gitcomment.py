@@ -4,8 +4,8 @@ import os
 import os.path as osp
 from .func_register import *
 from .vim_utils import *
-from .converse_plugin import open_url_on_mac
 from .buf_app import *
+from .remote_machine import RemoteConfig
 import re
 
 def OpenPR(pr_str):#{{{
@@ -23,7 +23,7 @@ def OpenPR(pr_str):#{{{
         return
     if url_first.endswith('.git'): url_first = url_first[:-4]
     url = f'{url_first}/pull/{pr_str}'
-    open_url_on_mac(url)#}}}
+    RemoteConfig().get_machine().chrome(url) #}}}
 
 def _ParsePR(filepath, line_nr):#{{{
     commit_id, info, content, comment = GetGitComment(filepath, line_nr)
@@ -45,8 +45,12 @@ def GetGitComment(filepath, line_nr):#{{{
     comment = str(comment.read())
     return commit_id, info, content, comment#}}}
 
-@vim_register(command="GG")
+@vim_register(command="GG", action_tag="git blame")
 def ShowGitComment(args):#{{{
+    """
+    `GG`: show git comment of current line
+    >>> GG
+    """
     try:
         filepath = CurrentEditFile()
         line_nr = GetCursorXY()[0]
@@ -279,8 +283,18 @@ class GitPreviewApp(Application):#{{{
         self.git_log_layout.create({'win': self.git_log_buf})
 #}}}
 
-@vim_register(command="GF", with_args=True)
+@vim_register(command="GF", with_args=True, action_tag="git history")
 def GitFileHistory(args):#{{{
+    """ 
+    ## Overview
+    GF [<author>]
+    ## Usage
+    >>> GF xiongkun03
+    >>> GF
+    ## Description
+    1. 如果GF没有参数，打印所有的 commit
+    2. 如果GF带author参数，打印所有Authro的commit
+    """
     command_getter  = None
     init_file = None
     if len(args) == 0: 

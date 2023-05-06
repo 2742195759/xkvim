@@ -13,39 +13,27 @@ import os.path as osp
 from .log import log, log_google
 from urllib.parse import quote
 import shlex
+from .remote_machine import RemoteConfig, remote_machine_guard
 
-@vim_utils.Singleton
-class RemoteConfig:
-    def __init__(self):
-        self.remote_name = None
-        pass
-
-    def set_remote(self, remote_name):
-        self.remote_name = remote_name
-
-    def get_remote(self):
-        assert self.remote_name is not None, "Please set remote first."
-        return self.remote_name
-
-def open_url_on_mac(url):
-    cmd = """open "%s" """ % url
-    ExecuteCommand("mac", cmd, silent=True)
-    
-def ExecuteCommand(name, cmd, silent=True):
-    import json
-    import requests
-    headers = {"Content-Type":"application/json"}
-    headers['Type'] = 'snd'
-    headers['Name'] = name
-    ret = requests.post("http://10.255.125.22:8084", data=json.dumps({"cmd": cmd, 'password':'807377414'}), headers=headers)
-    if not silent or ret.status_code != 200:
-        print (f"Return Code is {ret.status_code}, please check the server.")
-        print (f"{ret.reason}")
-    if not silent: 
-        print (ret.text)
+@vim_register(command="SetRemote", with_args=True, action_tag="set remote")
+def SetRemote(args):
+    """ 
+    `SetRemote <remote-name>`: 设置远程的机器，用于远程操作
+    1. _<remote-name>_ in [ pc | mac ]
+    >>> SetRemote pc
+    >>> SetRemote mac
+    """
+    RemoteConfig().set_remote(args[0])
+    print(f"set the remote name to -> {args[0]}")
+    print(f"    the os machine is  -> {RemoteConfig().get_machine()}")
 
 @vim_register(command="Google", with_args=True)
 def Google(args):
+    """ 
+    `Google <text>`: google the _<text>_ in remote machine.
+    1. _<text>_ can be space split.
+    >>> Google hello world
+    """
     from os import path as ops
     text = " ".join(args)
     if not text: 
@@ -55,12 +43,15 @@ def Google(args):
     """ 
     MacOs: open "http://" can open a http website in default browser.
     """
-    cmd = """open "https://www.google.com.hk/search?q=%s" """ % url_text
-    log(cmd)
-    ExecuteCommand("mac", cmd, silent=True)
+    url = """https://www.google.com.hk/search?q=%s""" % url_text
+    RemoteConfig().get_machine().chrome(url)
 
 @vim_register(command="Paper", with_args=True)
 def RandomReadPaper(args):
+    """ 
+    `Paper`: open a paper list.
+    >>> Paper
+    """
     papers = [
         'Selected the Conference:',
         '1. 计算机自动化: Automated Software Engineering', 
@@ -75,9 +66,7 @@ def RandomReadPaper(args):
     ]
     lis = vim_utils.VimVariable(papers)
     selected = int(vim.eval(f"inputlist({lis.name()})"))
-    open_url_on_mac(link[selected])
-    #open_url_on_mac("https://www.ccf.org.cn/Academic_Evaluation/TCS/")
-    #"http://acm-stoc.org/stoc2021/accepted-papers.html"
+    RemoteConfig().get_machine().chrome(link[selected])
 
 @vim_register(command="ProfileProject", with_args=True)
 def ProfileProject(args):
@@ -148,6 +137,39 @@ def run_python_file(python_file, **kwargs):
         return ""
     return info
 
+def run_file_in_terminal_window(file, **kwargs):
+    import subprocess
+    args_str = []
+    pre_command = ["source ~/.bashrc"]
+    with open(file, "r") as fp :
+        lines = fp.readlines()
+        for line in lines:
+            if line.startswith("#cmd:"):
+                line = line.replace("#cmd:", "").strip()
+                pre_command.append(line)
+                
+    for key, val in kwargs.items():
+        args_str.append(f"--{key} {val}")
+    args_str = " ".join(args_str)
+    if file.split(".")[-1] == 'py': 
+        pre_command.append(f"python3 ")
+    elif file.split(".")[-1] in ['hs', 'haskell']: 
+        pre_command.append(f"runhaskell ")
+    else: 
+        raise NotImplementedError("Not support file type.")
+    command_str = "&&".join(pre_command)
+    cmd = f"bash -c '{command_str} {file} {args_str}'"
+    if int(vim.eval("bufexists('terminal_run_file')")) == 0: 
+        log(f"Start run `{cmd}` in terminal windows.")
+        with vim_utils.CurrentWindowGuard():
+            vim.command("bot terminal")
+            bufnr = vim.eval("bufnr()")
+            vim.command("file terminal_run_file")
+    bufnr = vim.eval("bufnr('terminal_run_file')")
+    time.sleep(0.1)
+    from .remote_terminal import send_keys
+    send_keys(bufnr, cmd + "\n")
+
 @vim_register(command="Trans")
 def TranslateAndReplace(args):
     """ translate and replace the current visual highlight sentence.
@@ -182,12 +204,13 @@ def GastDump(args):
 
 @vim_register(command="Run", keymap="<F9>")
 def RunCurrentFile(args):
-    """ Dump a function's bytecode into screen.
     """
-    tmp_file = vim_utils.tempfile()
-    vim.command(f"silent! w {tmp_file}")
-    info = run_python_file(tmp_file)
-    print (info)
+    `Run`: Run a python file and print the output.
+    >>> Run
+    >>> <F9>
+    """
+    file = vim_utils.CurrentEditFile(True)
+    run_file_in_terminal_window(file)
 
 @vim_register(command="Copyfile")
 def PaddleCopyfile(args):
@@ -208,10 +231,10 @@ def PaddleDocumentFile(args):
     if not text: 
         text = vim_utils.GetCurrentWord()
     url_text = quote(text)
-    url = f"https://www.paddlepaddle.org.cn/searchall?q={url_text}&language=zh&version=2.3"
-    open_url_on_mac(url)
+    url = RemoteConfig().get_machine()._command_escape(f"https://www.paddlepaddle.org.cn/searchall?q={url_text}&language=zh&version=2.3")
+    RemoteConfig().get_machine().chrome(url)
 
-@vim_register(command="Share")
+@vim_register(command="ShareCode")
 def ShareCode(args):
     """ we share code into 0007 server.
     """
@@ -220,9 +243,22 @@ def ShareCode(args):
     if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt")[0]: 
         print ("Your code is shared into http://10.255.125.22:8082/share.txt")
 
+@vim_register(command="Share")
+def ShareCodeToClipboard(args):
+    """ we share code into 0007 server.
+    """
+    word = vim_utils.GetVisualWords()
+    open("/tmp/share.txt", "w").write(word)
+    if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt")[0]: 
+        vim.command("ShareCodeCopyClipboard")
+        
+
 @vim_register(command="UploadFile", with_args=True)
 def UploadFile(args):
-    """ send a compressed file in local machine into 007 server and renamed to tmpfile.tar
+    """ 
+    `UploadFile (<local-file>|<local-dir>) `: send a compressed file in local machine into 007 server and renamed to tmpfile.tar
+    >>> UploadFile /home/data/tmp.py # upload a single file.
+    >>> UploadFile /home/data/ # upload a directory.
     """
     if len(args) != 1: 
         print ("Usage: SendFile <local_file>|<local_dir>")
@@ -234,23 +270,38 @@ def UploadFile(args):
 @vim_register(command="SendFile", with_args=True, command_completer="file")
 def SendFile(args):
     """ 
-    Usage: SendFile <local-file> | <local-dir> <remote-machine>
-    upload file to 007 server and let remote machine open it.
+    `SendFile (<local-file> | <local-dir>) <remote-machine>`: upload file to 007 server and let remote machine open it.
+    ----------------------------------------------------
+    >>> SendFile /home/data/tmp.py # send a single file and open it.
+    >>> SendFile /home/data/ # send a directory and open it.
     """
-    UploadFile(args[:1])
-    if os.path.isfile(args[0]):
-        open_cmd = f"open /tmp/tmpfile/{os.path.basename(args[0])}"
-    elif os.path.isdir(args[0]): 
-        open_cmd = f"open /tmp/tmpfile"
-    else: 
+    if not os.path.isfile(args[0]) and not os.path.isdir(args[0]): 
         print("Please inputs a valid direcotry or file path.")
-    if len(args) <= 1:
-        exe_machine = "mac"
-    exe_machine = args[1]
-    cmd = [
-        "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
-        "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
-        "cd /tmp/tmpfile ",
-        open_cmd
-    ]
-    ExecuteCommand(exe_machine, "&&".join(cmd), silent=True)
+        return
+    exe_machine = RemoteConfig().get_remote()
+    if len(args) >= 2: exe_machine = args[1]
+    assert exe_machine in ["mac", "pc"], "Only support in mac and windows."
+    with remote_machine_guard(exe_machine): 
+        RemoteConfig().get_machine().send_file(args[0])
+
+@vim_register(command="PreviewFile", with_args=True, command_completer="file")
+def PreviewFile(args):
+    """ 
+    `PreviewFile (<local-file> | <local-dir>) <remote-machine>`: upload file to 007 server and let remote machine open it.
+    ----------------------------------------------------
+    >>> PreviewFile /home/data/tmp.py # send a single file and open it.
+    >>> PreviewFile /home/data/ # send a directory and open it.
+    """
+    if not os.path.isfile(args[0]) and not os.path.isdir(args[0]): 
+        print("Please inputs a valid direcotry or file path.")
+        return
+    exe_machine = RemoteConfig().get_remote()
+    if len(args) >= 2: exe_machine = args[1]
+    SendFile(args)
+    with remote_machine_guard(exe_machine): 
+        RemoteConfig().get_machine().preview_file(args[0])
+
+@vim_register(command="ShareCodeCopyClipboard")
+def CopyClipboard(args):
+    RemoteConfig().get_machine().set_clipboard()
+    print("Shared!.")

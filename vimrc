@@ -1,7 +1,5 @@
 set nocompatible
 set term=screen-256color
-
-set term=screen-256color
 set rtp+=~/.vim/bundle/vundle/
 set encoding=utf-8
 call vundle#rc()
@@ -11,10 +9,8 @@ Bundle 'https://github.com/scrooloose/nerdtree'
 Bundle 'taglist.vim'
 Bundle 'https://github.com/honza/vim-snippets'
 Bundle 'https://github.com/sirver/UltiSnips'
-"Bundle 'https://github.com/Shougo/neocomplete.vim'
 Bundle 'https://github.com/vim-airline/vim-airline'
 Bundle 'https://github.com/kien/ctrlp.vim'
-"Bundle 'https://github.com/Valloric/YouCompleteMe'
 Bundle 'https://github.com/Raimondi/delimitMate'
 Bundle 'https://github.com/tpope/vim-surround'
 Bundle 'https://github.com/jreybert/vimagit'
@@ -26,6 +22,7 @@ Bundle 'https://github.com/frazrepo/vim-rainbow'
 Bundle 'https://github.com/neoclide/coc.nvim'
 Bundle 'https://github.com/Yggdroot/indentLine'
 Bundle 'https://github.com/github/copilot.vim'
+Bundle 'https://github.com/godlygeek/tabular'
 
 if has("cscope")
   set cscopeprg=/usr/bin/cscope

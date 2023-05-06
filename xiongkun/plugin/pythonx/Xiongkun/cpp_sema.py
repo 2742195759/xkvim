@@ -29,7 +29,7 @@ class Tokenizer:# {{{
         self.code = code
 
     def is_keyword(self):
-        keywords = ['const', 'static']
+        keywords = ['const', 'static', 'inline']
         for kw in keywords:
             if self.code[self.cur_pos:self.cur_pos+len(kw)] == kw: 
                 return kw
@@ -139,6 +139,8 @@ class CppParser:# {{{
                 break 
             elif tok[0] == "open" and tok[1] in ["<"]: # return type can have template. ignore the template.
                 ids[-1] += self.tokenizer.skip_to_close()
+            elif tok[0] == "kw": 
+                self.tokenizer.next()
             else:  
                 raise RuntimeError("Not Definition.")
         if len(ids) < 2: 

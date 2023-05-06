@@ -488,7 +488,6 @@ def vimcommand(cmd):
     vim_dispatcher.call(vim.command, [cmd])
 
 def vimeval(cmd):
-    #log("VIMEVAL:", cmd)
     ret = vim.eval(cmd)
     return ret
     ret = vim_dispatcher.call(vim.eval, [cmd])
@@ -574,9 +573,11 @@ def CursorGuard():
 @contextmanager
 def CurrentBufferGuard(bufnr=None):
     saved_buf = vim.eval("bufnr()")
-    if bufnr: vim.command(f'b {bufnr}')
+    saved_view = vim.eval("winsaveview()")
+    if bufnr: vim.command(f'silent keepjump b {bufnr}')
     yield
-    vim.command(f'b {saved_buf}')
+    vim.command(f'silent keepjump b {saved_buf}')
+    vim.eval(f"winrestview({dict2str(saved_view)})")
 
 @contextmanager
 def CurrentWindowGuard(win_id=None):
@@ -605,14 +606,7 @@ def RedirGuard(name, mode='w'):
         redir_cmd = f"redir! {append}{name}"
     vim.command(redir_cmd)
     yield
-    vim.command("redir END")
-
-def ExecuteCommandInBuffer(bufnr, command):
-    # TODO
-    #vim.command("set bh=hide")
-    with CurrentBufferGuard(bufnr):
-        vim.command(command)
-    #vim.command("set bh=hide")
+    vim.command("silent redir END")
 
 def Bufname2Bufnr(name):
     return vim.eval(f"bufnr({name})")
@@ -939,12 +933,20 @@ def ui(func):
 def GetJumpList():
     return vim.eval("getjumplist(winnr())")
 
-def GetSearchConfig(directory):
-    path = directory + "search_config"
+def GetConfigByKey(key, directory='./'):
+    import yaml  
+    # 打开 YAML 文件  
+    path = directory + ".vim_config.yaml"
     if not os.path.exists(path): 
         return []
-    with open(path, "r") as fp :
-        config_lines = fp.readlines()
+    with open(path, 'r') as f:  
+        # 读取文件内容  
+        data = yaml.safe_load(f)  
+    # 输出解析结果  
+    return data[key]
+
+def GetSearchConfig(directory):
+    config_lines = GetConfigByKey("search_config", directory)
     excludes = []
     for line in config_lines: 
         if line.startswith("--exclude-dir="):
@@ -966,3 +968,6 @@ def StringWidth(string):
 
 def StringBytes(string):
     return int(vim.eval(f"len('{string}')"))
+
+def TotalWidthHeight():
+    return int(vim.eval("&columns")), int(vim.eval("&lines"))

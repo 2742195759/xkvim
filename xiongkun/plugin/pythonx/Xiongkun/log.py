@@ -4,7 +4,7 @@ import vim
 HOME_PREFIX=os.environ["HOME"]
 
 mutex = Lock()
-debug = 1
+debug = 0
 def log(*args):
     if debug == 0: return
     with mutex:

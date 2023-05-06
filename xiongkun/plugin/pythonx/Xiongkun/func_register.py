@@ -34,13 +34,43 @@ import vim
 import sys
 import os
 
-def vim_register(name="", keymap="", command="", with_args=False, command_completer="", interactive=False):
+DOC_STRING = {
+    
+}
+
+# tuple of (command, action_tag, direct_do)
+CODE_ACTION_SET = set()
+
+def register_docs(command, docs): 
+    if command: 
+        DOC_STRING[command] = docs
+
+def get_docs(command):
+    ret = DOC_STRING.get(command, None)
+    if ret is None: 
+        return "No Docs."
+    return ret
+
+def get_all_action():
+    """
+    generator return all the registered action. 
+    [(command_prefix, action_tag, direct_do)]
+    """
+    for command, action_tag, direct_do in CODE_ACTION_SET:
+        yield (command, action_tag, direct_do)
+
+
+def vim_register(name="", keymap="", command="", with_args=False, command_completer="", interactive=False, action_tag=None):
     """
     keymap: i:MAP | MAP
     """
     def decorator(func):
         # register in vim
         nonlocal keymap
+        register_docs(command, func.__doc__)
+        if action_tag is not None: 
+            direct_do = (with_args == False)
+            CODE_ACTION_SET.add((command, action_tag, direct_do))
         keymap_mode = "nnoremap"
         if keymap.startswith("i:"):
             keymap_mode = "inoremap"

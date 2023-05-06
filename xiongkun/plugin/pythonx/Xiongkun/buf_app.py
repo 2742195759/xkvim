@@ -57,6 +57,18 @@ def WindowQuit(args):
     obj = Buffer.instances[bufname]
     obj.delete()
 
+class BufferHistory:
+    def __init__(self, name):
+        self._value = None
+        self._name = name
+        pass
+
+    def set_value(self, value):
+        self._value = value
+
+    def is_empty(self):
+        return self._value is None
+
 class Buffer:
     instances = {}
     number = 0
@@ -73,6 +85,7 @@ class Buffer:
         self.options = options if options else {}
         self.appname = appname
         self.name = appname + self._name_generator()
+        assert isinstance(history, (BufferHistory, type(None)))
         self.history = history
         Buffer.instances[self.name] = self
         # TODO: add status here
@@ -98,32 +111,34 @@ class Buffer:
     def save(self):
         """ return the history to save.
         """
-        return None
+        raise NotImplementedError("Please implement save method in your buffer app.")
 
-    def onrestore(self, history):
+    def restore(self, history):
         """ restore object by history.
         """
-        pass
+        raise NotImplementedError("Please implement restore method in your buffer app.")
 
     def _clear(self):
-        self.execute('execute "normal! ggdG"')
+        with NotChangeRegisterGuard('"'):
+            self.execute('execute "normal! ggdG"')
     
     def _put_string(self, text, pos=1):
         text = escape(text)
-        vim.eval(f"setbufline({self.bufnr}, {pos}, \"{text}\")")
+        self.execute(f"call setbufline({self.bufnr}, {pos}, \"{text}\")")
+        #vim.eval(f"setbufline({self.bufnr}, {pos}, \"{text}\")")
 
     def _put_strings(self, texts):
         for idx, text in enumerate(texts):
             self._put_string(text, idx+1)
 
     def onredraw(self):
-        pass
+        raise NotImplementedError()
     
     def oninit(self):
         pass
     
     def redraw(self):
-        with CursorGuard():
+        with CursorGuard(), CurrentBufferGuard(self.bufnr):
             self.onredraw()
 
     def onwipeout(self):
@@ -140,13 +155,13 @@ class Buffer:
     def create(self):
         self._create_buffer()
         with CursorGuard(), CurrentBufferGuard(self.bufnr):
-            if self.history: 
-                self.onrestore(self.history)
+            #if self.history: 
+                #self.onrestore(self.history)
             self._set_keymap()
-            self._set_syntax()
             # custom initialized buffer options.
             self._set_autocmd()
             self._set_default_options()
+            self._set_syntax()
             self.oninit()
             self.redraw()
             self.after_redraw()
@@ -154,6 +169,9 @@ class Buffer:
 
     def after_redraw(self):
         pass
+
+    def hide(self):
+        if hasattr(self, "wid"): vim.eval(f"popup_hide({self.wid})")
 
     def delete(self):
         if self.state != "exit":
@@ -163,6 +181,9 @@ class Buffer:
             self.execute(f"setlocal bufhidden=wipe") # can't wipeout in popup_windows, so we set bufhidden=wipe to force wipe. it works
             vim.command(f"bwipeout! {self.bufnr}") # can't wipeout in popup_windows
             del Buffer.instances[self.name]
+            self.state = "saving"
+            if self.history is not None:
+                self.history.set_value(self.save())
             self.state = "exit"
             self.on_exit()
 
@@ -176,9 +197,16 @@ class Buffer:
 
     def show(self):
         assert hasattr(self, "bufnr")
+        if hasattr(self, "wid"): 
+            vim.eval(f"popup_show({self.wid})")
+            return
         self.options['cursorline'] = 0
+        with_filter = 1
+        if 'filter' in self.options and self.options['filter'] is None:
+            del self.options['filter']
+            with_filter = 0
         config = dict2str(self.options)
-        self.wid = vim.eval(f"VimPopupExperiment({self.bufnr}, {config})")
+        self.wid = vim.eval(f"VimPopupExperiment({self.bufnr}, {with_filter}, {config})")
 
     def start(self):
         self.create()
@@ -321,17 +349,6 @@ class FixStringBuffer(Buffer):
         self._clear()
         self._put_string(self.text)
 
-    def get_keymap(self):
-        """ some special key map for example.
-        """
-        return {
-            '<enter>': lambda x,y: print ("<enter>"),
-            '<space>': lambda x,y: print ("<space>"),
-            '<up>': lambda x,y: print ("<up>"),
-            '<f1>': lambda x,y: print ("<f1>"),
-            '<bs>': lambda x,y: print ("<bs>"),
-        }
-
 class BashCommandResultBuffer(Buffer):
     def __init__(self, bash_cmd, syntax=None, history=None, options=None):
         super().__init__("bash_cmd", history, options)
@@ -347,17 +364,6 @@ class BashCommandResultBuffer(Buffer):
         if self.bash_cmd: 
             self.execute(f"silent! 0read! {self.bash_cmd}")
         self.execute(f"normal! gg")
-
-class HelloworldApp(Application):
-    def __init__(self):
-        super().__init__()
-        self.layout = CreateWindowLayout(active_win="win")
-        self.mainbuf = FixStringBuffer("Hellow World")
-
-    def start(self):
-        self.layout.create()
-        self.mainbuf.create()
-        self.layout.set_buffer("win", self.mainbuf)
 
 class WidgetOption:
     def __init__(self):
@@ -908,20 +914,23 @@ class SimpleInputBuffer(WidgetBufferWithInputs):
         return True
 
 class FuzzyList(WidgetBufferWithInputs):
-    def __init__(self, type, items, name="FuzzyList", history=None, options=None):
+    def __init__(self, type, items, name="FuzzyList", history=None, options={}):
         widgets = [
             ListBoxWidget(name="result", height=14, items=[]),
             SimpleInput(prom="input", name="input"),
         ]
-        options = {
+        default_options = {
             'title': f"{name}", 
             'maxwidth': 100, 
             'maxheight': 15, 
+            'minwidth': 100, 
+            'minheight': 15, 
         }
+        default_options.update(options)
         root = WidgetList("", widgets, reverse=False)
         self.items = items
         self.type = type
-        super().__init__(root, name, history, options)
+        super().__init__(root, name, history, default_options)
         self.set_items(self.type, self.items)
 
     def on_insert_input(self, key):
@@ -965,13 +974,15 @@ class FuzzyList(WidgetBufferWithInputs):
         return True
 
     def set_items(self, name, items):
-        def _set(cur_type):
+        def do_set(cur_type):
             if cur_type is False:
                 rpc_call("fuzzyfinder.set_items", None, name, items)
-        rpc_call("fuzzyfinder.is_init", _set, name)
+        hashid = hash(tuple(items))
+        rpc_call("fuzzyfinder.is_init", do_set, name, hashid)
 
     def show_label(self):
         def on_select(item):
+            log(f"Select: {item.bufpos[0]-1}")
             if self.widgets['result'].set_cur(item.bufpos[0] - 1): 
                 self.on_enter(None)
         from .quick_jump import JumpLines
@@ -1000,8 +1011,8 @@ class FuzzyList(WidgetBufferWithInputs):
         self.update_ui(([], None))
 
 class CommandList(FuzzyList):
-    def __init__(self, type, names, commands):
-        super().__init__(type, names, type)
+    def __init__(self, type, names, commands, options={}, history=None):
+        super().__init__(type, names, type, history, options)
         assert (len(names) == len(commands)), "Length should be equal."
         self.name2cmd = {
             n: c for n, c in zip(names, commands)
@@ -1012,14 +1023,33 @@ class CommandList(FuzzyList):
         self.close()
         if cur_name is not None: 
             cmd = self.name2cmd[cur_name]
+            CommandList.run_command(cmd)
+
+    @staticmethod
+    def run_command(cmd):
+        if cmd[0] == '@': 
+            """ promote mode, with DocPreviewEnable
+            """
+            prefix = cmd[1:]
+            vim.eval(f'feedkeys(":{prefix} ")')
+        else: 
             vim.command(cmd)
+
+    def save(self):
+        history = None
+        if self.widgets['result'].cur_item() is not None:
+            history = {}
+            history['cur_item'] = self.widgets['result'].cur_item()
+            history['name2cmd'] = self.name2cmd
+            history['cmd'] = self.name2cmd[history['cur_item']]
+        return history
 
     def oninit(self):
         super().oninit()
         vim.command("set syntax=commandlist")
 
 class FileFinderBuffer(FuzzyList):
-    def __init__(self, directory="./", name="FileFinder", history=None, options=None):
+    def __init__(self, directory="./", name="FileFinder", history=None, options={}):
         self.directory = directory
         if FileFinderPGlobalInfo.directory != directory: 
             FileFinderPGlobalInfo.preprocess(directory)
@@ -1036,6 +1066,7 @@ class FileFinderBuffer(FuzzyList):
 
     def on_enter(self, cmd):
         item = self.widgets['result'].cur_item()
+        log(f"[FileFinder] start goto. item {item} with cmd: {cmd}")
         self.goto(item, cmd)
 
     @property
@@ -1047,6 +1078,7 @@ class FileFinderBuffer(FuzzyList):
         if filepath:
             FileFinderPGlobalInfo.update_mru(filepath)
             loc = Location(filepath)
+            if cmd is None: cmd = '.'
             GoToLocation(loc, cmd)
 
     def on_exit(self):
@@ -1077,7 +1109,7 @@ def FileFinder(args):
         3. normal files
         4. with build / build_svd
     """
-    directory = "./"
+    directory = "./" if FileFinderPGlobalInfo.directory is None else FileFinderPGlobalInfo.directory
     if len(args) == 1: 
         directory = args[0]
     ff = FileFinderBuffer(directory=directory)

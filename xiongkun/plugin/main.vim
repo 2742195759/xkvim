@@ -217,10 +217,8 @@ function! TryOpenPreview()
 endfunc
 
 augroup PopupPreview
-    "autocmd!
-    "autocmd CursorMovedI * cal TryOpenPreview()
+    autocmd!
     autocmd InsertLeave  * py3 Xiongkun.windows.GlobalPreviewWindow.hide()
-    "autocmd CursorHoldI * cal TryOpenPreview()
 augroup END
 
 augroup FileIndentAutoCommand
@@ -272,16 +270,21 @@ function! DispatchFilter(winid, key)
     return g:popup_handle
 endfunction!
 
-function! VimPopupExperiment(bufnr, options)
-    "call popup_dialog('hello world', {'pos': 'topleft', 'line': 1, 'col': 1, 'minwidth': 10, 'minheight': 10})
+function! VimPopupExperiment(bufnr, filter, options)
     let new_dict = a:options
-    let new_dict['filter'] = function('DispatchFilter')
-    let new_dict['callback'] = function('VimPopupClose')
-    let new_dict['filtermode'] = 'a'
-    let new_dict['mapping'] = 0
+    if a:filter == 1
+        let new_dict['filter'] = function('DispatchFilter')
+        let new_dict['callback'] = function('VimPopupClose')
+        let new_dict['filtermode'] = 'a'
+        let new_dict['mapping'] = 0
+        let new_dict['wrap'] = 0
+        let new_dict['cursorline'] = 0
+        return popup_menu(a:bufnr, new_dict)
+    endif
+    let new_dict['border'] = []
     let new_dict['wrap'] = 0
-    let new_dict['cursorline'] = 0
-    return popup_menu(a:bufnr, new_dict)
+    let new_dict['padding'] = [0, 1, 0, 1]
+    return popup_create(a:bufnr, new_dict)
 endfunction
 
 function! VimPopupClose(id, data)
@@ -289,6 +292,7 @@ function! VimPopupClose(id, data)
 endfunction
 
 nnoremap <silent> s <Cmd>BufferJump<cr>
+nnoremap <silent> <c-l> <Cmd>call system("resize")<cr><Cmd>redraw!<cr>
 nnoremap <silent> S <Cmd>GlobalJump<cr>
 nnoremap <silent> <m-w> <Cmd>WindowJump<cr>
 tnoremap <silent> <m-w> <Cmd>WindowJump<cr>

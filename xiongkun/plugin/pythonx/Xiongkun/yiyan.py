@@ -28,6 +28,10 @@ class YiyanSession:
         self._inited = True
         rpc_call("yiyan.init_yiyan", on_return=lambda x: None)
 
+    def previous_input(self):
+        last_input = self.history[-1][0]
+        vim.eval(f'setbufline({self.bufnr}, "$", "yiyan> {last_input}")')
+
     def query(self, query):
         vim.eval(f"prompt_setprompt({self.bufnr}, '')")
         if self.busy: 
@@ -46,11 +50,11 @@ class YiyanSession:
                     for idx, ans in enumerate(outputs):
                         ans = vim_utils.escape(ans)
                         ans = ans.strip("\n")
-                        #log("Yiyan output: ", ans)
                         vim.eval(f'appendbufline({self.bufnr}, line("$")-1, "{ans}")')
                 else:
                     print("Yiyan error happens, restart please.:\n1. Navigation Timeout Exceeded: 30000 ms exceeded.")
                     ans = "[Connection Fail]: Please retry."
+                    self.history.append((query, ""))
                     vim.eval(f'appendbufline({self.bufnr}, line("$")-1, "{ans}")')
             # when in insert mode, the inputs don't startswith "yiyan>", a new 
             # line will be inserted, so we need a <space> to disable a new line.
@@ -66,6 +70,7 @@ class YiyanSession:
             vim.command("setlocal buftype=prompt")
             vim.command("nnoremap <f7> <cmd>YiyanTrigger<cr>")
             vim.command("inoremap <f7> <cmd>YiyanTrigger<cr>")
+            vim.command("imap <up> <cmd>YiyanLastInput<cr>")
             vim.command("setlocal fdc=0")
             vim.command("setlocal wrap")
             vim.eval(f"prompt_setprompt(bufnr(), 'yiyan> ')")
@@ -98,7 +103,6 @@ endfunction
 
 session = YiyanSession()
 
-
 @vim_register(command="Yiyan", with_args=True)
 def query_yiyan(args):
     if len(args) == 0 or "".join(args).strip() == "": 
@@ -107,9 +111,24 @@ def query_yiyan(args):
     session.init()
     session.query("".join(args))
 
+@vim_register(command="YiyanLastInput")
+def yiyan_last_input(args):
+    session.init()
+    session.previous_input()
 
 @vim_register(command="YiyanTrigger", keymap="<f7>")
 def yiyan_trigger(args):
     assert len(args) == 0
     session.init()
     session.show()
+
+#@vim_register(command="YiyanCodeUI", keymap="<f7>")
+#def yiyan_code(args):
+    #from .buf_app_translate import TranslatorBuffer
+    #assert len(args) == 0
+    #def on_return(outputs):
+        #if len(outputs) == 0: 
+            #print("Retry.")
+        #else: 
+            #print("")
+    #rpc_call("yiyan.query", on_return, query)
