@@ -564,20 +564,26 @@ def CursorGuard():
     #log("[CursorGuard] Restoring :", saved)
     vim.eval(f'setpos(".", {v.name()})')
 
-#@contextmanager
-#def NormalModeGuard():
-    #is_insert = vim.eval("mode()") == 'i', "Must start with insert mode"
-    #with CursorGuard():
-        #yield
+@contextmanager
+def BufferOptionGuard(option_dict):
+    saved_value = {}
+    for key, val in option_dict.items():
+        saved_value[key] = vim.eval(f"&{key}")
+        vim.command(f"let &{key} = '{val}'")
+    yield
+    for key, val in saved_value.items():
+        vim.command(f"let &{key} = '{val}'")
 
 @contextmanager
 def CurrentBufferGuard(bufnr=None):
-    saved_buf = vim.eval("bufnr()")
-    saved_view = vim.eval("winsaveview()")
-    if bufnr: vim.command(f'silent keepjump b {bufnr}')
-    yield
-    vim.command(f'silent keepjump b {saved_buf}')
-    vim.eval(f"winrestview({dict2str(saved_view)})")
+    # NOTE: add options guard to avoid buffer deleted by hidden.
+    with BufferOptionGuard({"bufhidden": "hide"}):  
+        saved_buf = vim.eval("bufnr()")
+        saved_view = vim.eval("winsaveview()")
+        if bufnr: vim.command(f'silent keepjump b {bufnr}')
+        yield
+        vim.command(f'silent keepjump b {saved_buf}')
+        vim.eval(f"winrestview({dict2str(saved_view)})")
 
 @contextmanager
 def CurrentWindowGuard(win_id=None):

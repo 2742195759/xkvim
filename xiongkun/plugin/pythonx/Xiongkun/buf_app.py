@@ -136,6 +136,9 @@ class Buffer:
     
     def oninit(self):
         pass
+
+    def is_popup_window(self):
+        return hasattr(self, "wid")
     
     def redraw(self):
         with CursorGuard(), CurrentBufferGuard(self.bufnr):
