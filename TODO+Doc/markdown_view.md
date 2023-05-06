@@ -28,9 +28,14 @@
 1. `MarkdownPreviewUpdate`: 在远程机器上更新当前的 markdown preview 画面。自动命令，每次 save 一个 markdown 时就开始执行。
 2. `MarkdownPreviewStart` : 在远程机器上打开预览窗口。并且安装自动 Preview 画面.
 
-
 ## Windows Typora
 1. 下载地址
 
 1. 破解方法
 https://blog.csdn.net/weixin_46873254/article/details/126326751?spm=1001.2101.3001.6650.1&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-126326751-blog-125468083.235%5Ev32%5Epc_relevant_default_base3&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-126326751-blog-125468083.235%5Ev32%5Epc_relevant_default_base3&utm_relevant_index=2
+
+
+## Electron
+
+Electron 是一个开发桌面应用的方案，主要是页面+控制逻辑分离的思想是非常好的。我要如何基于这些思想去设计一个
+伟大的应用并让大家称呼OK呢？

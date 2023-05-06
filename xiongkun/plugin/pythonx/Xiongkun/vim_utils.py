@@ -608,13 +608,6 @@ def RedirGuard(name, mode='w'):
     yield
     vim.command("silent redir END")
 
-def ExecuteCommandInBuffer(bufnr, command):
-    # TODO
-    #vim.command("set bh=hide")
-    with CurrentBufferGuard(bufnr):
-        vim.command(command)
-    #vim.command("set bh=hide")
-
 def Bufname2Bufnr(name):
     return vim.eval(f"bufnr({name})")
 
