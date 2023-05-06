@@ -22,3 +22,4 @@ augroup END
 @vim_register(command="MarkdownPreviewUpdate")
 def MarkdownPreviewUpdate(args):
     vim.command("SendFile %")
+    vim.command("Tabular /|/c1")
