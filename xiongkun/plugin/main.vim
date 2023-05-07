@@ -292,7 +292,7 @@ function! VimPopupClose(id, data)
 endfunction
 
 nnoremap <silent> s <Cmd>BufferJump<cr>
-nnoremap <silent> <c-l> <Cmd>call system("resize")<cr><Cmd>redraw!<cr>
+nnoremap <silent> <c-l> <Cmd>call system("resize")<cr><Cmd>redraw!<cr><Cmd>syntax sync fromstart<cr>
 nnoremap <silent> S <Cmd>GlobalJump<cr>
 nnoremap <silent> <m-w> <Cmd>WindowJump<cr>
 tnoremap <silent> <m-w> <Cmd>WindowJump<cr>
