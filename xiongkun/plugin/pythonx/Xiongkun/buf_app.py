@@ -1,4 +1,3 @@
-import vim
 import sys
 import os
 import os.path as osp
@@ -874,23 +873,7 @@ class FileFinderPGlobalInfo:
     @classmethod
     def preprocess(self, directory):
         self.directory = directory
-
-        excludes = GetSearchConfig(self.directory)
-        base_cmd = f"find {directory} "
-        find_cmd = []
-        for exclude in excludes: 
-            find_cmd.append(" ".join(["-not", "-path", f"\"*{exclude}\""]))
-
-        log("[FindCmd]: ", find_cmd)
-        find_cmd = " -a ".join(find_cmd)
-        find_cmd = base_cmd + find_cmd
-        log("[FindCmd]: ", find_cmd)
-
-        self.files = []
-        for line in vim.eval("system('{cmd}')".format(cmd=find_cmd)).split("\n"):
-            line = line.strip()
-            if line and os.path.isfile(line):
-                self.files.append(line)
+        self.files = GetSearchFiles(directory)
         self.mru.load(self.mru_path)
 
     @classmethod
