@@ -969,10 +969,12 @@ def GetSearchConfig(directory):
     return excludes_dir, excludes_file
 
 def GetSearchFindArgs(excludes):
-    excludes, _ = excludes
+    dirs, files = excludes
     find_cmd = []
-    for exclude in excludes: 
+    for exclude in dirs: 
         find_cmd.append(" ".join(["-not", "-path", f"\"*{exclude}\""]))
+    for exclude in files: 
+        find_cmd.append(" ".join(["-not", "-name", f"\"*{exclude}\""]))
     log("[FindCmd]: ", find_cmd)
     find_cmd = " -a ".join(find_cmd)
     return find_cmd

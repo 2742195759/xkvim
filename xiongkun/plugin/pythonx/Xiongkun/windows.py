@@ -738,9 +738,9 @@ class GrepSearcher(Searcher):# {{{
         log(f"[GrepWorker]: {extra_args}")
         if directory.startswith("FILE:"): 
             directory = directory.split("FILE:")[1].strip()
-            sh_cmd = "find %s -maxdepth 1 -type f | xargs egrep -H -I -n %s \"%s\"" % (directory, " ".join(extra_args), escape(inp))
+            sh_cmd = "find %s -maxdepth 1 -type f | LC_ALL=C xargs egrep -H -I -n %s \"%s\"" % (directory, " ".join(extra_args), escape(inp))
         else: 
-            sh_cmd = "egrep -I -H -n %s -r \"%s\" %s" % (" ".join(extra_args), escape(inp), directory)
+            sh_cmd = "LC_ALL=C egrep -I -H -n %s -r \"%s\" %s" % (" ".join(extra_args), escape(inp), directory)
         worker.child = subprocess.Popen(sh_cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
         results = []
         for idx, line in enumerate(worker.child.stdout.readlines()):
