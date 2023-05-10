@@ -713,13 +713,18 @@ class VimKeyToChar:
     def __getitem__(self, key):
         if key in self.vim_key_to_char: 
             return self.vim_key_to_char[key]
+        if len(key) > 1: 
+            log(f"[VimKeyMap] not supported key found, return ''")
+            return ""
         if 1 <= ord(key) <= 26: 
-           return f"<c-{chr(ord('a') + ord(key) - 1)}>" 
+            return f"<c-{chr(ord('a') + ord(key) - 1)}>" 
         return key
 
+@Singleton
 class VimKeymap: 
     def __init__(self):
         self.km = {}
+        self.init()
 
     def init(self): 
         def insert(value): 
@@ -741,11 +746,8 @@ class VimKeymap:
         insert ("<cr>")
         insert ("<f1>")
 
-vkm = VimKeymap()
-vkm.init()
-
 def GetKeyMap():
-    return vkm.km
+    return VimKeymap().km
 
 def peek_line(filename, start, end):
     """
@@ -808,7 +810,7 @@ class Matcher:
             items.append(keyword)
         cmd = r"\\&".join(items)
         cmd += r"\\c"
-        #log("Pattern:", cmd)
+        log("Pattern:", cmd)
         self.mid = vim.eval("matchadd(\"{}\", \"{}\", {})".format(
             high, 
             cmd, 

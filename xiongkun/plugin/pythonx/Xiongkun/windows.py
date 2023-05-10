@@ -713,13 +713,13 @@ class GrepSearcher(Searcher):# {{{
         files = glob.glob(d + "/*")
         ex_dirs, ex_files = GetSearchConfig(d)
         log(f"[GrepWorker] files =  {files}")
-        #def f(name):
-            #for ignore in ex_dirs + ex_files:
-                #ignore = ignore.replace("/", "")
-                #ignore = ignore.replace("*", "")
-                #if ignore in name: return False
-            #return True
-        #files = list(filter(f, files))
+        def f(name):
+            for ignore in ex_dirs + ex_files:
+                ignore = ignore.replace("/", "")
+                ignore = ignore.replace("*", "")
+                if ignore == name: return False
+            return True
+        files = list(filter(f, files))
         files = [ f for f in files if osp.isdir(f) ]
         log(f"[GrepWorker] files =  {files}")
         workers = []
