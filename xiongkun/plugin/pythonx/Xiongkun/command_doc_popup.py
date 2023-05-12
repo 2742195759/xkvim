@@ -106,7 +106,7 @@ def DocPreviewHide(args):
     cmd_type = vim.eval("expand('<afile>')")
     if cmd_type == ':': DocPreviewBuffer().hide()
 
-### AutoCmd for DocPreview
+# AutoCmd for DocPreview
 commands("""
 augroup DocPreviewGroup
     autocmd!

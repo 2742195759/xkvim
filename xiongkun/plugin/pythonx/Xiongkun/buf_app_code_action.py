@@ -91,9 +91,9 @@ def ChangeDirectoryCommand(args):
     vim.command(f"FR {directory_path}")
     vim.command(f"ChangeSearchDirectory {args[0]}")
 
-@vim_register(command="CleanSwap")
+@vim_register(command="CleanSwaps")
 def CleanSwapFiles(args):
-    vim.eval('call system("find ./ -name .*.swp" | xargs -n 1 rm )')
+    vim.eval('system("find ./ -name \'.*.swp\' | xargs rm ")')
 
 def send_keys(bufnr, keys):
     vim.eval(f"term_sendkeys({bufnr}, \"{keys}\")")

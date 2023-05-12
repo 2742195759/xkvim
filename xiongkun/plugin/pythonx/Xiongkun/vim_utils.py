@@ -580,9 +580,9 @@ def CurrentBufferGuard(bufnr=None):
     with BufferOptionGuard({"bufhidden": "hide"}):  
         saved_buf = vim.eval("bufnr()")
         saved_view = vim.eval("winsaveview()")
-        if bufnr: vim.command(f'silent keepjump b {bufnr}')
+        if bufnr: vim.command(f'silent keepjumps b {bufnr}')
         yield
-        vim.command(f'silent keepjump b {saved_buf}')
+        vim.command(f'silent keepjumps b {saved_buf}')
         vim.eval(f"winrestview({dict2str(saved_view)})")
 
 @contextmanager

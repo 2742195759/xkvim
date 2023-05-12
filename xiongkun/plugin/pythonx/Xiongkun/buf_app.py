@@ -119,7 +119,7 @@ class Buffer:
 
     def _clear(self):
         with NotChangeRegisterGuard('"'):
-            self.execute('execute "normal! ggdG"')
+            self.execute('execute "keepjumps normal! ggdG"')
     
     def _put_string(self, text, pos=1):
         text = escape(text)
@@ -165,7 +165,7 @@ class Buffer:
             self._set_default_options()
             self._set_syntax()
             self.oninit()
-            self.redraw()
+            self.onredraw()
             self.after_redraw()
         return self
 
