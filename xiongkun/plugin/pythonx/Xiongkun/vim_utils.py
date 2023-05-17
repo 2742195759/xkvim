@@ -197,7 +197,7 @@ def GetCurrentWord():
 
 def GetCursorXY(win_id=None):
     """
-    get the [int, int] position of cursor.
+    get the [int, int] position of cursor. 1-based.
     """
     if win_id is None:
         return [ int(i) for i in vimeval("getpos('.')")[1:3]]

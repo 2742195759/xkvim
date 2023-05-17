@@ -14,7 +14,11 @@ from .log import log, log_google
 from urllib.parse import quote
 import shlex
 
-def ExecuteCommand(name, cmd, silent=True):
+def ExecuteCommand(name, cmd, silent=True, block=True):
+    log(f"Execute name={name} cmd={cmd} silent={silent} block={block}")
+    if not block: 
+        threading.Thread(target=ExecuteCommand, args=(name, cmd, silent, True), daemon=True).start()
+        return 
     import json
     import requests
     headers = {"Content-Type":"application/json"}
@@ -41,11 +45,11 @@ class OSMachine:
     def _command_escape(self, cmd):
         return cmd
 
-    def execute(self, cmd):
+    def execute(self, cmd, block=True):
         if isinstance(cmd, list):
             cmd = self._join_cmd(cmd)
         #cmd = self._command_escape(cmd)
-        ExecuteCommand(self.name, cmd, silent=True)
+        ExecuteCommand(self.name, cmd, True, block)
         
     def chrome(self, url):
         raise NotImplementedError()
@@ -78,7 +82,7 @@ class MacMachine(OSMachine):
             "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
             "cd /tmp/tmpfile ",
         ]
-        self.execute(cmd)
+        self.execute(cmd, block=True)
 
     def preview_file(self, filepath):
         if os.path.isfile(filepath):
