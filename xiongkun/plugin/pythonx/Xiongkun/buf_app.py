@@ -1,4 +1,3 @@
-import vim
 import sys
 import os
 import os.path as osp
@@ -120,7 +119,7 @@ class Buffer:
 
     def _clear(self):
         with NotChangeRegisterGuard('"'):
-            self.execute('execute "normal! ggdG"')
+            self.execute('execute "keepjumps normal! ggdG"')
     
     def _put_string(self, text, pos=1):
         text = escape(text)
@@ -136,6 +135,9 @@ class Buffer:
     
     def oninit(self):
         pass
+
+    def is_popup_window(self):
+        return hasattr(self, "wid")
     
     def redraw(self):
         with CursorGuard(), CurrentBufferGuard(self.bufnr):
@@ -163,7 +165,7 @@ class Buffer:
             self._set_default_options()
             self._set_syntax()
             self.oninit()
-            self.redraw()
+            self.onredraw()
             self.after_redraw()
         return self
 
@@ -871,23 +873,7 @@ class FileFinderPGlobalInfo:
     @classmethod
     def preprocess(self, directory):
         self.directory = directory
-
-        excludes = GetSearchConfig(self.directory)
-        base_cmd = f"find {directory} "
-        find_cmd = []
-        for exclude in excludes: 
-            find_cmd.append(" ".join(["-not", "-path", f"\"*{exclude}\""]))
-
-        log("[FindCmd]: ", find_cmd)
-        find_cmd = " -a ".join(find_cmd)
-        find_cmd = base_cmd + find_cmd
-        log("[FindCmd]: ", find_cmd)
-
-        self.files = []
-        for line in vim.eval("system('{cmd}')".format(cmd=find_cmd)).split("\n"):
-            line = line.strip()
-            if line and os.path.isfile(line):
-                self.files.append(line)
+        self.files = GetSearchFiles(directory)
         self.mru.load(self.mru_path)
 
     @classmethod

@@ -153,14 +153,20 @@ def run_file_in_terminal_window(file, **kwargs):
     args_str = " ".join(args_str)
     if file.split(".")[-1] == 'py': 
         pre_command.append(f"python3 ")
+    elif file.split(".")[-1] in ['hs', 'haskell']: 
+        pre_command.append(f"runhaskell ")
     else: 
         raise NotImplementedError("Not support file type.")
     command_str = "&&".join(pre_command)
     cmd = f"bash -c '{command_str} {file} {args_str}'"
-    log(f"Start run `{cmd}` in terminal windows.")
-    vim.command("bot terminal")
-    bufnr = vim.eval("bufnr()")
-    time.sleep(0.2)
+    if int(vim.eval("bufexists('terminal_run_file')")) == 0: 
+        log(f"Start run `{cmd}` in terminal windows.")
+        with vim_utils.CurrentWindowGuard():
+            vim.command("bot terminal")
+            bufnr = vim.eval("bufnr()")
+            vim.command("file terminal_run_file")
+    bufnr = vim.eval("bufnr('terminal_run_file')")
+    time.sleep(0.1)
     from .remote_terminal import send_keys
     send_keys(bufnr, cmd + "\n")
 

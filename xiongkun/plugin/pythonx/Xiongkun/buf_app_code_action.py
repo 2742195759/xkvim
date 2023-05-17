@@ -17,6 +17,7 @@ code_action_dict = {
     "create tmp file   | 创建新临时文件 |": "@CreateTmp",
     "change directory  |    更换目录    |": "@ChangeDirectory",
     "set remote        |  更换远程机器  |": "@SetRemote",
+    "clean swp         | 删除掉swap文件 |": "CleanSwaps",
 }
 
 vim.command(""" 
@@ -89,6 +90,10 @@ def ChangeDirectoryCommand(args):
     directory_path = args[0]
     vim.command(f"FR {directory_path}")
     vim.command(f"ChangeSearchDirectory {args[0]}")
+
+@vim_register(command="CleanSwaps")
+def CleanSwapFiles(args):
+    vim.eval('system("find ./ -name \'.*.swp\' | xargs rm ")')
 
 def send_keys(bufnr, keys):
     vim.eval(f"term_sendkeys({bufnr}, \"{keys}\")")

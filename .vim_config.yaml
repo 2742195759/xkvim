@@ -10,6 +10,7 @@ search_config: [
     '--exclude="tags"',
     '--exclude="*.cmake"',
     '--exclude="*.json"',
+    '--exclude="*.swp"',
     '--exclude="*.sh"',
     '--exclude-dir="/__pycache__/*"',
     '--exclude="*.log"',

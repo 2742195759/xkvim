@@ -22,6 +22,7 @@ Bundle 'https://github.com/frazrepo/vim-rainbow'
 Bundle 'https://github.com/neoclide/coc.nvim'
 Bundle 'https://github.com/Yggdroot/indentLine'
 Bundle 'https://github.com/github/copilot.vim'
+Bundle 'https://github.com/godlygeek/tabular'
 
 if has("cscope")
   set cscopeprg=/usr/bin/cscope

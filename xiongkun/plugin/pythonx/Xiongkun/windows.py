@@ -691,11 +691,12 @@ class CtrlPSearcher(Searcher):# {{{
 class GrepSearcher(Searcher):# {{{
     def get_workers(self, inp, d):
         class GrepSearchWorker(CancellableWorker):
-            def __init__(self, inp, directory):
+            def __init__(self, inp, directory, grep_extra_args):
                 super().__init__(None)
                 self.directory = directory
                 self.inp = inp
                 self.child = None
+                self.grep_extra_args = grep_extra_args
             def __call__(self, qid):
                 return GrepSearcher.do_search(self.inp, self.directory, self) 
             def cancel(self):
@@ -705,38 +706,41 @@ class GrepSearcher(Searcher):# {{{
                 if self.child.poll() is None: 
                     self.child.terminate()
 
+        extra_args = GetSearchGrepArgs(GetSearchConfig(d))
+        log(f"[GrepWorker] directory = {d}")
+        log(f"[GrepWorker] extra_args =  {extra_args}")
         import glob 
         files = glob.glob(d + "/*")
+        ex_dirs, ex_files = GetSearchConfig(d)
+        log(f"[GrepWorker] files =  {files}")
         def f(name):
-            return not osp.basename(name).startswith(".") and "build" not in osp.basename(name) and "tag" not in osp.basename(name)
-        filter(f, files)
+            for ignore in ex_dirs + ex_files:
+                ignore = ignore.replace("/", "")
+                ignore = ignore.replace("*", "")
+                if ignore == name: return False
+            return True
+        files = list(filter(f, files))
         files = [ f for f in files if osp.isdir(f) ]
+        log(f"[GrepWorker] files =  {files}")
         workers = []
         for file in files: 
             abspath = osp.abspath(file)
-            workers.append(GrepSearchWorker(inp, abspath))
+            workers.append(GrepSearchWorker(inp, abspath, extra_args))
 
         # insert FILE as file with depth=1 file search
-        workers.append(GrepSearchWorker(inp, "FILE:" + d))
+        workers.append(GrepSearchWorker(inp, "FILE:" + d, extra_args))
         return workers
     
     @staticmethod
     def do_search(inp, directory, worker):
-        extra_args = []
-        log("do_search")
-        search_config_path = directory + "/search_config"
-        if osp.isfile(search_config_path):
-            with open(search_config_path, "r") as fp :
-                lines = fp.readlines()
-                lines = [ l.strip() for l in lines ]
-                lines = list(filter(lambda x: x and not x.strip().startswith("#"), lines))
-                extra_args = lines
-
+        log(f"[GrepWorker] do search : {directory}, with keyword: {inp}")
+        extra_args = worker.grep_extra_args
+        log(f"[GrepWorker]: {extra_args}")
         if directory.startswith("FILE:"): 
             directory = directory.split("FILE:")[1].strip()
-            sh_cmd = "find %s -maxdepth 1 -type f | xargs egrep -H -I -n %s \"%s\"" % (directory, " ".join(extra_args), escape(inp))
+            sh_cmd = "find %s -maxdepth 1 -type f | LC_ALL=C xargs egrep -H -I -n %s \"%s\"" % (directory, " ".join(extra_args), escape(inp))
         else: 
-            sh_cmd = "egrep -I -H -n %s -r \"%s\" %s" % (" ".join(extra_args), escape(inp), directory)
+            sh_cmd = "LC_ALL=C egrep -I -H -n %s -r \"%s\" %s" % (" ".join(extra_args), escape(inp), directory)
         worker.child = subprocess.Popen(sh_cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
         results = []
         for idx, line in enumerate(worker.child.stdout.readlines()):
