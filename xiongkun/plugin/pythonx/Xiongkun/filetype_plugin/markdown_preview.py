@@ -1,6 +1,7 @@
 from ..vim_utils import *
 from ..func_register import vim_register
 from ..remote_machine import remote_machine_guard, RemoteConfig
+from ..log import debug
 
 @vim_register(command="MarkdownPreviewStart", action_tag="markdown_preview")
 def MarkdownPreviewStart(args):
@@ -28,7 +29,6 @@ def MarkdownPreviewUpdate(args):
     vim.command("Tabular /|/c1")
     vim.command("MarkdownSetCursor")
 
-
 @vim_register(command="MarkdownSetCursor")
 def SendCursor(args):
     """
@@ -39,8 +39,13 @@ def SendCursor(args):
     """
     # OS only currently
     line, col = GetCursorXY()
+    while line > 1: 
+        if GetLine(line).strip() not in ["", "```"]: 
+            break
+        line -= 1
+    debug("SendCursor", line, ",", col)
     if RemoteConfig().get_remote() == "mac": 
         set_cursor_file = "/Users/xiongkun03/project/marktext/marktext_set_cursor.js "
     else: 
         raise NotImplementedError("Only support mac currently.")
-    RemoteConfig().get_machine().execute(f"node {set_cursor_file} {line-1} {10000}", block=False)
+    RemoteConfig().get_machine().execute(f"node {set_cursor_file} {line-1} {1000}", block=False)
