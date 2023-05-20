@@ -1026,3 +1026,6 @@ def StringBytes(string):
 
 def TotalWidthHeight():
     return int(vim.eval("&columns")), int(vim.eval("&lines"))
+
+def getHomeDirectory(): 
+    return HOME_PREFIX

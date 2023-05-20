@@ -31,4 +31,5 @@ terminal_abbreviate: [
     ["reinstall paddle", "wget http://10.255.125.22:8082/paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl -O paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl && pip uninstall -y paddlepaddle_gpu && pip install paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl\n"],
 ]
 
-
+# mac | pc is supported
+default_remote: mac

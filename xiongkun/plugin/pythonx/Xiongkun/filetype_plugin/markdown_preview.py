@@ -12,12 +12,12 @@ def MarkdownPreviewStart(args):
     """
     filepath = CurrentEditFile(True)
     vim.command("PreviewFile %") # open browser windows and show the markdown -- typora is the best choices.
+    vim.command("set updatetime=300")
     commands(""" 
 augroup MarkdownPreviewGroup
     autocmd!
     autocmd BufWritePost *.md,*.markdown MarkdownPreviewUpdate
     autocmd CursorHold *.md,*.markdown MarkdownSetCursor
-    autocmd CursorMoved *.md,*.markdown MarkdownSetCursor
 augroup END
     """)
     #autocmd CursorMoved *.md,*.markdown MarkdownSetCursor
@@ -39,8 +39,14 @@ def SendCursor(args):
     """
     # OS only currently
     line, col = GetCursorXY()
+    while line > 1 :
+        if GetLine(line).strip() in ['', '```']: line -= 1
+        else: break
+            
     if RemoteConfig().get_remote() == "mac": 
         set_cursor_file = "/Users/xiongkun03/project/marktext/marktext_set_cursor.js "
+    elif RemoteConfig().get_remote() == "pc": 
+        set_cursor_file = "C:/Users/xiongkun/Desktop/linux/marktext-for-vim/marktext_set_cursor.js"
     else: 
         raise NotImplementedError("Only support mac currently.")
     RemoteConfig().get_machine().execute(f"node {set_cursor_file} {line-1} {10000}", block=False)

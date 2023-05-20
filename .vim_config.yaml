@@ -29,5 +29,3 @@ terminal_abbreviate: [
     ["FLAGS_cudnn_deterministic", "FLAGS_cudnn_deterministic=True"],
     ["git-push", "git push origin develop\n"],
 ]
-
-
