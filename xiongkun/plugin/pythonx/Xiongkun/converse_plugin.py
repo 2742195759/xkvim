@@ -137,6 +137,26 @@ def run_python_file(python_file, **kwargs):
         return ""
     return info
 
+def run_in_terminal_window(cmd):
+    if int(vim.eval("bufexists('terminal_run_file')")) == 0: 
+        log(f"Start run `{cmd}` in terminal windows.")
+        with vim_utils.CurrentWindowGuard():
+            vim.command("bot terminal")
+            vim.command("resize 7")
+            vim.command("setlocal bufhidden=hide")
+            bufnr = vim.eval("bufnr()")
+            vim.command("file terminal_run_file")
+    bufnr = vim.eval("bufnr('terminal_run_file')")
+    is_hidden = int(vim.eval(f"getbufinfo({bufnr})")[0]['hidden'])
+    if is_hidden == 1: 
+        with vim_utils.CurrentWindowGuard():
+            vim.command("bot sb terminal_run_file")
+            vim.command("resize 7")
+    time.sleep(0.1)
+    from .remote_terminal import send_keys
+    send_keys(bufnr, cmd + "\n")
+    #vim.command(f"call create_popup({bufnr})")
+
 def run_file_in_terminal_window(file, **kwargs):
     import subprocess
     args_str = []
@@ -159,16 +179,7 @@ def run_file_in_terminal_window(file, **kwargs):
         raise NotImplementedError("Not support file type.")
     command_str = "&&".join(pre_command)
     cmd = f"bash -c '{command_str} {file} {args_str}'"
-    if int(vim.eval("bufexists('terminal_run_file')")) == 0: 
-        log(f"Start run `{cmd}` in terminal windows.")
-        with vim_utils.CurrentWindowGuard():
-            vim.command("bot terminal")
-            bufnr = vim.eval("bufnr()")
-            vim.command("file terminal_run_file")
-    bufnr = vim.eval("bufnr('terminal_run_file')")
-    time.sleep(0.1)
-    from .remote_terminal import send_keys
-    send_keys(bufnr, cmd + "\n")
+    run_in_terminal_window(cmd)
 
 @vim_register(command="Trans")
 def TranslateAndReplace(args):
@@ -210,7 +221,14 @@ def RunCurrentFile(args):
     >>> <F9>
     """
     file = vim_utils.CurrentEditFile(True)
-    run_file_in_terminal_window(file)
+    from .vim_utils import GetConfigByKey
+    run_command = GetConfigByKey("default_run", "./")
+    print (run_command)
+    if len(run_command) == 0: 
+        run_file_in_terminal_window(file)
+    else:
+        run_in_terminal_window(run_command)
+        
 
 @vim_register(command="Copyfile")
 def PaddleCopyfile(args):
