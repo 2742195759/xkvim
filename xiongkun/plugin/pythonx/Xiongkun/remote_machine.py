@@ -142,7 +142,7 @@ class WindowMachine(OSMachine):
 @vim_utils.Singleton
 class RemoteConfig:
     def __init__(self):
-        self.default_remote = "mac"
+        self.default_remote = vim_utils.GetConfigByKey("default_remote")
         self.set_remote(self.default_remote)
 
     def get_machine(self):

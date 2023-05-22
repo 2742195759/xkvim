@@ -105,13 +105,16 @@ def TerminalWriteFile(args):
         vim.command(f"read {tmpfile}")
 
 def get_abbreviate_list(bufnr): 
-    terminal_abbreviate = GetConfigByKey("terminal_abbreviate", directory='./')
+    global_abbreviate = GetConfigByKey("terminal_abbreviate", directory=os.path.join(getHomeDirectory(), "xkvim"))
+    terminal_abbreviate = global_abbreviate + GetConfigByKey("terminal_abbreviate", directory='./')
     results = []
     for item in terminal_abbreviate :
         key, val = item
-        new_item = [key, f'call term_sendkeys({bufnr}, "{val}")']
+        if val.startswith(':'): 
+            new_item = [key, f"{val[1:]}"]
+        else:
+            new_item = [key, f'call term_sendkeys({bufnr}, "{val}")']
         results.append(new_item)
-    results.append(["write_python_obj", "PythonWrite"])
     return results
 
 @vim_register(command="TerminalAbbre")

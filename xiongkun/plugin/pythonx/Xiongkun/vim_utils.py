@@ -953,6 +953,7 @@ def GetConfigByKey(key, directory='./'):
         # 读取文件内容  
         data = yaml.safe_load(f)  
     # 输出解析结果  
+    if key not in data: return []
     return data[key]
 
 def GetSearchConfig(directory):
@@ -1026,3 +1027,6 @@ def StringBytes(string):
 
 def TotalWidthHeight():
     return int(vim.eval("&columns")), int(vim.eval("&lines"))
+
+def getHomeDirectory(): 
+    return HOME_PREFIX
