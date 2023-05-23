@@ -222,8 +222,9 @@ def RunCurrentFile(args):
     """
     file = vim_utils.CurrentEditFile(True)
     from .vim_utils import GetConfigByKey
-    run_command = GetConfigByKey("default_run", "./")
-    print (run_command)
+    run_command = []
+    if vim.eval("getcwd()").strip() in file: 
+        run_command = GetConfigByKey("default_run", "./")
     if len(run_command) == 0: 
         run_file_in_terminal_window(file)
     else:
