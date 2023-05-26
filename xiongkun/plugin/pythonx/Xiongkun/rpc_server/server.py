@@ -9,11 +9,8 @@ from threading import Lock, Thread
 import multiprocessing as mp
 from functools import partial
 from decorator import InQueue, server_function, pool_function, process_function, default_map_fn, time_consume
-from queue_loop import QueueLoop
-from fuzzy_list import FuzzyList
+from server_cluster import ServerCluster
 from log import log, mutex
-from file_finder import filefinder
-from yiyan_server import Yiyan
 
 def send(obj):
     #log("[Server] send: ", json.dumps(obj))
@@ -26,26 +23,9 @@ def send(obj):
 def echo(s):
     return s
 
-fuzzyfinder = FuzzyList()
-yiyan = Yiyan()
-
-def get_server_by_name(name):
-    name = name.strip()
-    obj = globals()
-    for f in name.split('.'): 
-        if hasattr(obj, f): 
-            obj = getattr(obj, f)
-        elif isinstance(obj, dict) and f in obj:
-            obj = obj.get(f, None)
-        else:
-            obj = None
-    if callable(obj):
-        return obj
-    log("[Server]: don't found ", name, ", skip it.")
-    return None
-
 def server_main():
-    queue_thread = Thread(target=QueueLoop, args=[send], daemon=True).start()
+    servers = ServerCluster()
+    servers.start_queue(send)
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -53,7 +33,7 @@ def server_main():
         req = json.loads(line)
         id, name, args = req
         log("[Server] receive: ", id, name)
-        func = get_server_by_name(name)
+        func = servers.get_server_fn(name)
         if not func:
             continue
         output = func(id, *args)
@@ -63,5 +43,6 @@ def server_main():
             log("[Server]: normal function.")
             log(output)
             send([id, output])
+    servers.stop()
 
 server_main()

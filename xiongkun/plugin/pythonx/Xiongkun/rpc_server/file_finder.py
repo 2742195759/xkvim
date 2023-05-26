@@ -69,18 +69,15 @@ def GetSearchFilesFromCommand(find_cmd):
     return files
 
 class FileFinder:
-    def __init__(self):
+    def __init__(self, queue):
+        self.queue = queue
         self.root = None
-        self.fuzzy = FuzzyList()
+        self.fuzzy = FuzzyList(self.queue)
         pass
-
-    def _get_files(self):
-        return ['sdfsdf', 'sdfsd']
 
     @server_function
     def set_root(self, rootpath):
         self.root = rootpath
-        self.files = self._get_files()
         self.files = GetSearchFiles(self.root)
         # TODO: find files and reset it.
         self.fuzzy.set_items(-1, "filefinder", self.files)
@@ -89,8 +86,6 @@ class FileFinder:
     # transfer only
     def search(self, id, name, search_text):
         return self.fuzzy.search(id, 'filefinder', search_text)
-
-filefinder = FileFinder()
 
 if __name__ == "__main__":
     test_main()

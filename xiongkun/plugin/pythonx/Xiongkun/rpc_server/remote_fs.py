@@ -22,5 +22,3 @@ class RemoteFS:
         except: 
             return "failed."
         return "success."
-
-remotefs = RemoteFS()

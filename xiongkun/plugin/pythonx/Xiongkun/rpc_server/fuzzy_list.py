@@ -7,10 +7,11 @@ from log import log
 from functions import KillablePool
 
 class FuzzyList:
-    def __init__(self):
+    def __init__(self, queue):
         """ 
         Save a mapping from: name:String -> items:List(String)
         """
+        self.queue = queue
         self.lists_dict = {}
         # type is "DIRECTOTYR@TYPE"
         # for example: "/home/data/Paddle/@file|mru"

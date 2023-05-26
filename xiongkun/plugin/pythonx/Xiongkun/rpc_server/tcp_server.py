@@ -23,12 +23,8 @@ import socket
 import sys
 import threading
 from threading import Thread
-from queue_loop import QueueLoop
-from queue_loop import QueueLoop
-from fuzzy_list import FuzzyList
-from file_finder import filefinder
+from server_cluster import ServerCluster
 from decorator import InQueue
-from remote_fs import remotefs
 
 try:
     # Python 3
@@ -36,23 +32,6 @@ try:
 except ImportError:
     # Python 2
     import SocketServer as socketserver
-
-fuzzyfinder = FuzzyList()
-
-def get_server_by_name(name):
-    name = name.strip()
-    obj = globals()
-    for f in name.split('.'): 
-        if hasattr(obj, f): 
-            obj = getattr(obj, f)
-        elif isinstance(obj, dict) and f in obj:
-            obj = obj.get(f, None)
-        else:
-            obj = None
-    if callable(obj):
-        return obj
-    print("[Server]: don't found ", name, ", skip it.")
-    return None
 
 class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
     def handle(self):
@@ -62,7 +41,9 @@ class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
             print("sending {0}".format(encoded))
             self.wfile.write(encoded.encode('utf-8'))
 
-        queue_thread = Thread(target=QueueLoop, args=[send], daemon=True).start()
+        servers = ServerCluster()
+        servers.start_queue(send)
+
         while True:
             try:
                 data = self.rfile.readline().decode('utf-8')
@@ -84,7 +65,7 @@ class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
             if req[0] >= 0:
                 id, name, args = req
                 print("[Server] receive: ", id, name)
-                func = get_server_by_name(name)
+                func = servers.get_server_fn(name)
                 if not func:
                     continue
                 output = func(id, *args)
@@ -93,6 +74,9 @@ class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
                 else: 
                     print("[Server]: normal function.")
                     send([id, output])
+        print ("stop handle, closing...")
+        servers.stop()
+        print ("closed.")
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass

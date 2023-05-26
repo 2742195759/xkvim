@@ -262,9 +262,10 @@ function! SendMessageSync(id, channel, package)
     call ch_sendraw(a:channel, a:package)
     while 1
         let out = ch_read(a:channel)
+        "echom "[Receive] " . out
         if out == ""
-            echo "[Warnings] empty line get! errror happens!"
-            break
+            "echom "[Warnings] empty line get! errror happens!"
+            continue
         endif
         let json = json_decode(out)
         call RPCServer(a:channel, out)

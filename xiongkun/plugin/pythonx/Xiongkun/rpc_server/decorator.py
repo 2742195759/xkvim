@@ -8,7 +8,6 @@ import os
 from threading import Lock, Thread
 import multiprocessing as mp
 from functools import partial
-from queue_loop import queue
 from log import log
 
 class InQueue:
@@ -26,7 +25,7 @@ def process_function(func):
         def worker(*args):
             #print("process function with args:", *args)
             output = func(*args)
-            queue.put((id, output))
+            self.queue.put((id, output))
         nonlocal p
         if p is not None: 
             p.terminate()
@@ -47,7 +46,7 @@ def single_pool(func):
         args = args[2:]
         def worker(*args):
             output = func(*args)
-            queue.put((id, output))
+            self.queue.put((id, output))
         nonlocal p
         if p is not None: 
             p.terminate()

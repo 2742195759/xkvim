@@ -7,9 +7,10 @@ from log import log
 from functions import KillablePool
 
 class Yiyan:
-    def __init__(self):
+    def __init__(self, queue):
         self.cmd = f"bash {os.environ['HOME']}/xkvim/bash_scripts/yiyan.sh"
         self.child = None
+        self.queue = queue
         pass
 
     @server_function

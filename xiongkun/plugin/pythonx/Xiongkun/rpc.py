@@ -43,8 +43,10 @@ class RPCServer:
                 'callback': 'RPCServer',
                 'drop': 'auto',
                 'noblock': 1,
+                'waittime': 3000,
             }
             self.job_name = remote_server
+            print (remote_server)
             vimcommand(
                 f'let {self.channel_name} = ch_open("{self.job_name}", {dict2str(config)})'
             )
