@@ -14,6 +14,7 @@ def MarkdownPreviewStart(args):
     filepath = CurrentEditFile(True)
     vim.command("PreviewFile %") # open browser windows and show the markdown -- typora is the best choices.
     vim.command("set updatetime=300")
+    vim.command("set wrap")
     commands(""" 
 augroup MarkdownPreviewGroup
     autocmd!
