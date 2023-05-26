@@ -24,7 +24,7 @@ def process_function(func):
         id = args[1]
         args = args[2:]
         def worker(*args):
-            log("process function with args:", *args)
+            #print("process function with args:", *args)
             output = func(*args)
             queue.put((id, output))
         nonlocal p

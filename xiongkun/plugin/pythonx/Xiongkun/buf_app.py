@@ -4,7 +4,10 @@ import os.path as osp
 from .func_register import *
 from .vim_utils import *
 from collections import OrderedDict
-from .rpc import rpc_call
+from .rpc import rpc_call, rpc_wait, rpc_server, get_directory
+from .log import debug
+from .remote_fs import is_remote, get_base, to_remote
+
 start = None
 
 def win_execute(wid, cmd):
@@ -1035,34 +1038,51 @@ class CommandList(FuzzyList):
         vim.command("set syntax=commandlist")
 
 class FileFinderBuffer(FuzzyList):
-    def __init__(self, directory="./", name="FileFinder", history=None, options={}):
-        self.directory = directory
-        if FileFinderPGlobalInfo.directory != directory: 
-            FileFinderPGlobalInfo.preprocess(directory)
-        self.on_change_database()
-        super().__init__(self.file_type, self.files, name, history, options)
+    def __init__(self, directory=None, name="FileFinder", history=None, options={}):
+        if directory is None:
+            directory = get_directory()
+        self.directory = get_base(directory)
+        self.is_remote = is_remote(directory)
+        files = self.set_root(self.directory)
+        super().__init__(self.file_type, files, name, history, options)
         self.last_window_id = vim.eval("win_getid()")
         self.saved_cursor = GetCursorXY()
 
+    def set_root(self, directory):
+        files = rpc_wait("filefinder.set_root", directory)
+        return files
+
+    def on_search(self):
+        search_text = self.widgets['input'].text.strip().lower()
+        rpc_call("filefinder.search", self.update_ui, self.type, search_text)
+        
+    def set_items(self, name, items):
+        pass
+
     def oninit(self):
         super().oninit()
+        self.mode = "file"
         vim.command(f'let w:filefinder_mode="{self.mode}"')
         vim.command(f'let w:filefinder_dir="{self.directory}"')
         vim.command('set filetype=filefinder')
 
     def on_enter(self, cmd):
         item = self.widgets['result'].cur_item()
+        if self.is_remote: item = to_remote(item)
         log(f"[FileFinder] start goto. item {item} with cmd: {cmd}")
         self.goto(item, cmd)
 
     @property
     def file_type(self):
-        return self.directory+"@"+self.mode
+        return self.directory
 
     def goto(self, filepath, cmd=None):
         self.close()
         if filepath:
-            FileFinderPGlobalInfo.update_mru(filepath)
+            #FileFinderPGlobalInfo.update_mru(filepath)
+            if is_remote(filepath): 
+                vim.command(f"RemoteEdit {filepath}")
+                return
             loc = Location(filepath)
             if cmd is None: cmd = '.'
             GoToLocation(loc, cmd)
@@ -1095,7 +1115,7 @@ def FileFinder(args):
         3. normal files
         4. with build / build_svd
     """
-    directory = "./" if FileFinderPGlobalInfo.directory is None else FileFinderPGlobalInfo.directory
+    directory = None if FileFinderPGlobalInfo.directory is None else FileFinderPGlobalInfo.directory
     if len(args) == 1: 
         directory = args[0]
     ff = FileFinderBuffer(directory=directory)

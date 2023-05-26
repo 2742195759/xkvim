@@ -5,113 +5,92 @@ import time
 from decorator import *
 from log import log
 from functions import KillablePool
+from fuzzy_list import FuzzyList
 
-class FuzzyList:
+
+def GetConfigByKey(key, directory='./'):
+    import yaml  
+    # 打开 YAML 文件  
+    path = os.path.join(directory, ".vim_config.yaml")
+    log(f"[SearchConfig] config_file = {path}")
+    if not os.path.exists(path): 
+        log(f"[SearchConfig] not exist.")
+        return []
+    with open(path, 'r') as f:  
+        # 读取文件内容  
+        data = yaml.safe_load(f)  
+    # 输出解析结果  
+    if key not in data: return []
+    return data[key]
+
+
+def GetSearchConfig(directory):
+    config_lines = GetConfigByKey("search_config", directory)
+    excludes_dir = []
+    excludes_file = []
+    for line in config_lines: 
+        if line.startswith("--exclude-dir="):
+            excludes_dir.append(line.split("=")[1].strip()[1:-1])
+        elif line.startswith("--exclude="): 
+            excludes_file.append(line.split("=")[1].strip()[1:-1])
+    #print("[SearchConfig]", excludes_dir + excludes_file)
+    return excludes_dir, excludes_file
+
+
+def GetSearchFindArgs(excludes):
+    dirs, files = excludes
+    find_cmd = []
+    for exclude in dirs: 
+        find_cmd.append(" ".join(["-not", "-path", f"\"*{exclude}\""]))
+    for exclude in files: 
+        find_cmd.append(" ".join(["-not", "-name", f"\"*{exclude}\""]))
+    #log("[FindCmd]: ", find_cmd)
+    find_cmd = " -a ".join(find_cmd)
+    return find_cmd
+
+
+def GetSearchFiles(directory):
+    base_cmd = f"find {directory} "
+    excludes = GetSearchConfig(directory)
+    find_args = GetSearchFindArgs(excludes)
+    find_cmd = base_cmd + find_args
+    return GetSearchFilesFromCommand(find_cmd)
+
+
+def GetSearchFilesFromCommand(find_cmd):
+    import subprocess
+    child = subprocess.Popen(f"{find_cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+    log ("[FileFinder]:", find_cmd)
+    files = []
+    for line in child.stdout.readlines():
+        line = line.strip()
+        if line and os.path.isfile(line):
+            files.append(line)
+    return files
+
+class FileFinder:
     def __init__(self):
-        """ 
-        Save a mapping from: name:String -> items:List(String)
-        """
-        self.lists_dict = {}
-        # type is "DIRECTOTYR@TYPE"
-        # for example: "/home/data/Paddle/@file|mru"
+        self.root = None
+        self.fuzzy = FuzzyList()
+        pass
+
+    def _get_files(self):
+        return ['sdfsdf', 'sdfsd']
 
     @server_function
-    def set_items(self, name, items): 
-        self.lists_dict[name] = items
-        #def filt(filepath):
-            #basename = os.path.basename(filepath).lower()
-            #if basename.startswith("."): return False
-            #if basename.endswith(".o"): return False
-            #if basename.endswith(".pyc"): return False
-            #if basename.endswith(".swp"): return False
-            #return True
-        #self.files = list(filter(filt, self.files))
-        log(f"[FileFinder] set `{name}` with length:", len(self.files))
-        return None
+    def set_root(self, rootpath):
+        self.root = rootpath
+        self.files = self._get_files()
+        self.files = GetSearchFiles(self.root)
+        # TODO: find files and reset it.
+        self.fuzzy.set_items(-1, "filefinder", self.files)
+        return self.files[:17]
 
-    @server_function
-    def is_init(self, name):
-        return name in self.lists_dict
-        
-    # TODO: error handle is not prefect
-    #       when we have processes: Main -> Search -> Pool, 
-    #       when kill the Search Process, Pool Processes will raise a lot of BrokenPipeError
-    #       how to ignore them.
-    #       Hints: https://stackoverflow.com/questions/11312525/catch-ctrlc-sigint-and-exit-multiprocesses-gracefully-in-python
-    #@server_function
-    @process_function 
-    def search(self, name, search_text): 
-        # map and calculate
-        num_worker=20
-        files = self.lists_dict.get(name, [])
-        with KillablePool(num_worker) as p:
-            inputs = default_map_fn(1, num_worker, search_text, files)
-            outputs = p.map(fuzzy_match_pool, inputs)
-        # reduce and post handle.
-        # fuzzy map on the returned value.
-        gather = []
-        for output in outputs: 
-            res, _ = output
-            if not res: continue
-            gather.extend(res)
-        return fuzzy_match(search_text, gather)
+    # transfer only
+    def search(self, id, name, search_text):
+        return self.fuzzy.search(id, 'filefinder', search_text)
 
-def fuzzy_match_pool(args):
-    """
-    Pool().map don't unpack automatic, so we should have list as a parameter.
-    """
-    return fuzzy_match(*args)
-
-def fuzzy_match(search_text, candidate):
-    assert candidate is not None, "candidate is None, error!"
-    import glob
-    import re
-    join = []
-    if isinstance(search_text, tuple): 
-        search_text = search_text[0]
-    for t in search_text: 
-        if t == '+' or t == '-': join.append("|"+t)
-        else: join.append(t)
-    search_text = "".join(join)
-    pieces = search_text.split("|")
-    qualifier = []
-    qualifier_name_set = set()
-    search_base = None
-    for p in pieces: 
-        p = p.strip()
-        if not p: continue
-        if p.startswith("+") or p.startswith("-"): 
-            qualifier.append(p)
-            qualifier_name_set.add(p)
-        else: search_base = p
-    if ".git/" not in qualifier_name_set: 
-        qualifier.append("-git/")
-    if "/build" not in qualifier_name_set: 
-        qualifier.append("-/build")
-    if "cmake/" not in qualifier_name_set: 
-        qualifier.append("-cmake/")
-
-    def filt(filepath): 
-        basename = os.path.basename(filepath).lower()
-        filepath = filepath.lower()
-        for qual in qualifier: 
-            if qual.startswith("+") and not re.search(qual[1:], filepath): return False
-            if qual.startswith("-") and re.search(qual[1:], filepath): return False
-        return True
-
-    if search_base is not None: 
-        from fuzzyfinder import fuzzyfinder
-        res = list(fuzzyfinder(search_base, filter(filt, candidate)))[:17]
-    if search_base is None: 
-        return [], None
-    return res, search_base
-
-def test_main():
-    f = FuzzyList()
-    search = "it"
-    inputs = ["xxxx", "hhhh", "getit"] * 100000
-    f.files = inputs
-    print(f.search(1, search))
+filefinder = FileFinder()
 
 if __name__ == "__main__":
     test_main()

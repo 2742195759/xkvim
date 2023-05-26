@@ -10,5 +10,5 @@ def QueueLoop(process_fn):
     log("[Server]: Start queue loop.")
     while True:
         output = queue.get()
-        log("[Server]: Queue Get!")
+        log(f"[Server]: Queue Get! {output}")
         process_fn(output)

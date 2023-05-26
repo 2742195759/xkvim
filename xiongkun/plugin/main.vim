@@ -254,8 +254,25 @@ function! RPCServer(channel, msg)
     let g:rpc_receive=a:msg
     "let g:rpc_vimcommand=a:msg
     "echom a:msg
-    py3 Xiongkun.rpc_server.receive()
+    py3 Xiongkun.rpc_server().receive()
     redraw!
+endfunction
+
+function! SendMessageSync(id, channel, package)
+    call ch_sendraw(a:channel, a:package)
+    while 1
+        let out = ch_read(a:channel)
+        if out == ""
+            echo "[Warnings] empty line get! errror happens!"
+            break
+        endif
+        let json = json_decode(out)
+        call RPCServer(a:channel, out)
+        if json[0] == a:id
+            break
+        endif
+    endwhile
+    return out
 endfunction
 
 function! RPCServerError(channel, msg)

@@ -8,11 +8,11 @@ import os
 from threading import Lock, Thread
 import multiprocessing as mp
 from functools import partial
-from file_finder import fuzzy_match_pool
 from decorator import InQueue, server_function, pool_function, process_function, default_map_fn, time_consume
 from queue_loop import QueueLoop
 from fuzzy_list import FuzzyList
 from log import log, mutex
+from file_finder import filefinder
 from yiyan_server import Yiyan
 
 def send(obj):
@@ -61,6 +61,7 @@ def server_main():
             log("[Server]: process function.")
         else: 
             log("[Server]: normal function.")
+            log(output)
             send([id, output])
 
 server_main()

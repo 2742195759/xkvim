@@ -7,7 +7,7 @@ mutex = Lock()
 INFO  = 0
 DEBUG = 1
 NONE = 100
-level = NONE 
+level = DEBUG 
 def log(*args): # 0 
     if level > 0: return
     with mutex:

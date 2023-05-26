@@ -25,6 +25,7 @@ from .buf_app_translate import *
 from .buf_app_code_action import *
 from .command_doc_popup import *
 from .filetype_plugin import *
+from .remote_fs import *
 
 pro = None; 
 
