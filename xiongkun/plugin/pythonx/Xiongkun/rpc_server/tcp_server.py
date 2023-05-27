@@ -25,6 +25,7 @@ import threading
 from threading import Thread
 from server_cluster import ServerCluster
 from decorator import InQueue
+from servers.bash_server import bash_server
 
 try:
     # Python 3
@@ -33,51 +34,62 @@ except ImportError:
     # Python 2
     import SocketServer as socketserver
 
+def vim_rpc_loop(handle):
+    print ("===== start a vim rpc server ======")
+    def send(obj):
+        encoded = json.dumps(obj) + "\n"
+        print("sending {0}".format(encoded))
+        handle.wfile.write(encoded.encode('utf-8'))
+
+    servers = ServerCluster()
+    servers.start_queue(send)
+
+    while True:
+        try:
+            data = handle.rfile.readline().decode('utf-8')
+        except socket.error:
+            print("=== socket error ===")
+            break
+        if data == '':
+            print("=== socket closed ===")
+            break
+        print("received: {0}".format(data))
+        try:
+            req = json.loads(data)
+        except ValueError:
+            print("json decoding failed")
+            req = [-1, '']
+
+        # Send a response if the sequence number is positive.
+        # Negative numbers are used for "eval" responses.
+        if req[0] >= 0:
+            print (req)
+            id, name, args = req
+            print("[Server] receive: ", id, name)
+            func = servers.get_server_fn(name)
+            if not func:
+                continue
+            output = func(id, *args)
+            if isinstance(output, InQueue): 
+                print("[Server]: process function.")
+            else: 
+                print("[Server]: normal function.")
+                send(output)
+    print ("stop handle, closing...")
+    servers.stop()
+    print ("===== stop a vim rpc server ======")
+
 class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
     def handle(self):
         print("=== socket opened ===")
-        def send(obj):
-            encoded = json.dumps(obj) + "\n"
-            print("sending {0}".format(encoded))
-            self.wfile.write(encoded.encode('utf-8'))
-
-        servers = ServerCluster()
-        servers.start_queue(send)
-
-        while True:
-            try:
-                data = self.rfile.readline().decode('utf-8')
-            except socket.error:
-                print("=== socket error ===")
-                break
-            if data == '':
-                print("=== socket closed ===")
-                break
-            print("received: {0}".format(data))
-            try:
-                req = json.loads(data)
-            except ValueError:
-                print("json decoding failed")
-                req = [-1, '']
-
-            # Send a response if the sequence number is positive.
-            # Negative numbers are used for "eval" responses.
-            if req[0] >= 0:
-                print (req)
-                id, name, args = req
-                print("[Server] receive: ", id, name)
-                func = servers.get_server_fn(name)
-                if not func:
-                    continue
-                output = func(id, *args)
-                if isinstance(output, InQueue): 
-                    print("[Server]: process function.")
-                else: 
-                    print("[Server]: normal function.")
-                    send(output)
-        print ("stop handle, closing...")
-        servers.stop()
-        print ("closed.")
+        mode = self.rfile.readline()
+        mode = mode.strip()
+        if mode == b"bash": 
+            bash_server(self)
+        elif mode == b"vimrpc":
+            vim_rpc_loop(self)
+        else: 
+            print (f"Unknow command. {mode}")
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass

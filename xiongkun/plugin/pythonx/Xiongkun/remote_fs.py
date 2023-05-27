@@ -10,7 +10,7 @@ import re
 from .log import log
 import threading
 import os.path as osp
-from .rpc import rpc_call
+from .rpc import rpc_call, rpc_wait
 from .vim_utils import vimcommand
 import os
 
@@ -43,33 +43,41 @@ def RemoteSave(args):
     bufnr = vim.eval(f"bufnr('{url}')")
     lines = vim.eval(f"getbufline({bufnr}, 1, '$')")
     vim.command("set nomodified")
-    def do_open(msg): 
-        if msg != "success.": 
-            vim.command(f"echom '{msg}'")
-            vim.command("set modified")
-    rpc_call("remotefs.store", do_open, filepath, "\n".join(lines))
+    msg = rpc_wait("remotefs.store", filepath, "\n".join(lines))
+    if msg != "success.": 
+        vim.command(f"echom '{msg}'")
+        vim.command("set modified")
         
+def LoadBuffer(url):
+    bufnr = vim.eval(f"bufnr('{url}')")
+    def do_open(content): 
+        tmp_file = vim_utils.TmpName()
+        with open(tmp_file, "w") as f: 
+            f.write(content)
+        bufnr = vim.eval(f'bufadd("{url}")')
+        vim.command(f"b {bufnr}")
+        vim.command(f"read {tmp_file}")
+        vim.command("normal ggdd")
+        vim.command("set nomodified")
+        return bufnr
+    if bufnr == "-1": 
+        if is_remote(url): 
+            filepath = get_base(url)
+            content = rpc_wait("remotefs.fetch", filepath)
+            bufnr = do_open(content)
+        else: 
+            bufnr = vim.eval(f'bufadd("{url}")')
+            vim.eval(f"bufload('{url}')")
+        return bufnr
+    else: 
+        return bufnr
 
 @vim_register(command="RemoteEdit", with_args=True)
 def RemoteEdit(args):
     url = args[0]
     filepath = get_base(url)
-    if not is_remote(url): vim.command(f"e {url}")
-    else: 
-        def do_open(content): 
-            tmp_file = vim_utils.TmpName()
-            with open(tmp_file, "w") as f: 
-                f.write(content)
-            bufnr = vim.eval(f'bufadd("{url}")')
-            vim.command(f"b {bufnr}")
-            vim.command(f"read {tmp_file}")
-            vim.command("normal ggdd")
-            vim.command("set nomodified")
-        bufnr = vim.eval(f"bufnr('{url}')")
-        if bufnr == "-1": 
-            rpc_call("remotefs.fetch", do_open, filepath)
-        else: 
-            vim.command(f"b {bufnr}")
+    bufnr = LoadBuffer(url)
+    GoToBuffer(bufnr, 'e')
             
 vim_utils.commands(""" 
 augroup RemoteWrite
@@ -78,11 +86,11 @@ augroup RemoteWrite
 augroup END
     """)
 
+
 """
 text access and modification function.
 """
-
-def GoToLocation(location, method):
+def GoToBuffer(bufnr, method):
     """
     jump to a location.
     supported method: 
@@ -94,35 +102,35 @@ def GoToLocation(location, method):
     6. 'b': buffer open
     6. 'sb': buffer open
     """
+    norm_methods = {
+        'e': f'enew\nsetlocal bufhidden=wipe\nkeepjumps b {bufnr}',
+        '.': f'enew\nsetlocal bufhidden=wipe\nkeepjumps b {bufnr}',
+        't': 'tabe!\nsetlocal bufhidden=wipe\nkeepjumps b {bufnr}'.format(bufnr=bufnr),
+        'v': 'vne!\nsetlocal bufhidden=wipe\nkeepjumps b {bufnr}'.format(bufnr=bufnr),
+        's': f'keepjumps sb {bufnr}',
+        'b': f'keepjumps b {bufnr}',
+        'sb': f'keepjumps vertical sb {bufnr}',
+    }
+    commands = norm_methods[method]
+    vim_utils.commands(commands)
+    
+
+def GoToLocation(location, method):
+    #view_methods = {
+        #'e': 'noswapfile e',
+        #'.': 'noswapfile e',
+        #'p': 'noswapfile pedit',
+        #'s': 'noswapfile split',
+        #'t': 'noswapfile tabe',
+        #'v': 'noswapfile vne',
+        #'b': 'noswapfile b',
+        #'sb':'noswapfile vertical sb',
+    #}
     if is_remote_mode():
         location.to_remote()
-        vim.command(f"RemoteEdit {location.full_path}")
-        return 
-
-    norm_methods = {
-        'e': 'e!',
-        '.': 'e!',
-        'p': 'pedit!',
-        't': 'tabe!',
-        'v': 'vne!',
-        's': 'split!',
-        'b': 'b',
-        'sb': 'vertical sb',
-    }
-    view_methods = {
-        'e': 'noswapfile e',
-        '.': 'noswapfile e',
-        'p': 'noswapfile pedit',
-        's': 'noswapfile split',
-        't': 'noswapfile tabe',
-        'v': 'noswapfile vne',
-        'b': 'noswapfile b',
-        'sb':'noswapfile vertical sb',
-    }
-    vim_method = norm_methods[method]
-    if HasSwapFile(location.getfile()): 
-        vim_method = view_methods[method]
-    vimcommand("%s +%d %s"%(vim_method, location.getline(), location.getfile()))
+    bufnr = LoadBuffer(location.full_path)
+    GoToBuffer(bufnr, method)
+    vimcommand(f":{location.getcol()}")
     if location.getcol() != 1:
         vimcommand("normal %d|"%(location.getcol()))
     vimcommand("normal zv")

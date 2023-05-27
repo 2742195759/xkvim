@@ -10,6 +10,8 @@ import os
 import os.path as osp
 from .func_register import *
 from .vim_utils import *
+from .remote_fs import get_directory, is_remote_mode, get_base
+from .rpc import get_address
 from collections import OrderedDict
 
 def send_keys(bufnr, keys):
@@ -70,13 +72,14 @@ def load_config(args):
 
 @vim_register(command="Bash", with_args=True)
 def BashStart(args=[]):
-    config = load_config(args)
-    TerminalStart(config.ssh_url, config.ssh_passwd, config.docker_cmd, config.wd)
-
-@vim_register(command="VBash", with_args=True)
-def VBashStart(args=[]):
-    config = load_config(args)
-    TerminalStart(config.ssh_url, config.ssh_passwd, config.docker_cmd, config.wd, 'split')
+    if not is_remote_mode(): 
+        print ("Bash only support remote mode! :terminal is suit for local mode.")
+        return
+    host, port = get_address()
+    print (get_address())
+    vimeval(f'term_start("python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port}")')
+    bufnr = vim.eval("bufnr()")
+    send_keys(bufnr, f"cd {get_base(get_directory())}\n")
 
 @vim_register(command="BashHelp", with_args=True)
 def TerminalHelper(args):

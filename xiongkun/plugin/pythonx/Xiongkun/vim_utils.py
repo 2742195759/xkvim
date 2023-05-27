@@ -393,13 +393,9 @@ def test():
 def vimcommand(cmd):
     log("Command: ", cmd)
     vim.command(cmd)
-    return
-    vim_dispatcher.call(vim.command, [cmd])
 
 def vimeval(cmd):
     ret = vim.eval(cmd)
-    return ret
-    ret = vim_dispatcher.call(vim.eval, [cmd])
     return ret
 
 def GetTextFromLocation(loc):

@@ -50,6 +50,9 @@ class RPCChannel:
             vimcommand(
                 f'let {self.channel_name} = ch_open("{self.job_name}", {dict2str(config)})'
             )
+            vimcommand(
+                f'call ch_sendraw({self.channel_name}, "vimrpc\n")'
+            )
         # package is like: [serve_id, server_name, [arg0, arg1, ...]]
         # respond is like: [serve_id, is_finished, [return_val]]
         self.id = 0
@@ -201,6 +204,10 @@ class RemoteProject:
 
     def effected_command(self):
         return "FF"
+
+def get_address(): 
+    host, port = remote_project.host.split(":")
+    return host.strip(), port.strip()
 
 remote_project = None
 
