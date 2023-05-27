@@ -13,7 +13,7 @@ import json
 from .func_register import vim_register
 from .log import debug
 
-class RPCServer:
+class RPCChannel:
     def __init__(self, remote_server=None):
         self.channel_name = "g:rpc_channel"
         self.receive_name = "g:rpc_receive"
@@ -50,28 +50,25 @@ class RPCServer:
             vimcommand(
                 f'let {self.channel_name} = ch_open("{self.job_name}", {dict2str(config)})'
             )
+        # package is like: [serve_id, server_name, [arg0, arg1, ...]]
+        # respond is like: [serve_id, is_finished, [return_val]]
         self.id = 0
-        self.callbacks = {}
-        self.increment_cache = {} # recode the newest request id: name -> newest_id
-        self.increment_server = [
-            'filefinder.search'
-        ]
+        self.receives = {}
+        self.callbacks = {} # id -> (on_receive)
 
     def receive(self):
         msg = vimeval(f"{self.receive_name}")
-        if not msg: 
-            return
+        if not msg: return
         self.on_receive(msg)
 
     def on_receive(self, msg):
-        #debug("[RPC]receive: ", msg)
-        id, output = json.loads(msg)
-        if id not in self.callbacks: 
-            return
-        name, on_return = self.callbacks.pop(id)
-        if name in self.increment_server and self.increment_cache[name] != id:
-            return 
-        on_return(output)
+        id, is_finished, output = json.loads(msg)
+        if id not in self.callbacks: return
+        on_return = self.callbacks[id]
+        on_return(id, is_finished, output)
+        if is_finished: 
+            if id in self.callbacks: 
+                self.callbacks.pop(id)
 
     def send(self, package, sync=None):
         escaped = escape(json.dumps(package), '\\')
@@ -84,21 +81,79 @@ class RPCServer:
             assert isinstance(sync, int)
             return vim.eval(f'SendMessageSync({sync}, {self.channel_name}, {str_package})')
 
-    def call_common(self, name, on_return, *args):
+    def stream_new(self):
+        class RPCStream:
+            def __init__(self, channel, id):
+                self.id = id
+                self.is_deleted=False
+                self.channel = channel
+            
+            def send(self, name, sync=None, *args):
+                assert self.is_deleted == False
+                package = [self.id, name, args]
+                return self.channel.send(package, sync)
+
+            def delete(self):
+                self.is_deleted = True
+                self.channel.stream_del(self)
+
+            def register_hook(self, on_receive): 
+                self.channel.callbacks[self.id] = on_receive
+                
         self.id += 1
-        if name in self.increment_server:
-            self.increment_cache[name] = self.id
-        package = [self.id, name, args]
-        self.callbacks[self.id] = (name, on_return)
-        return self.id, package
+        return RPCStream(self, self.id)
+
+    def stream_del(self, stream): 
+        if stream.id in self.callbacks: 
+            self.callbacks.pop(stream.id)
+
+def dummy_callback(*args, **kwargs):
+    return None
+
+class RPCServer:
+    def __init__(self, remote_server=None):
+        self.channel = RPCChannel(remote_server)
+
 
     def call(self, name, on_return, *args):
-        id, package = self.call_common(name, on_return, *args)
-        self.send(package)
+        stream = self.channel.stream_new()
+        def on_return_wrapper(id, is_finished, output): 
+            #if not is_finished: cached_inputs.append(output)
+            assert is_finished == True, "received is_finished == False, please use stream rpc."
+            on_return(output)
+            stream.delete()
+        stream.register_hook(on_return_wrapper)
+        stream.send(name, None, *args)
+        return stream
+
 
     def call_sync(self, name, *args):
-        id, package = self.call_common(name, lambda x: x, *args)
-        return self.send(package, id)
+        stream = self.channel.stream_new()
+        stream.register_hook(dummy_callback)
+        output = stream.send(name, stream.id, *args)
+        id, is_finished, output = json.loads(output)
+        return output
+
+
+    def call_stream(self, name, on_return, on_finish, *args): 
+        """
+        call a function, and get output as a stream.
+        with is_finished set, we delete.
+        """
+        stream = self.channel.stream_new()
+        def on_return_wrapper(id, is_finished, output): 
+            #if not is_finished: cached_inputs.append(output)
+            if is_finished: on_finish(output)
+            else: on_return(output)
+            stream.delete()
+        stream.register_hook(on_return_wrapper)
+        stream.send(name, None, *args)
+        return stream
+
+
+    def receive(self): # for hooker.
+        self.channel.receive()
+        
 
 local_rpc = None
 
@@ -135,9 +190,7 @@ def rpc_wait(name, *args):
         use the vim job machnism
         see `xiongkun/plugin/pythonx/Xiongkun/rpc_server/server.py` for remote function.
     """
-    msg = rpc_server().call_sync(name, *args)
-    id, output = json.loads(msg)
-    return output
+    return rpc_server().call_sync(name, *args)
 
 class RemoteProject: 
     def __init__(self, config_file):

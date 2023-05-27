@@ -9,6 +9,7 @@ from file_finder import FileFinder
 from decorator import InQueue
 from remote_fs import RemoteFS
 from yiyan_server import Yiyan
+from grep_search import GrepSearcher
 
 import multiprocessing as mp
 from log import log
@@ -20,9 +21,10 @@ class ServerCluster:
         self.remotefs = RemoteFS()
         self.fuzzyfinder = FuzzyList(self.queue)
         self.yiyan = Yiyan(self.queue)
+        self.grepfinder = GrepSearcher(self.queue)
         self._stop = False
 
-    def QueueLoop(self, process_fn):
+    def _QueueLoop(self, process_fn):
         log("[Server]: Start queue loop.")
         while not self._stop:
             try:
@@ -48,9 +50,12 @@ class ServerCluster:
         return None
 
     def start_queue(self, sender):
-        self.queue_thread = Thread(target=self.QueueLoop, args=[sender], daemon=True)
+        self.queue_thread = Thread(target=self._QueueLoop, args=[sender], daemon=True)
         self.queue_thread.start()
 
     def stop(self):
         self._stop = True
         self.queue_thread.join()
+
+def printer_process_fn(output):
+    print (output)

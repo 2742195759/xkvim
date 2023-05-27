@@ -41,8 +41,7 @@ def server_main():
             log("[Server]: process function.")
         else: 
             log("[Server]: normal function.")
-            log(output)
-            send([id, output])
+            send(output)
     servers.stop()
 
 server_main()

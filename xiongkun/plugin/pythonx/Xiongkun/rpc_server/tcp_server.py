@@ -63,6 +63,7 @@ class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
             # Send a response if the sequence number is positive.
             # Negative numbers are used for "eval" responses.
             if req[0] >= 0:
+                print (req)
                 id, name, args = req
                 print("[Server] receive: ", id, name)
                 func = servers.get_server_fn(name)
@@ -73,7 +74,7 @@ class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
                     print("[Server]: process function.")
                 else: 
                     print("[Server]: normal function.")
-                    send([id, output])
+                    send(output)
         print ("stop handle, closing...")
         servers.stop()
         print ("closed.")

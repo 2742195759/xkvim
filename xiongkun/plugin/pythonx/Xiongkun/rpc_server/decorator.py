@@ -25,7 +25,7 @@ def process_function(func):
         def worker(*args):
             #print("process function with args:", *args)
             output = func(*args)
-            self.queue.put((id, output))
+            self.queue.put((id, True, output))
         nonlocal p
         if p is not None: 
             p.terminate()
@@ -101,7 +101,7 @@ def server_function(func):
         args = args[2:]
         def worker(*args):
             output = func(*args)
-            return output
+            return (id, True, output)
         return worker(self, *args)
     return wrapper
 

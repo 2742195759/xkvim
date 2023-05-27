@@ -691,76 +691,30 @@ class CtrlPSearcher(Searcher):# {{{
 class GrepSearcher(Searcher):# {{{
     def get_workers(self, inp, d):
         class GrepSearchWorker(CancellableWorker):
-            def __init__(self, inp, directory, grep_extra_args):
+            def __init__(self):
                 super().__init__(None)
-                self.directory = directory
-                self.inp = inp
-                self.child = None
-                self.grep_extra_args = grep_extra_args
             def __call__(self, qid):
-                return GrepSearcher.do_search(self.inp, self.directory, self) 
+                from .rpc import rpc_server
+                self.stream = rpc_server().call_stream(
+                    "grepfinder.search", self.process, 
+                    self.finish, d, inp
+                )
+
             def cancel(self):
                 self.force_cancel()
                 self.child = None
+                self.stream.delete()
+
             def force_cancel(self):
                 if self.child.poll() is None: 
                     self.child.terminate()
 
-        extra_args = GetSearchGrepArgs(GetSearchConfig(d))
-        log(f"[GrepWorker] directory = {d}")
-        log(f"[GrepWorker] extra_args =  {extra_args}")
-        import glob 
-        files = glob.glob(d + "/*")
-        ex_dirs, ex_files = GetSearchConfig(d)
-        log(f"[GrepWorker] files =  {files}")
-        def f(name):
-            for ignore in ex_dirs + ex_files:
-                ignore = ignore.replace("/", "")
-                ignore = ignore.replace("*", "")
-                if ignore == name: return False
-            return True
-        files = list(filter(f, files))
-        files = [ f for f in files if osp.isdir(f) ]
-        log(f"[GrepWorker] files =  {files}")
-        workers = []
-        for file in files: 
-            abspath = osp.abspath(file)
-            workers.append(GrepSearchWorker(inp, abspath, extra_args))
+            def set_callback(self, finish, process):
+                self.finish = finish
+                self.process = process
 
-        # insert FILE as file with depth=1 file search
-        workers.append(GrepSearchWorker(inp, "FILE:" + d, extra_args))
-        return workers
-    
-    @staticmethod
-    def do_search(inp, directory, worker):
-        log(f"[GrepWorker] do search : {directory}, with keyword: {inp}")
-        extra_args = worker.grep_extra_args
-        log(f"[GrepWorker]: {extra_args}")
-        if directory.startswith("FILE:"): 
-            directory = directory.split("FILE:")[1].strip()
-            sh_cmd = "find %s -maxdepth 1 -type f | LC_ALL=C xargs egrep -H -I -n %s \"%s\"" % (directory, " ".join(extra_args), escape(inp))
-        else: 
-            sh_cmd = "LC_ALL=C egrep -I -H -n %s -r \"%s\" %s" % (" ".join(extra_args), escape(inp), directory)
-        worker.child = subprocess.Popen(sh_cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
-        results = []
-        for idx, line in enumerate(worker.child.stdout.readlines()):
-            try:
-                line = line.strip()
-                filename = line.split(":")[0].strip()
-                lnum = line.split(":")[1].strip()
-                text = ":".join(line.split(":")[2:])
-                result = {}
-                result['filename'] = filename.strip()
-                assert lnum.isnumeric(), "Not a valid number."
-                result['lnum'] = lnum
-                result['text'] = text.strip()
-                result['cmd']  = "" + lnum
-                result['source']  = "Grep"
-            except Exception as e:
-                continue
-            results.append(result)
-        return results
 
+        return GrepSearchWorker()
 # }}}
 
 class ClangdIndexSearcher(Searcher):# {{{
@@ -860,17 +814,26 @@ class UniverseSearchEngine(Searcher):# {{{
             self.pcm = None
 
     def start_async(self, workers):
+        # Refactor by xiongkun in 2023-5-27
+        # 1. make all the aysnc logic into RPC
+        # 2. add rpc stream mode.
         if len(workers) == 0 : return 
-        def update_wrapper(items, qid):
-            vim_dispatcher.call(self.update, args=[qid, items])
+        qid = self.query_id
+        def update_wrapper(items):
+            self.update(qid, items)
 
-        def done_callback(qid):
-            vim_dispatcher.call(self.on_worker_done, args=[qid])
+        def done_callback(results):
+            self.update(qid, results)
+            self.on_worker_done(qid)
             self.kill_async()
 
         self.workers = workers
-        self.pcm = ProductConsumerModel(workers, update_wrapper, done_callback)
-        self.pcm.start([self.query_id])
+        assert len(self.workers) <= 1 
+        for worker in self.workers: 
+            worker.set_callback(done_callback, update_wrapper)
+            worker.on_finish = done_callback
+            worker.on_process = update_wrapper
+            worker(qid)
 
     def search(self, inp, directory, mask=None):
         if inp is None or inp == "" :
