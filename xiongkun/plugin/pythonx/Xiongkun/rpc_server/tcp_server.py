@@ -87,4 +87,13 @@ def server_tcp_main(HOST, PORT):
     ip, port = server.server_address
     server.serve_forever()
 
-server_tcp_main("127.0.0.1", 10001)
+def parameter_parser():
+    import argparse
+    parser = argparse.ArgumentParser(description="Support Args:")
+
+    parser.add_argument("--host",                      type=str,   help="127.0.0.1")
+    parser.add_argument("--port",                      type=str,   help="8080")
+    return parser.parse_args()
+
+args = parameter_parser()
+server_tcp_main(args.host, int(args.port))
