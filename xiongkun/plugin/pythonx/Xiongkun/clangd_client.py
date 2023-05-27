@@ -12,6 +12,7 @@ from .windows import GlobalPreviewWindow
 import time
 from .log import log
 from urllib.parse import quote, unquote
+from . import remote_fs
 
 def _StartAutoCompile():# {{{
     cmd = """
@@ -255,7 +256,7 @@ class Clangd():# {{{
             texts = []
             for diag in diags['params']['diagnostics']: 
                 texts.append(diag['message'])
-                locs.append(vim_utils.Location(
+                locs.append(remote_fs.Location(
                     uri2abspath(diags['params']['uri']),
                     diag['range']['start']['line']+1, 
                     diag['range']['start']['character']+1))
@@ -432,5 +433,5 @@ def ClangdClose(args):# {{{
 def _clangd_to_location(result):# {{{
     loc = []
     for r in result:
-        loc.append(vim_utils.Location(uri2abspath(r['uri']), r['range']['start']['line']+1, r['range']['start']['character']+1))
+        loc.append(remote_fs.Location(uri2abspath(r['uri']), r['range']['start']['line']+1, r['range']['start']['character']+1))
     return loc# }}}

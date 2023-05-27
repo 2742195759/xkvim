@@ -8,6 +8,7 @@ import subprocess
 from functools import partial
 import re
 from .log import log
+from . import remote_fs
 
 def get_history_isearch(word):
     cmd = f'ilist! /\<{word}\>/'
@@ -40,8 +41,8 @@ def IJump(args):
                 break
         else: 
             filename = line
-    loc = vim_utils.Location(filename, lineno, 0, 1)
-    vim_utils.GoToLocation(loc, '.')
+    loc = remote_fs.Location(filename, lineno, 0, 1)
+    remote_fs.GoToLocation(loc, '.')
 
 @vim_register(command="Getout", with_args=True)
 def GetoutputFromCommand(args):
@@ -113,7 +114,7 @@ def confirm(message):
 def interactive_cdo(command): 
     qflist = vim.eval("getqflist()")
     for idx, item in enumerate(qflist):
-        vim_utils.Location(vim.eval(f"bufname({item['bufnr']})"), 
+        remote_fs.Location(vim.eval(f"bufname({item['bufnr']})"), 
                            int(item['lnum']), 
                            int(item['col']),).jump(".")
         vim.command("normal zz")

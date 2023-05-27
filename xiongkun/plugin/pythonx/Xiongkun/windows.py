@@ -8,6 +8,7 @@ from .multiprocess_utils import ProductConsumerModel, CancellableWorker
 import subprocess
 from .sema_utils import SemaPool
 from functools import partial
+from . import remote_fs
 import os
 
 class Buffer:# {{{
@@ -186,7 +187,7 @@ class BoxListWindowManager:# {{{
 
 class BoxListItem:# {{{
     def __init__(self):
-        self.loc = Location()
+        self.loc = remote_fs.Location()
         self.column = []
 
     @staticmethod
@@ -250,8 +251,8 @@ class BoxListWindow(Window):# {{{
 
     def goto(self, item, method):
         if item['filename'] == "": return 
-        loc = Location(item['filename'])
-        GoToLocation(loc, method)
+        loc = remote_fs.Location(item['filename'])
+        remote_fs.GoToLocation(loc, method)
         vimcommand(item['cmd'])
 
     @staticmethod
@@ -598,7 +599,7 @@ class GlobalPreviewWindow:# {{{
     @staticmethod
     def open_in_preview_window():
         if GPW.cur_loc() is not None: 
-            GoToLocation(GPW.cur_loc(), "p") 
+            remote_fs.GoToLocation(GPW.cur_loc(), "p") 
         else: 
             print("Please set locations of preview windows.")
         GPW.hide()
@@ -671,7 +672,7 @@ class LSPSearcher(Searcher):# {{{
             #log("[LSPSearcher]", old_buf_pos, old_cur_pos, buf_pos, cur_pos)
             if buf_pos == old_buf_pos and old_cur_pos == cur_pos: 
                 return []
-            item = self.loc2searchitem(Location(buf_pos, cur_pos[0], cur_pos[1], base=1).to_base(0))
+            item = self.loc2searchitem(remote_fs.Location(buf_pos, cur_pos[0], cur_pos[1], base=1).to_base(0))
             item['source'] = 'LSP'
             #log("[LSPSearcher]", item)
             return [item]
@@ -738,7 +739,7 @@ def items2locs(items):# {{{
     ret = []
     for item in items:
         if item.get('lnum', "") == "": continue
-        ret.append(Location(
+        ret.append(remote_fs.Location(
             item['filename'],
             int(item['lnum']),
             int(item.get('col', 1))))
@@ -836,6 +837,9 @@ class UniverseSearchEngine(Searcher):# {{{
             worker(qid)
 
     def search(self, inp, directory, mask=None):
+        from .remote_fs import is_remote_mode, get_directory, get_base
+        if is_remote_mode(): 
+            directory = get_base(get_directory())
         if inp is None or inp == "" :
             return self.last_results
         with NotChangeQuickfixGuard():
@@ -928,7 +932,7 @@ def test():# {{{
     
 def test1():
     win = PreviewWindow(
-        Location("/home/data/web/scripts/test_unsqueeze.py", 20, 1)
+        remote_fs.Location("/home/data/web/scripts/test_unsqueeze.py", 20, 1)
     )
     win.create()
     win.show()
@@ -941,9 +945,9 @@ def test1():
 
 def test2():
     GlobalPreviewWindow.set_locs(
-        [Location("/home/data/web/scripts/test_unsqueeze.py", 10, 1), 
-        Location("/home/data/web/scripts/test_unsqueeze.py", 4, 1), 
-        Location("/home/data/web/scripts/test_unsqueeze.py", 8, 1)]
+        [remote_fs.Location("/home/data/web/scripts/test_unsqueeze.py", 10, 1), 
+        remote_fs.Location("/home/data/web/scripts/test_unsqueeze.py", 4, 1), 
+        remote_fs.Location("/home/data/web/scripts/test_unsqueeze.py", 8, 1)]
     )
     GlobalPreviewWindow.show()
 

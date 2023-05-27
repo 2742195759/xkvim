@@ -4,9 +4,10 @@ import os.path as osp
 from .func_register import *
 from .vim_utils import *
 from collections import OrderedDict
-from .rpc import rpc_call, rpc_wait, rpc_server, get_directory
+from .rpc import rpc_call, rpc_wait, rpc_server
 from .log import debug
-from .remote_fs import is_remote, get_base, to_remote
+from .remote_fs import is_remote, get_base, to_remote, GoToLocation, get_directory
+from . import remote_fs
 
 start = None
 
@@ -1068,7 +1069,6 @@ class FileFinderBuffer(FuzzyList):
 
     def on_enter(self, cmd):
         item = self.widgets['result'].cur_item()
-        if self.is_remote: item = to_remote(item)
         log(f"[FileFinder] start goto. item {item} with cmd: {cmd}")
         self.goto(item, cmd)
 
@@ -1080,10 +1080,7 @@ class FileFinderBuffer(FuzzyList):
         self.close()
         if filepath:
             #FileFinderPGlobalInfo.update_mru(filepath)
-            if is_remote(filepath): 
-                vim.command(f"RemoteEdit {filepath}")
-                return
-            loc = Location(filepath)
+            loc = remote_fs.Location(filepath)
             if cmd is None: cmd = '.'
             GoToLocation(loc, cmd)
 

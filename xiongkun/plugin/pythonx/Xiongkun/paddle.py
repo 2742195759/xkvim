@@ -9,6 +9,7 @@ from functools import partial
 import re
 from .log import log
 import threading
+from .remote_fs import Location
 
 @vim_register(command="Build")
 def SwitchBuildAndSource(args):
@@ -24,4 +25,4 @@ def SwitchBuildAndSource(args):
     else: 
         print("Do Nothing.")
         new_path = path
-    vim_utils.Location(new_path, line, col).jump()
+    Location(new_path, line, col).jump()

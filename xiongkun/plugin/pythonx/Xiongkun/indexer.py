@@ -4,6 +4,7 @@ from .func_register import *
 from .windows import GlobalPreviewWindow
 from os import path as osp
 from .clangd_client import do_path_map
+from . import remote_fs
 
 """
 a example for result:
@@ -29,7 +30,7 @@ def result_to_location(r):
     if file.startswith("file://"): file = file[7:]
     file = do_path_map(file)
     if not osp.exists(file): return None
-    return Location(file, r['def']['line'], r['def']['character'])
+    return remote_fs.Location(file, r['def']['line'], r['def']['character'])
 
 def filter_exactly(results, name, scope):
     results = [ r for r in results if r['name'] == name ]

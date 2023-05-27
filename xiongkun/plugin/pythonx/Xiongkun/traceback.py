@@ -8,8 +8,9 @@ import subprocess
 from functools import partial
 import re
 from .log import log
-from .vim_utils import Location, SetQuickFixList, vimcommand, FindWindowInCurrentTabIf
+from .vim_utils import SetQuickFixList, vimcommand, FindWindowInCurrentTabIf
 import os.path as osp
+from . import remote_fs 
 
 file_pattern = r"[a-zA-Z0-9/\._-]+"
 number_pattern = r"[0-9]+"
@@ -26,7 +27,7 @@ def AnalysisTraceback(args):
             result = re.search(r'File "(.+)", line (.+), in (.+)', line)
             filename, lineno, name = result.groups()
             if osp.exists(filename): 
-                locs.append(Location(filename, int(lineno)))
+                locs.append(remote_fs.Location(filename, int(lineno)))
     def prediction(wnr):
         return vim.eval(f"getwinvar({wnr}, '&buftype')") == "terminal"
     bufnr = int(FindWindowInCurrentTabIf(prediction))
@@ -49,11 +50,11 @@ def TracebackOneLine(args):
             continue
         filename, lineno = result.groups()
         if osp.exists(filename): 
-            loc = Location(filename, int(lineno))
+            loc = remote_fs.Location(filename, int(lineno))
         else: 
             print ("trace back file not exists: ", filename)
     if loc is None: 
         print ("Non't a valid python traceback line.")
         return 
-    vim_utils.GoToLocation(loc, ".")
+    remote_fs.GoToLocation(loc, ".")
 

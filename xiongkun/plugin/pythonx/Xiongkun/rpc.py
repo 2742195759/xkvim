@@ -165,12 +165,6 @@ def rpc_server():
         return local_rpc
     return remote_project.rpc
 
-def get_directory():
-    from .remote_fs import to_remote
-    if remote_project is None: 
-        return vim.eval("getcwd()")
-    else: 
-        return to_remote(remote_project.root_directory)
 
 def rpc_call(name, on_return=None, *args): 
     """ rpc_call("goto", [1, 2], on_return)
