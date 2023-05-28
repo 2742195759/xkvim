@@ -35,6 +35,25 @@ def process_function(func):
         return InQueue()
     return wrapper
 
+def stream_function(func):
+    p = None
+    def wrapper(*args):
+        self = args[0]
+        id = args[1]
+        args = args[2:]
+        def worker(*args):
+            #print("process function with args:", *args)
+            output = func(*args)
+            self.queue.put((id, True, output))
+        nonlocal p
+        if p is not None: 
+            p.terminate()
+        args = tuple([self, id] + list(args))
+        p = mp.Process(target=worker, args=args)
+        p.start()
+        return InQueue()
+    return wrapper
+
 def single_pool(func):
     """ process function is a decorator:
         @process_function(func) will make func a non-block callable

@@ -26,7 +26,6 @@ def GetSearchConfig(directory):
             excludes_dir.append(line.split("=")[1].strip()[1:-1])
         elif line.startswith("--exclude="): 
             excludes_file.append(line.split("=")[1].strip()[1:-1])
-    #print("[SearchConfig]", excludes_dir + excludes_file)
     return excludes_dir, excludes_file
 
 

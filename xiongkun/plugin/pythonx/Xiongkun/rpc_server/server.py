@@ -13,12 +13,9 @@ from server_cluster import ServerCluster
 from log import log, mutex
 
 def send(obj):
-    #log("[Server] send: ", json.dumps(obj))
-    mutex.acquire()
     print (json.dumps(obj))
     print ("\n")
     sys.stdout.flush()
-    mutex.release()
 
 def echo(s):
     return s

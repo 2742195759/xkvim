@@ -146,9 +146,11 @@ class RPCServer:
         stream = self.channel.stream_new()
         def on_return_wrapper(id, is_finished, output): 
             #if not is_finished: cached_inputs.append(output)
-            if is_finished: on_finish(output)
-            else: on_return(output)
-            stream.delete()
+            if is_finished: 
+                on_finish(output)
+                stream.delete()
+            else: 
+                on_return(output)
         stream.register_hook(on_return_wrapper)
         stream.send(name, None, *args)
         return stream

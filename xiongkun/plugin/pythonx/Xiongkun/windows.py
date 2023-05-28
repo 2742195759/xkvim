@@ -802,7 +802,6 @@ class UniverseSearchEngine(Searcher):# {{{
                 self.window.on_update(self.last_results)
 
     def on_worker_done(self, qid):
-        log("worker_done with : ", qid)
         if qid == self.query_id and self.window is not None and self.window.is_alive(): 
             log("worker_done accept : ", qid)
             self.window.on_done()

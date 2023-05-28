@@ -36,20 +36,20 @@ class GrepSearcher:
         return works
 
 
-    @process_function 
-    def search(self, directory, search_text): 
+    @stream_function 
+    def search(self, id, directory, search_text): 
         extra_args = GetSearchGrepArgs(GetSearchConfig(directory))
         works = self.split_work(directory)
         num_worker=20
         with KillablePool(num_worker) as p:
-            inputs = [(search_text, extra_args, work) for work in works]
+            inputs = [(search_text, extra_args, work, id, self.queue) for work in works]
             outputs = p.map(do_grep_search, inputs)
         # reduce and post handle.
         gather = []
         for output in outputs: 
             res = output
             if len(res): gather.extend(res)
-        return gather
+        return []
 
     @server_function
     def sema_filter(self, items, search_text):
@@ -63,7 +63,7 @@ def filter_by_definition(search_text, items):
     return items
 
 def do_grep_search(args):
-    search_text, extra_args, directory = args
+    search_text, extra_args, directory, id, queue = args
     if directory.startswith("FILE:"): 
         directory = directory.split("FILE:")[1].strip()
         sh_cmd = "find %s -maxdepth 1 -type f | LC_ALL=C xargs egrep -H -I -n %s \"%s\"" % (directory, " ".join(extra_args), escape(search_text))
@@ -87,6 +87,7 @@ def do_grep_search(args):
         except Exception as e:
             continue
         results.append(result)
+    queue.put((id, False, results))
     return results
 
 def test_main():
