@@ -10,7 +10,7 @@ from .sema_utils import SemaPool
 from functools import partial
 from . import remote_fs
 import os
-from .rpc import rpc_wait
+from .rpc import rpc_wait, rpc_call
 
 
 class Buffer:# {{{
@@ -452,8 +452,9 @@ class BoxListWindow(Window):# {{{
             search_text = remove_angle_bracket(self.last_search)
             if key == 'd': 
                 search_text = None
-            items = rpc_wait("grepfinder.sema_filter", self.items, search_text)
-            self.update(items)
+            def on_return(items):
+                self.update(items)
+            items = rpc_call("grepfinder.sema_filter", on_return, self.items, search_text)
             return True# }}}
         if key in ['I']: 
             if remote_fs.is_remote_mode(): 

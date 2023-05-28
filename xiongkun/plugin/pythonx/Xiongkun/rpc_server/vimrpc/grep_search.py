@@ -51,11 +51,20 @@ class GrepSearcher:
             if len(res): gather.extend(res)
         return []
 
-    @server_function
+    @process_function
     def sema_filter(self, items, search_text):
-        return filter_by_definition(search_text, items)
+        num_worker=20
+        with KillablePool(num_worker) as p:
+            inputs = [(search_text, [item]) for item in items]
+            outputs = p.map(filter_by_definition, inputs)
+        gather = []
+        for output in outputs: 
+            res = output
+            if len(res): gather.extend(res)
+        return gather
         
-def filter_by_definition(search_text, items):
+def filter_by_definition(args):
+    search_text, items = args
     def definition_filter(item):
         l = LinePos(item['filename'], int(item['lnum'])-1)
         return SemaPool.get_sema(l.file).is_function_definition(l, search_text)
