@@ -8,7 +8,7 @@ import os
 from threading import Lock, Thread
 import multiprocessing as mp
 from functools import partial
-from decorator import InQueue, server_function, pool_function, process_function, default_map_fn, time_consume
+from vimrpc.decorator import InQueue
 from server_cluster import ServerCluster
 from log import log, mutex
 

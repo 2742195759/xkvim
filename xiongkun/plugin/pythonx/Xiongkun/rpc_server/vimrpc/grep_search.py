@@ -2,11 +2,12 @@ import os
 import sys
 import json
 import time
-from decorator import *
-from functions import KillablePool
-from utils import GetSearchGrepArgs, GetSearchConfig, escape
+from .decorator import *
+from .functions import KillablePool
+from .utils import GetSearchGrepArgs, GetSearchConfig, escape
 import os.path as osp
 import subprocess
+from .sema.sema import SemaPool, LinePos
 
 class GrepSearcher:
     def __init__(self, queue):
@@ -49,6 +50,17 @@ class GrepSearcher:
             res = output
             if len(res): gather.extend(res)
         return gather
+
+    @server_function
+    def sema_filter(self, items, search_text):
+        return filter_by_definition(search_text, items)
+        
+def filter_by_definition(search_text, items):
+    def definition_filter(item):
+        l = LinePos(item['filename'], int(item['lnum'])-1)
+        return SemaPool.get_sema(l.file).is_function_definition(l, search_text)
+    items = list(filter(definition_filter, items))
+    return items
 
 def do_grep_search(args):
     search_text, extra_args, directory = args

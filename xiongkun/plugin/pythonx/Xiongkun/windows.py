@@ -10,6 +10,8 @@ from .sema_utils import SemaPool
 from functools import partial
 from . import remote_fs
 import os
+from .rpc import rpc_wait
+
 
 class Buffer:# {{{
     def __init__(self, name):
@@ -139,7 +141,9 @@ class PreviewWindow(Window):# {{{
         from .clangd_client import StopAutoCompileGuard
         with StopAutoCompileGuard():
             opt = VimVariable().assign(self.options)
-            self.buf = Buffer(self.loc.getfile()).load()
+            filename = self.loc.getfile()
+            if remote_fs.is_remote_mode(): filename = remote_fs.to_remote(filename)
+            self.buf = remote_fs.LoadBuffer(filename)
             self.wid = int(vimeval("popup_create(%s, %s)"% (self.buf, opt)))
             for setting in ['cursorline', 'number', 'relativenumber']:
                 self._execute('silent setlocal ' + setting)
@@ -435,7 +439,11 @@ class BoxListWindow(Window):# {{{
                     if actual_text  in context: return True
                     return False
                 m = {'f': name_filter, 'F': inv_name_filter}
-                if text.startswith('+'): filter_fn = context_filter
+                if text.startswith('+'): 
+                    if remote_fs.is_remote_mode(): 
+                        print ("In remote mode, search context is not unsupported now.")
+                        return True
+                    filter_fn = context_filter
                 else: filter_fn = m[key]
                 self.items = list(filter(filter_fn, self.items))
                 self.update(self.items)
@@ -444,10 +452,13 @@ class BoxListWindow(Window):# {{{
             search_text = remove_angle_bracket(self.last_search)
             if key == 'd': 
                 search_text = None
-            items = filter_by_definition(search_text, self.items)
+            items = rpc_wait("grepfinder.sema_filter", self.items, search_text)
             self.update(items)
             return True# }}}
         if key in ['I']: 
+            if remote_fs.is_remote_mode(): 
+                print ("In remote mode, quickfix list is not unsupported now.")
+                return True
             def do_include(filename):# {{{
                 log("start include : ", filename)
                 IncludePreviewedFile(None, osp.abspath(filename))
@@ -456,6 +467,9 @@ class BoxListWindow(Window):# {{{
             close_boxlist("")
             return True# }}}
         if key in ['q']: 
+            if remote_fs.is_remote_mode(): 
+                print ("In remote mode, quickfix list is not unsupported now.")
+                return True
             locs = items2locs(self.items)# {{{
             close_boxlist("") # don't jump
             SetQuickFixList(locs)
@@ -515,7 +529,7 @@ class GlobalPreviewWindow:# {{{
             GPW.pwin.destory()
             GPW.pwin = None
         if loc is None : return 
-        GPW.win_ops['title'] = "[%d / %d]"%(GPW.candidate_idx+1, len(GPW.candidate_locs)) + loc.getfile()
+        GPW.win_ops['title'] = "[%d / %d]"%(GPW.candidate_idx+1, len(GPW.candidate_locs)) + remote_fs.to_url(loc.getfile())
         GPW.pwin = PreviewWindow(loc, **GPW.win_ops)
         GPW.pwin.create()
         if GPW.hidden: GPW.pwin.hide()
@@ -599,7 +613,7 @@ class GlobalPreviewWindow:# {{{
     @staticmethod
     def open_in_preview_window():
         if GPW.cur_loc() is not None: 
-            remote_fs.GoToLocation(GPW.cur_loc(), "p") 
+            remote_fs.GoToLocation(GPW.cur_loc(), ".") 
         else: 
             print("Please set locations of preview windows.")
         GPW.hide()

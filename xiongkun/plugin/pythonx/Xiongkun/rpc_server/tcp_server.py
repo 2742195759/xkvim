@@ -24,7 +24,7 @@ import sys
 import threading
 from threading import Thread
 from server_cluster import ServerCluster
-from decorator import InQueue
+from vimrpc.decorator import InQueue
 from servers.bash_server import bash_server
 
 try:

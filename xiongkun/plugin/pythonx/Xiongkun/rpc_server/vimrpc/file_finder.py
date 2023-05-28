@@ -2,11 +2,10 @@ import os
 import sys
 import json
 import time
-from decorator import *
-from log import log
-from functions import KillablePool
-from fuzzy_list import FuzzyList
-from utils import GetSearchFiles
+from .decorator import *
+from .functions import KillablePool
+from .fuzzy_list import FuzzyList
+from .utils import GetSearchFiles
 
 class FileFinder:
     def __init__(self, queue):

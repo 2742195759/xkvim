@@ -4,12 +4,12 @@ import socket
 import sys
 import threading
 from threading import Thread
-from fuzzy_list import FuzzyList
-from file_finder import FileFinder
-from decorator import InQueue
-from remote_fs import RemoteFS
-from yiyan_server import Yiyan
-from grep_search import GrepSearcher
+from vimrpc.fuzzy_list import FuzzyList
+from vimrpc.file_finder import FileFinder
+from vimrpc.decorator import InQueue
+from vimrpc.remote_fs import RemoteFS
+from vimrpc.yiyan_server import Yiyan
+from vimrpc.grep_search import GrepSearcher
 
 import multiprocessing as mp
 from log import log
@@ -46,7 +46,7 @@ class ServerCluster:
                 obj = None
         if callable(obj):
             return obj
-        print("[Server]: don't found ", name, ", skip it.")
+        log("[Server]: don't found ", name, ", skip it.")
         return None
 
     def start_queue(self, sender):

@@ -77,7 +77,7 @@ def BashStart(args=[]):
         return
     host, port = get_address()
     print (get_address())
-    configs = '{"term_name": "remote_bash"}'
+    configs = '{"term_name": "remote://bash"}'
     vimeval(f'term_start("python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port}", {configs})')
     time.sleep(1)
     bufnr = vim.eval("bufnr()")

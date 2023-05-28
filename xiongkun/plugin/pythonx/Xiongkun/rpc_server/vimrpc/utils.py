@@ -2,15 +2,12 @@ import os
 import sys
 import json
 import time
-from log import log
 
 def GetConfigByKey(key, directory='./'):
     import yaml  
     # 打开 YAML 文件  
     path = os.path.join(directory, ".vim_config.yaml")
-    #log(f"[SearchConfig] config_file = {path}")
     if not os.path.exists(path): 
-        #log(f"[SearchConfig] not exist.")
         return []
     with open(path, 'r') as f:  
         # 读取文件内容  
@@ -40,7 +37,6 @@ def GetSearchFindArgs(excludes):
         find_cmd.append(" ".join(["-not", "-path", f"\"*{exclude}\""]))
     for exclude in files: 
         find_cmd.append(" ".join(["-not", "-name", f"\"*{exclude}\""]))
-    #log("[FindCmd]: ", find_cmd)
     find_cmd = " -a ".join(find_cmd)
     return find_cmd
 
@@ -56,7 +52,6 @@ def GetSearchFiles(directory):
 def GetSearchFilesFromCommand(find_cmd):
     import subprocess
     child = subprocess.Popen(f"{find_cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
-    #log ("[FileFinder]:", find_cmd)
     files = []
     for line in child.stdout.readlines():
         line = line.strip()
@@ -74,7 +69,6 @@ def GetSearchGrepArgs(excludes):
         grep_cmd.append(f' --exclude-dir="{exclude}" ')
     for exclude in files: 
         grep_cmd.append(f' --exclude="{exclude}" ')
-    #log("[FindCmd]: ", grep_cmd)
     return grep_cmd
 
 def escape(command, chars="'\\\""):

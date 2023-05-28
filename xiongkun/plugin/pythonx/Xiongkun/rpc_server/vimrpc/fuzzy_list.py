@@ -2,9 +2,8 @@ import os
 import sys
 import json
 import time
-from decorator import *
-from log import log
-from functions import KillablePool
+from .decorator import *
+from .functions import KillablePool
 
 class FuzzyList:
     def __init__(self, queue):
@@ -19,7 +18,6 @@ class FuzzyList:
     @server_function
     def set_items(self, name, items): 
         self.lists_dict[name] = items
-        log(f"[FileFinder] set `{name}` with length:", len(items))
         return None
 
     @server_function
@@ -104,7 +102,6 @@ def test_main():
     search = "it"
     inputs = ["xxxx", "hhhh", "getit"] * 100000
     f.files = inputs
-    #log(f.search(1, search))
 
 if __name__ == "__main__":
     test_main()

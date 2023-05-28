@@ -16,19 +16,30 @@ import os
 
 remote_prefix = "remote://"
 
+def _to_remote(file):
+    return remote_prefix+file
+
 def get_directory():
     from .rpc import remote_project
     if remote_project is None: 
         return vim.eval("getcwd()")
     else: 
-        return to_remote(remote_project.root_directory)
+        return _to_remote(remote_project.root_directory)
 
 def get_base(file):
     if not is_remote(file): return file
     return file.split("remote://")[1]
 
 def to_remote(file):
-    return "remote://"+file
+    root_directory = get_base(get_directory())
+    assert is_remote(file) is False
+    if not file.startswith("/"):
+        file = osp.join(root_directory, file)
+    return _to_remote(file)
+
+def to_url(file):
+    if is_remote_mode():return to_remote(file)
+    else: return file
 
 def is_remote(file):
     return "remote://" in file
@@ -47,7 +58,7 @@ def RemoteSave(args):
     if msg != "success.": 
         vim.command(f"echom '{msg}'")
         vim.command("set modified")
-        
+
 def LoadBuffer(url):
     bufnr = vim.eval(f"bufnr('{url}')")
     def do_open(content): 
@@ -55,10 +66,11 @@ def LoadBuffer(url):
         with open(tmp_file, "w") as f: 
             f.write(content)
         bufnr = vim.eval(f'bufadd("{url}")')
-        vim.command(f"b {bufnr}")
-        vim.command(f"read {tmp_file}")
-        vim.command("normal ggdd")
-        vim.command("set nomodified")
+        with vim_utils.CurrentBufferGuard():
+            vim.command(f"b {bufnr}")
+            vim.command(f"read {tmp_file}")
+            vim.command("normal ggdd")
+            vim.command("set nomodified")
         return bufnr
     if bufnr == "-1": 
         if is_remote(url): 
@@ -127,10 +139,10 @@ def GoToLocation(location, method):
         #'sb':'noswapfile vertical sb',
     #}
     if is_remote_mode():
-        location.to_remote()
+        location = location.to_remote()
     bufnr = LoadBuffer(location.full_path)
     GoToBuffer(bufnr, method)
-    vimcommand(f":{location.getcol()}")
+    vimcommand(f":{location.getline()}")
     if location.getcol() != 1:
         vimcommand("normal %d|"%(location.getcol()))
     vimcommand("normal zv")
@@ -139,7 +151,9 @@ class Location:
     def __init__(self, file, line=1, col=1, base=1):
         if isinstance(file, int): 
             file = vim.eval(f"bufname({file})")
-        self.full_path = osp.abspath(file)
+        self.full_path = file
+        if not is_remote(file): 
+            self.full_path = osp.abspath(file)
         self.line = line
         self.col = col
         self.base = base
@@ -162,7 +176,12 @@ class Location:
         GoToLocation(self, cmd)
 
     def to_remote(self):
-        self.full_path = to_remote(self.full_path)
+        return Location(
+            to_remote(self.full_path),
+            self.line, 
+            self.col, 
+            self.base
+        )
 
 class LocationRange:
     def __init__(self, start_loc, end_loc):
@@ -179,3 +198,12 @@ def HasSwapFile(path):
         return True
     return False
 
+
+@vim_register(command="GotoFile", keymap="gf")
+def GotoFile(args):
+    if is_remote(vim.eval("bufname()")): 
+        url = to_remote(vim.eval('expand("<cfile>")'))
+        bufnr = LoadBuffer(url)
+        GoToBuffer(bufnr, ".")
+    else: 
+        vim.command("normal! gf") # normal mode

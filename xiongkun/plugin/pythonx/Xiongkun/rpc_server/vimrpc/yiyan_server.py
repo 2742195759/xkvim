@@ -2,9 +2,8 @@ import os
 import sys
 import json
 import time
-from decorator import *
-from log import log
-from functions import KillablePool
+from .decorator import *
+from .functions import KillablePool
 
 class Yiyan:
     def __init__(self, queue):
