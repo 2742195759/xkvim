@@ -6,6 +6,7 @@ class PySema(Sema):
         pass
     def is_function_definition(self, loc, id_name=None):
         line = GetTextFromLocation(loc)
+        if not line: return False
         if id_name is None: 
             return 'def' in line or 'class' in line
         else:

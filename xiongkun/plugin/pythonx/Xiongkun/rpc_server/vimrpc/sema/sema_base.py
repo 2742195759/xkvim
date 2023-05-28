@@ -8,8 +8,10 @@ class Sema:
         return False
 
 def GetTextFromLocation(loc):
-    with open(loc.file, "r") as fp :
-        lines = fp.readlines()
-    if loc.line < len(lines): 
-        return lines[loc.line]
-    return None
+    try:
+        with open(loc.file, "r") as fp :
+            lines = fp.readlines()
+        if loc.line < len(lines): 
+            return lines[loc.line]
+    except: 
+        return None

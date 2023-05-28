@@ -6,6 +6,7 @@ import os.path as osp
 class VimSema:
     def is_function_definition(self, loc, id_name=None):
         line = GetTextFromLocation(loc)
+        if not line: return False
         return 'function' in line
 
 def iscpp(filename):# {{{
