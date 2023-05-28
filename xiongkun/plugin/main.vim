@@ -264,7 +264,10 @@ function! SendMessageSync(id, channel, package)
         let out = ch_read(a:channel)
         "echom "[Receive] " . out
         if out == ""
-            "echom "[Warnings] empty line get! errror happens!"
+            let status = ch_status(a:channel)
+            if status == "fail" || status ==  "closed"
+                echom "[Warnings] Connection error: ".status
+            endif
             continue
         endif
         let json = json_decode(out)

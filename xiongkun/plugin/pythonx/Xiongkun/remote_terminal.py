@@ -78,8 +78,10 @@ def BashStart(args=[]):
     host, port = get_address()
     print (get_address())
     vimeval(f'term_start("python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port}")')
+    time.sleep(1)
     bufnr = vim.eval("bufnr()")
     send_keys(bufnr, f"cd {get_base(get_directory())}\n")
+    send_keys(bufnr, f"resize\n")
 
 @vim_register(command="BashHelp", with_args=True)
 def TerminalHelper(args):

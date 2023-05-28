@@ -156,6 +156,7 @@ class Buffer:
         vim.command("setlocal bufhidden=hide")
         vim.command('setlocal modifiable')
         vim.command("setlocal buftype=nofile")
+        vim.command("setlocal noswapfile")
         vim.command("setlocal nofoldenable")
 
     def create(self):
@@ -1097,10 +1098,10 @@ class FileFinderBuffer(FuzzyList):
 
 @vim_register(command="FR", with_args=True, command_completer="file")
 def FileFinderReflesh(args):
-    directory = "./"
+    directory = get_base(get_directory())
     if len(args) == 1: 
         directory = args[0]
-    FileFinderPGlobalInfo.preprocess(directory)
+    rpc_call("filefinder.set_root", None, directory, True)
 
 @vim_register(command="FF", with_args=True, command_completer="file")
 def FileFinder(args):

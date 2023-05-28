@@ -16,7 +16,9 @@ class FileFinder:
         pass
 
     @server_function
-    def set_root(self, rootpath):
+    def set_root(self, rootpath, force=False):
+        if not force and self.root == rootpath: 
+            return self.files[:17]
         self.root = rootpath
         self.files = GetSearchFiles(self.root)
         # TODO: find files and reset it.

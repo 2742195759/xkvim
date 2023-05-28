@@ -215,6 +215,7 @@ remote_project = None
 def SetRPCServer(args):
     global remote_project
     remote_project = RemoteProject(args[0])
+    vim.command("wincmd o")
 
 @vim_register(command="TestRPC")
 def TestRPC(args):
