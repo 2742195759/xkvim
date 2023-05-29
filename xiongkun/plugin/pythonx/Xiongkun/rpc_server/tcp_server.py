@@ -39,7 +39,6 @@ def vim_rpc_loop(handle):
     print ("===== start a vim rpc server ======")
     def send(obj):
         encoded = json.dumps(obj) + "\n"
-        print("sending {0}".format(encoded))
         handle.wfile.write(encoded.encode('utf-8'))
 
     servers = ServerCluster()
