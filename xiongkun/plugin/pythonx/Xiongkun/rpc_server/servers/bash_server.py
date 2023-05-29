@@ -31,11 +31,16 @@ def bash_server(handle):
         rs, ws, es = select.select([master_fd, handle.rfile.fileno()], [], [])
         for r in rs:
             if r in [handle.rfile.fileno()]:
-                bytes = os.read(r, 10240)
+                bytes = handle.rfile.readline()
                 if not bytes: 
                     slave_process.kill()
                     break
-                os.write(master_fd, bytes)
+                bytes = bytes.strip()
+                pack = json.loads(bytes.decode('utf-8'))
+                if pack['type'] == 'input': 
+                    os.write(master_fd, pack['body'].encode('utf-8'))
+                else: 
+                    print ("heart beat got.")
             elif r in [master_fd]:
                 bytes = os.read(r, 10240)
                 handle.wfile.write(bytes)

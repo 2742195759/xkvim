@@ -253,6 +253,7 @@ endfunc
 function! RPCServer(channel, msg)
     let g:rpc_receive=a:msg
     "let g:rpc_vimcommand=a:msg
+    " receive [0, None, None] for heartbeat package.
     "echom a:msg
     py3 Xiongkun.rpc_server().receive()
     redraw!

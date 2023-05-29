@@ -26,6 +26,7 @@ from threading import Thread
 from server_cluster import ServerCluster
 from vimrpc.decorator import InQueue
 from servers.bash_server import bash_server
+import select
 
 try:
     # Python 3
@@ -45,36 +46,42 @@ def vim_rpc_loop(handle):
     servers.start_queue(send)
 
     while True:
-        try:
-            data = handle.rfile.readline().decode('utf-8')
-        except socket.error:
-            print("=== socket error ===")
-            break
-        if data == '':
-            print("=== socket closed ===")
-            break
-        print("received: {0}".format(data))
-        try:
-            req = json.loads(data)
-        except ValueError:
-            print("json decoding failed")
-            req = [-1, '']
+        rs, ws, es = select.select([handle.rfile.fileno()], [], [], 3.0)
+        if handle.rfile.fileno() in rs:
+            try:
+                data = handle.rfile.readline().decode('utf-8')
+            except socket.error:
+                print("=== socket error ===")
+                break
+            if data == '':
+                print("=== socket closed ===")
+                break
+            print("received: {0}".format(data))
+            try:
+                req = json.loads(data)
+            except ValueError:
+                print("json decoding failed")
+                req = [-1, '']
 
-        # Send a response if the sequence number is positive.
-        # Negative numbers are used for "eval" responses.
-        if req[0] >= 0:
-            print (req)
-            id, name, args = req
-            print("[Server] receive: ", id, name)
-            func = servers.get_server_fn(name)
-            if not func:
-                continue
-            output = func(id, *args)
-            if isinstance(output, InQueue): 
-                print("[Server]: process function.")
-            else: 
-                print("[Server]: normal function.")
-                send(output)
+            # Send a response if the sequence number is positive.
+            # Negative numbers are used for "eval" responses.
+            if req[0] >= 0:
+                print (req)
+                id, name, args = req
+                print("[Server] receive: ", id, name)
+                func = servers.get_server_fn(name)
+                if not func:
+                    continue
+                output = func(id, *args)
+                if isinstance(output, InQueue): 
+                    print("[Server]: process function.")
+                else: 
+                    print("[Server]: normal function.")
+                    send(output)
+        else: 
+            # heart beat send !
+            #print('send heart beat.')
+            send([0, True, None])
     print ("stop handle, closing...")
     servers.stop()
     print ("===== stop a vim rpc server ======")
