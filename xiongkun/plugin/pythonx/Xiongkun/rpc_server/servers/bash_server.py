@@ -39,8 +39,9 @@ def bash_server(handle):
                 pack = json.loads(bytes.decode('utf-8'))
                 if pack['type'] == 'input': 
                     os.write(master_fd, pack['body'].encode('utf-8'))
-                else: 
-                    print ("heart beat got.")
+                elif pack['type'] == 'keeplive': 
+                    #print ("heart beat got.")
+                    pass
             elif r in [master_fd]:
                 bytes = os.read(r, 10240)
                 handle.wfile.write(bytes)
