@@ -27,6 +27,7 @@ from server_cluster import ServerCluster
 from vimrpc.decorator import InQueue
 from servers.bash_server import bash_server
 import select
+from socket_stream import SockStream
 
 try:
     # Python 3
@@ -43,18 +44,23 @@ def vim_rpc_loop(handle):
 
     servers = ServerCluster()
     servers.start_queue(send)
+    stream = SockStream()
 
     while True:
         rs, ws, es = select.select([handle.rfile.fileno()], [], [], 3.0)
         if handle.rfile.fileno() in rs:
             try:
-                data = handle.rfile.readline().decode('utf-8')
+                bytes = handle.request.recv(10240)
             except socket.error:
                 print("=== socket error ===")
                 break
-            if data == '':
+            if bytes == b'':
                 print("=== socket closed ===")
                 break
+            stream.put_bytes(bytes)
+            if not stream.can_read():
+                continue
+            data = stream.readline().decode('utf-8')
             print("received: {0}".format(data))
             try:
                 req = json.loads(data)
