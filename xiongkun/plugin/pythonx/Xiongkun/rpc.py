@@ -24,7 +24,7 @@ class RPCChannel:
                 'out_cb': 'RPCServer',
                 'callback': 'RPCServer',
                 'err_cb': 'RPCServerError',
-                'noblock': 1,
+                'noblock': 0,
                 'out_io': "pipe",
                 'in_io': "pipe",
             }
@@ -42,7 +42,7 @@ class RPCChannel:
                 'mode': 'nl',
                 'callback': 'RPCServer',
                 'drop': 'auto',
-                'noblock': 1,
+                'noblock': 0,
                 'waittime': 3000,
             }
             self.job_name = remote_server
