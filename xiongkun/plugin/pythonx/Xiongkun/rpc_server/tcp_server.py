@@ -47,7 +47,7 @@ def vim_rpc_loop(handle):
     stream = SockStream()
 
     while True:
-        rs, ws, es = select.select([handle.rfile.fileno()], [], [], 3.0)
+        rs, ws, es = select.select([handle.rfile.fileno()], [], [])
         if handle.rfile.fileno() in rs:
             try:
                 bytes = handle.request.recv(10240)
@@ -58,31 +58,30 @@ def vim_rpc_loop(handle):
                 print("=== socket closed ===")
                 break
             stream.put_bytes(bytes)
-            if not stream.can_read():
-                continue
-            data = stream.readline().decode('utf-8')
-            print("received: {0}".format(data))
-            try:
-                req = json.loads(data)
-            except ValueError:
-                print("json decoding failed")
-                req = [-1, '']
+            while stream.can_read():
+                data = stream.readline().decode('utf-8')
+                print("received: {0}".format(data))
+                try:
+                    req = json.loads(data)
+                except ValueError:
+                    print("json decoding failed")
+                    req = [-1, '']
 
-            # Send a response if the sequence number is positive.
-            # Negative numbers are used for "eval" responses.
-            if req[0] >= 0:
-                print (req)
-                id, name, args = req
-                print("[Server] receive: ", id, name)
-                func = servers.get_server_fn(name)
-                if not func:
-                    continue
-                output = func(id, *args)
-                if isinstance(output, InQueue): 
-                    print("[Server]: process function.")
-                else: 
-                    print("[Server]: normal function.")
-                    send(output)
+                # Send a response if the sequence number is positive.
+                # Negative numbers are used for "eval" responses.
+                if req[0] >= 0:
+                    print (req)
+                    id, name, args = req
+                    print("[Server] receive: ", id, name)
+                    func = servers.get_server_fn(name)
+                    if not func:
+                        continue
+                    output = func(id, *args)
+                    if isinstance(output, InQueue): 
+                        print("[Server]: process function.")
+                    else: 
+                        print("[Server]: normal function.")
+                        send(output)
         else: 
             # heart beat send !
             #print('send heart beat.')
