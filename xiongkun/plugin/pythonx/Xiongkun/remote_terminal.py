@@ -10,7 +10,7 @@ import os
 import os.path as osp
 from .func_register import *
 from .vim_utils import *
-from .remote_fs import get_directory, is_remote_mode, get_base
+from .remote_fs import FileSystem
 from .rpc import get_address
 from collections import OrderedDict
 
@@ -72,7 +72,7 @@ def load_config(args):
 
 @vim_register(command="Bash", with_args=True)
 def BashStart(args=[]):
-    if not is_remote_mode(): 
+    if not FileSystem().is_remote(): 
         print ("Bash only support remote mode! :terminal is suit for local mode.")
         return
     host, port = get_address()
@@ -81,7 +81,7 @@ def BashStart(args=[]):
     vimeval(f'term_start("python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port}", {configs})')
     time.sleep(1)
     bufnr = vim.eval("bufnr()")
-    send_keys(bufnr, f"cd {get_base(get_directory())}\n")
+    send_keys(bufnr, f"cd {FileSystem().cwd}\n")
     send_keys(bufnr, f"resize\n")
 
 @vim_register(command="BashHelp", with_args=True)

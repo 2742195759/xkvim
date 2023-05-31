@@ -300,7 +300,7 @@ function! VimPopupExperiment(bufnr, filter, options)
         let new_dict['filtermode'] = 'a'
         let new_dict['mapping'] = 0
         let new_dict['wrap'] = 0
-        let new_dict['cursorline'] = 0
+        let new_dict['cursorline'] = get(a:options, 'cursorline', 0)
         return popup_menu(a:bufnr, new_dict)
     endif
     let new_dict['border'] = []

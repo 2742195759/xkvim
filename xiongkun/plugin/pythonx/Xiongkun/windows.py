@@ -142,8 +142,7 @@ class PreviewWindow(Window):# {{{
         with StopAutoCompileGuard():
             opt = VimVariable().assign(self.options)
             filename = self.loc.getfile()
-            if remote_fs.is_remote_mode(): filename = remote_fs.to_remote(filename)
-            self.buf = remote_fs.LoadBuffer(filename)
+            self.buf = remote_fs.FileSystem().bufload_file(filename)
             self.wid = int(vimeval("popup_create(%s, %s)"% (self.buf, opt)))
             for setting in ['cursorline', 'number', 'relativenumber']:
                 self._execute('silent setlocal ' + setting)
@@ -440,7 +439,7 @@ class BoxListWindow(Window):# {{{
                     return False
                 m = {'f': name_filter, 'F': inv_name_filter}
                 if text.startswith('+'): 
-                    if remote_fs.is_remote_mode(): 
+                    if remote_fs.FileSystem().is_remote(): 
                         print ("In remote mode, search context is not unsupported now.")
                         return True
                     filter_fn = context_filter
@@ -457,7 +456,7 @@ class BoxListWindow(Window):# {{{
             items = rpc_call("grepfinder.sema_filter", on_return, self.items, search_text)
             return True# }}}
         if key in ['I']: 
-            if remote_fs.is_remote_mode(): 
+            if remote_fs.FileSystem().is_remote(): 
                 print ("In remote mode, quickfix list is not unsupported now.")
                 return True
             def do_include(filename):# {{{
@@ -468,7 +467,7 @@ class BoxListWindow(Window):# {{{
             close_boxlist("")
             return True# }}}
         if key in ['q']: 
-            if remote_fs.is_remote_mode(): 
+            if remote_fs.FileSystem().is_remote(): 
                 print ("In remote mode, quickfix list is not unsupported now.")
                 return True
             locs = items2locs(self.items)# {{{
@@ -851,9 +850,8 @@ class UniverseSearchEngine(Searcher):# {{{
             worker(qid)
 
     def search(self, inp, directory, mask=None):
-        from .remote_fs import is_remote_mode, get_directory, get_base
-        if is_remote_mode(): 
-            directory = get_base(get_directory())
+        if remote_fs.FileSystem().is_remote():
+            directory = remote_fs.FileSystem().cwd
         if inp is None or inp == "" :
             return self.last_results
         with NotChangeQuickfixGuard():

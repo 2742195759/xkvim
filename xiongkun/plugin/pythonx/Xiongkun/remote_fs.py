@@ -14,82 +14,20 @@ from .rpc import rpc_call, rpc_wait
 from .vim_utils import vimcommand
 import os
 
-remote_prefix = "remote://"
-
-def _to_remote(file):
-    return remote_prefix+file
-
-def get_directory():
-    from .rpc import remote_project
-    if remote_project is None: 
-        return vim.eval("getcwd()")
-    else: 
-        return _to_remote(remote_project.root_directory)
-
-def get_base(file):
-    if not is_remote(file): return file
-    return file.split("remote://")[1]
-
-def to_remote(file):
-    root_directory = get_base(get_directory())
-    assert is_remote(file) is False
-    if not file.startswith("/"):
-        file = osp.join(root_directory, file)
-    return _to_remote(file)
-
-def to_url(file):
-    if is_remote_mode():return to_remote(file)
-    else: return file
-
-def is_remote(file):
-    return "remote://" in file
-
-def is_remote_mode():
-    return is_remote(get_directory())
-
 @vim_register(command="RemoteSave")
 def RemoteSave(args):
-    url = vim.eval("bufname()")
-    filepath = get_base(url)
-    bufnr = vim.eval(f"bufnr('{url}')")
+    bufname = vim.eval("bufname()")
+    filepath = FileSystem().filepath(bufname)
+    bufnr = vim.eval(f"bufnr('{bufname}')")
     lines = vim.eval(f"getbufline({bufnr}, 1, '$')")
     vim.command("set nomodified")
-    msg = rpc_wait("remotefs.store", filepath, "\n".join(lines))
-    if msg != "success.": 
+    if rpc_wait("remotefs.store", filepath, "\n".join(lines)) is not True: 
         vim.command(f"echom '{msg}'")
         vim.command("set modified")
 
-def LoadBuffer(url):
-    bufnr = vim.eval(f"bufnr('{url}')")
-    def do_open(content): 
-        tmp_file = vim_utils.TmpName()
-        with open(tmp_file, "w") as f: 
-            f.write(content)
-        bufnr = vim.eval(f'bufadd("{url}")')
-        with vim_utils.CurrentBufferGuard():
-            vim.command(f"b {bufnr}")
-            vim.command(f"read {tmp_file}")
-            vim.command("normal ggdd")
-            vim.command("set nomodified")
-        return bufnr
-    if bufnr == "-1": 
-        if is_remote(url): 
-            filepath = get_base(url)
-            content = rpc_wait("remotefs.fetch", filepath)
-            bufnr = do_open(content)
-        else: 
-            bufnr = vim.eval(f'bufadd("{url}")')
-            vim.eval(f"bufload('{url}')")
-        return bufnr
-    else: 
-        return bufnr
-
 @vim_register(command="RemoteEdit", with_args=True)
 def RemoteEdit(args):
-    url = args[0]
-    filepath = get_base(url)
-    bufnr = LoadBuffer(url)
-    GoToBuffer(bufnr, 'e')
+    FileSystem().edit(args[0])
             
 vim_utils.commands(""" 
 augroup RemoteWrite
@@ -99,9 +37,6 @@ augroup END
     """)
 
 
-"""
-text access and modification function.
-"""
 def GoToBuffer(bufnr, method):
     """
     jump to a location.
@@ -138,9 +73,7 @@ def GoToLocation(location, method):
         #'b': 'noswapfile b',
         #'sb':'noswapfile vertical sb',
     #}
-    if is_remote_mode():
-        location = location.to_remote()
-    bufnr = LoadBuffer(location.full_path)
+    bufnr = FileSystem().bufload_file(location.getfile())
     GoToBuffer(bufnr, method)
     vimcommand(f":{location.getline()}")
     if location.getcol() != 1:
@@ -151,9 +84,7 @@ class Location:
     def __init__(self, file, line=1, col=1, base=1):
         if isinstance(file, int): 
             file = vim.eval(f"bufname({file})")
-        self.full_path = file
-        if not is_remote(file): 
-            self.full_path = osp.abspath(file)
+        self.full_path = FileSystem().abspath(file)
         self.line = line
         self.col = col
         self.base = base
@@ -175,19 +106,6 @@ class Location:
     def jump(self, cmd="."):
         GoToLocation(self, cmd)
 
-    def to_remote(self):
-        return Location(
-            to_remote(self.full_path),
-            self.line, 
-            self.col, 
-            self.base
-        )
-
-class LocationRange:
-    def __init__(self, start_loc, end_loc):
-        self.start = start_loc
-        self.end = end_loc
-        assert (self.start.getfile() == self.end.getfile())
 
 def HasSwapFile(path):
     abspath = os.path.abspath(path)
@@ -201,9 +119,114 @@ def HasSwapFile(path):
 
 @vim_register(command="GotoFile", keymap="gf")
 def GotoFile(args):
-    if is_remote(vim.eval("bufname()")): 
-        url = to_remote(vim.eval('expand("<cfile>")'))
-        bufnr = LoadBuffer(url)
-        GoToBuffer(bufnr, ".")
-    else: 
-        vim.command("normal! gf") # normal mode
+    filepath = vim.eval('expand("<cfile>")')
+    FileSystem().edit(filepath)
+
+
+@vim_utils.Singleton
+class FileSystem:
+    def __init__(self):
+        self._last_error = ""
+        self._is_remote = None
+        self.cwd = None
+        from .rpc import remote_project
+        if remote_project is not None:
+            print ("RemoteFileSystem Mounted.")
+            self.prefix = "remote://"
+            self.cwd = remote_project.root_directory
+            self._is_remote = True
+        else: 
+            print ("localFileSystem Mounted.")
+            self.prefix = ""
+            self.cwd = vim.eval("getcwd()")
+            self._is_remote = False
+
+    def is_remote(self):
+        return self._is_remote
+
+    def last_error(self):
+        return self._last_error
+
+    def store(self, filepath, content):
+        assert isinstance(content, (list, str))
+        if isinstance(content, list):
+            content = "\n".join(contents)
+        msg = rpc_wait("remotefs.store", filepath, contents)
+        if msg != "success.": 
+            self._last_error = msg
+            return False
+        return True
+
+    def fetch(self, filepath):
+        content = rpc_wait("remotefs.fetch", filepath)
+        return content
+
+    def abspath(self, filepath):
+        # TODO: 
+        return filepath
+
+    def bufname(self, filepath):
+        abspath = self.abspath(filepath)
+        return self.prefix + abspath
+
+    def filepath(self, bufname):
+        return bufname[len(self.prefix):]
+
+    def bufload_file(self, filepath):
+        bufname = self.bufname(filepath)
+        def do_open(content): 
+            tmp_file = vim_utils.TmpName()
+            with open(tmp_file, "w") as f: 
+                f.write(content)
+            bufnr = vim.eval(f'bufadd("{bufname}")')
+            with vim_utils.CurrentBufferGuard():
+                vim.command(f"b {bufnr}")
+                vim.command(f"read {tmp_file}")
+                vim.command("normal ggdd")
+                vim.command("set nomodified")
+            return bufnr
+        bufnr = vim.eval(f"bufnr('{bufname}')")
+        if bufnr == "-1": 
+            if self.is_remote(): 
+                content = FileSystem().fetch(filepath)
+                bufnr = do_open(content)
+            else: 
+                bufnr = vim.eval(f'bufadd("{filepath}")')
+                vim.eval(f"bufload('{filepath}')")
+            return bufnr
+        else: 
+            return bufnr
+
+    def list_dir(self, dirpath):
+        return rpc_wait("remotefs.list_dir", dirpath)
+
+    def cd(self, dirpath):
+        self.cwd = dirpath
+
+    def glob(self, dirpath, pattern):
+        pass
+
+    def tree(self, dirpath=None):
+        # return format:
+        # DIR = {'files': [], 'dirs': DIR}
+        if not dirpath:
+            dirpath = self.cwd
+        results = rpc_wait("remotefs.tree", dirpath)
+        return results
+
+    def mkdir(self, dirpath):
+        pass
+
+    def touch(self, filepath):
+        pass
+
+    def completer(self, cur_input):
+        pass
+
+    def edit(self, filepath): 
+        bufnr = FileSystem().bufload_file(filepath)
+        GoToBuffer(bufnr, '.')
+
+    def jumpto(self, location, method):
+        GoToLocation(location, method)
+

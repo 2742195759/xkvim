@@ -6,7 +6,7 @@ from .vim_utils import *
 from collections import OrderedDict
 from .rpc import rpc_call, rpc_wait, rpc_server
 from .log import debug
-from .remote_fs import is_remote, get_base, to_remote, GoToLocation, get_directory
+from .remote_fs import GoToLocation, FileSystem
 from . import remote_fs
 
 start = None
@@ -202,12 +202,19 @@ class Buffer:
     def auto_cmd(self, key):
         pass
 
-    def show(self):
+    def show(self, popup=True):
+        if popup: self._popup_show()
+        else: self._buffer_show()
+
+    def _buffer_show(self):
+        vim.command(f"vne")
+        vim.command(f"b {self.bufnr}")
+
+    def _popup_show(self):
         assert hasattr(self, "bufnr")
         if hasattr(self, "wid"): 
             vim.eval(f"popup_show({self.wid})")
             return
-        self.options['cursorline'] = 0
         with_filter = 1
         if 'filter' in self.options and self.options['filter'] is None:
             del self.options['filter']
@@ -1042,9 +1049,8 @@ class CommandList(FuzzyList):
 class FileFinderBuffer(FuzzyList):
     def __init__(self, directory=None, name="FileFinder", history=None, options={}):
         if directory is None:
-            directory = get_directory()
-        self.directory = get_base(directory)
-        self.is_remote = is_remote(directory)
+            directory = FileSystem().cwd
+        self.directory = directory
         files = self.set_root(self.directory)
         super().__init__(self.file_type, files, name, history, options)
         self.last_window_id = vim.eval("win_getid()")
@@ -1098,7 +1104,7 @@ class FileFinderBuffer(FuzzyList):
 
 @vim_register(command="FR", with_args=True, command_completer="file")
 def FileFinderReflesh(args):
-    directory = get_base(get_directory())
+    directory = FileSystem().cwd
     if len(args) == 1: 
         directory = args[0]
     rpc_call("filefinder.set_root", None, directory, True)

@@ -1,7 +1,9 @@
-from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput
+import os
+from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer
 from .func_register import vim_register
 from .vim_utils import SetVimRegister, Normal_GI
 import vim
+from functools import partial
 
 class BrowserSearchBuffer(WidgetBufferWithInputs): 
     def __init__(self, name, title, hint=None):
@@ -33,6 +35,80 @@ class BrowserSearchBuffer(WidgetBufferWithInputs):
     def on_enter(self, text):
         raise NotImplementedError("Please implement the on_enter method")
 
+
+class FileTreeBuffer(WidgetBuffer): 
+    def __init__(self, name, title, tree):
+        widgets = [
+            TextWidget("", name=""),
+        ]
+        options = {
+            'title': title, 
+            'maxwidth': 100, 
+            'minwidth': 50,
+            'maxheight':20, 
+            'cursorline': 1,
+        }
+        self.tree = tree
+        self.root_path = title
+        self.onclicked = []
+        self.set_tree()
+        super().__init__(self.root, name, None, options)
+
+    def on_key(self, key):
+        if super().on_key(key):
+            return True
+        base_key = list(range(ord('a'), ord('z'))) + list(range(ord('A'), ord('Z')))
+        base_key = list(map(chr, base_key))
+        special_keys = [
+            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/', '<cr>', '<left>', '<right>', "<c-a>", "<c-e>",
+        ]
+        insert_keys = base_key + special_keys
+        if key in ['j', 'k']: 
+            self.on_move_item(key)
+            return True
+        if key in ['<cr>']: 
+            self.on_enter()
+            return True
+        return False
+
+    def on_enter(self):
+        cur = self.get_line_number()
+        if self.onclicked[cur]():
+            self.close()
+
+    def set_tree(self):
+        def file_clicked(filepath):
+            from .remote_fs import FileSystem
+            FileSystem().edit(filepath)
+            return True
+
+        def dir_clicked(dirpath, dircontent):
+            self.root = dircontent
+            return False
+             
+        def _draw(prefix, indent):
+            indent_str = "  " * indent
+            ret = []
+            for dir in self.tree['dirs']:
+                name, content = dir
+                fullpath = os.path.join(prefix, name)
+                ret.append(TextWidget(f"{indent_str}{name}/"))
+                self.onclicked.append(partial(dir_clicked, fullpath, content))
+            for file in self.tree['files']: 
+                ret.append(TextWidget(f"{indent_str}{file}"))
+                self.onclicked.append(partial(file_clicked, os.path.join(prefix, file)))
+            return ret
+
+        texts = _draw(self.root_path, 0)
+        self.root = WidgetList("", texts, reverse=False)
+
+    def on_move_item(self, char):
+        self.execute(f'execute "normal! {char}"')
+
+    def get_line_number(self):
+        self.execute("let g:filetree_line_number=getpos('.')")
+        return int(vim.eval("g:filetree_line_number")[1]) - 1
+
 class GoogleSearch(BrowserSearchBuffer): 
     def __init__(self):
         super().__init__("Google", "Google搜索")
@@ -46,6 +122,7 @@ class PaddleDocSearch(BrowserSearchBuffer):
 
     def on_enter(self, text):
         vim.command(f"Pdoc {text}")
+
 
 class TranslatorBuffer(WidgetBufferWithInputs): 
     def __init__(self):
@@ -102,4 +179,10 @@ def TestPdocUI(args):
     ff.create()
     ff.show()
     
-    
+@vim_register(command="FileTree")
+def TestFileTree(args):
+    from .remote_fs import FileSystem
+    tree = FileSystem().tree()
+    ff = FileTreeBuffer("filetree", FileSystem().cwd, tree)
+    ff.create()
+    ff.show(popup=True)
