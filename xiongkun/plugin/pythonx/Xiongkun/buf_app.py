@@ -72,6 +72,9 @@ class BufferHistory:
     def is_empty(self):
         return self._value is None
 
+    def value(self):
+        return self._value
+
 class Buffer:
     instances = {}
     number = 0
@@ -93,6 +96,7 @@ class Buffer:
         Buffer.instances[self.name] = self
         # TODO: add status here
         self.state="create"
+        self.first_show = True
 
     def get_keymap(self):
         return {}
@@ -116,10 +120,15 @@ class Buffer:
         """
         raise NotImplementedError("Please implement save method in your buffer app.")
 
-    def restore(self, history):
-        """ restore object by history.
+    def restore_buffer(self, history):
+        """ restore buffer by history.
         """
-        raise NotImplementedError("Please implement restore method in your buffer app.")
+        pass
+
+    def restore_view(self, history):
+        """ restore object by history. popup window.
+        """
+        pass
 
     def _clear(self):
         with NotChangeRegisterGuard('"'):
@@ -162,8 +171,6 @@ class Buffer:
     def create(self):
         self._create_buffer()
         with CursorGuard(), CurrentBufferGuard(self.bufnr):
-            #if self.history: 
-                #self.onrestore(self.history)
             self._set_keymap()
             # custom initialized buffer options.
             self._set_autocmd()
@@ -171,6 +178,8 @@ class Buffer:
             self._set_syntax()
             self.oninit()
             self.onredraw()
+            if self.history is not None and not self.history.is_empty():
+                self.restore_buffer(self.history)
             self.after_redraw()
         return self
 
@@ -205,6 +214,9 @@ class Buffer:
     def show(self, popup=True):
         if popup: self._popup_show()
         else: self._buffer_show()
+        if self.first_show and self.history is not None and not self.history.is_empty():
+            self.first_show = False
+            self.restore_view(self.history)
 
     def _buffer_show(self):
         vim.command(f"vne")

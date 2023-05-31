@@ -1,5 +1,5 @@
 import os
-from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer
+from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer, BufferHistory
 from .func_register import vim_register
 from .vim_utils import SetVimRegister, Normal_GI, Singleton
 import vim
@@ -36,6 +36,8 @@ class BrowserSearchBuffer(WidgetBufferWithInputs):
     def on_enter(self, text):
         raise NotImplementedError("Please implement the on_enter method")
 
+file_tree_history = BufferHistory("file_tree_history")
+
 class FileTreeBuffer(WidgetBuffer): 
     def __init__(self, name, title, tree):
         widgets = [
@@ -53,7 +55,7 @@ class FileTreeBuffer(WidgetBuffer):
         self.onclicked = []
         self.opened = set()
         self.set_tree()
-        super().__init__(self.root, name, None, options)
+        super().__init__(self.root, name, file_tree_history, options)
 
     def on_key(self, key):
         if super().on_key(key):
@@ -88,30 +90,35 @@ class FileTreeBuffer(WidgetBuffer):
                 self.opened.remove(dirpath)
             else: 
                 self.opened.add(dirpath)
-            print (self.opened)
+            cur_lnum = self.get_line_number()
             self.set_tree()
             self.redraw()
+            self.execute(f":{cur_lnum+1}")
             return False
              
-        def _draw(prefix, indent):
-            indent_str = "  " * indent
+        def _draw(root, prefix, indent):
+            indent_str = " " * indent
             ret = []
             click = []
-            for dir in self.tree['dirs']:
+            for dir in root['dirs']:
                 name, content = dir
                 if name.startswith('.'): continue
                 fullpath = os.path.join(prefix, name)
-                ret.append(TextWidget(f"{indent_str} + {name}/"))
+                is_open = fullpath in self.opened
+                status_char = "-" if is_open else '+'
+                ret.append(TextWidget(f"{indent_str}{status_char} {name}/"))
                 click.append(partial(dir_clicked, fullpath))
                 if fullpath in self.opened: 
-                    _draw(fullpath + '/', indent + 5)
-            for file in self.tree['files']: 
-                if name.startswith('.'): continue
-                ret.append(TextWidget(f"{indent_str}{file}"))
+                    dir_ret, dir_click = _draw(content, fullpath + '/', indent + 2)
+                    ret.extend(dir_ret)
+                    click.extend(dir_click)
+            for file in root['files']: 
+                if file.startswith('.'): continue
+                ret.append(TextWidget(f"{indent_str}  {file}"))
                 click.append(partial(file_clicked, os.path.join(prefix, file)))
             return ret, click
 
-        texts, click = _draw(self.root_path, 0)
+        texts, click = _draw(self.tree, self.root_path, 0)
         debug(texts)
         assert len(texts) == len(click)
         self.onclicked = click
@@ -123,6 +130,20 @@ class FileTreeBuffer(WidgetBuffer):
     def get_line_number(self):
         self.execute("let g:filetree_line_number=getpos('.')")
         return int(vim.eval("g:filetree_line_number")[1]) - 1
+
+    def save(self):
+        import copy
+        history = {}
+        history['lnum'] = self.get_line_number()
+        history['opened'] = copy.deepcopy(self.opened)
+        return history
+
+    def restore_view(self, history):
+        self.opened = history.value()['opened']
+        self.set_tree()
+        self.onredraw() # redraw to restore view.
+        self.execute(f":{history.value()['lnum']+1}")
+        return history
 
 class GoogleSearch(BrowserSearchBuffer): 
     def __init__(self):
