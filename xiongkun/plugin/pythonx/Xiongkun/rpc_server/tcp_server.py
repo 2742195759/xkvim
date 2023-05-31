@@ -47,7 +47,7 @@ def vim_rpc_loop(handle):
     stream = SockStream()
 
     while True:
-        rs, ws, es = select.select([handle.rfile.fileno()], [], [])
+        rs, ws, es = select.select([handle.rfile.fileno()], [], [], 3.0)
         if handle.rfile.fileno() in rs:
             try:
                 bytes = handle.request.recv(10240)
