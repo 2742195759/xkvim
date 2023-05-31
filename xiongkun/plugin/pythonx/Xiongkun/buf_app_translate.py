@@ -79,6 +79,10 @@ class FileTreeBuffer(WidgetBuffer):
         if self.onclicked[cur]():
             self.close()
 
+    def view_in(self, lnum):
+        self.execute(f":{lnum+1}")
+        self.execute(f"normal zz")
+
     def set_tree(self):
         def file_clicked(filepath):
             from .remote_fs import FileSystem
@@ -93,7 +97,7 @@ class FileTreeBuffer(WidgetBuffer):
             cur_lnum = self.get_line_number()
             self.set_tree()
             self.redraw()
-            self.execute(f":{cur_lnum+1}")
+            self.view_in(cur_lnum)
             return False
              
         def _draw(root, prefix, indent):
@@ -124,6 +128,10 @@ class FileTreeBuffer(WidgetBuffer):
         self.onclicked = click
         self.root = WidgetList("", texts, reverse=False)
 
+    def _get_window_size(self):
+        height = len(self.root.widgets) + 1
+        return height, int(vim.eval("winwidth(0)"))
+
     def on_move_item(self, char):
         self.execute(f'execute "normal! {char}"')
 
@@ -142,7 +150,7 @@ class FileTreeBuffer(WidgetBuffer):
         self.opened = history.value()['opened']
         self.set_tree()
         self.onredraw() # redraw to restore view.
-        self.execute(f":{history.value()['lnum']+1}")
+        self.view_in(history.value()['lnum'])
         return history
 
 class GoogleSearch(BrowserSearchBuffer): 
