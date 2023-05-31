@@ -1,9 +1,10 @@
 import os
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer
 from .func_register import vim_register
-from .vim_utils import SetVimRegister, Normal_GI
+from .vim_utils import SetVimRegister, Normal_GI, Singleton
 import vim
 from functools import partial
+from .log import debug
 
 class BrowserSearchBuffer(WidgetBufferWithInputs): 
     def __init__(self, name, title, hint=None):
@@ -35,7 +36,6 @@ class BrowserSearchBuffer(WidgetBufferWithInputs):
     def on_enter(self, text):
         raise NotImplementedError("Please implement the on_enter method")
 
-
 class FileTreeBuffer(WidgetBuffer): 
     def __init__(self, name, title, tree):
         widgets = [
@@ -51,6 +51,7 @@ class FileTreeBuffer(WidgetBuffer):
         self.tree = tree
         self.root_path = title
         self.onclicked = []
+        self.opened = set()
         self.set_tree()
         super().__init__(self.root, name, None, options)
 
@@ -60,7 +61,7 @@ class FileTreeBuffer(WidgetBuffer):
         base_key = list(range(ord('a'), ord('z'))) + list(range(ord('A'), ord('Z')))
         base_key = list(map(chr, base_key))
         special_keys = [
-            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/', '<cr>', '<left>', '<right>', "<c-a>", "<c-e>",
+            '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/', '<cr>', '<left>', '<right>', "<c-a>", "<c-e>"
         ]
         insert_keys = base_key + special_keys
         if key in ['j', 'k']: 
@@ -82,24 +83,38 @@ class FileTreeBuffer(WidgetBuffer):
             FileSystem().edit(filepath)
             return True
 
-        def dir_clicked(dirpath, dircontent):
-            self.root = dircontent
+        def dir_clicked(dirpath):
+            if dirpath in self.opened: 
+                self.opened.remove(dirpath)
+            else: 
+                self.opened.add(dirpath)
+            print (self.opened)
+            self.set_tree()
+            self.redraw()
             return False
              
         def _draw(prefix, indent):
             indent_str = "  " * indent
             ret = []
+            click = []
             for dir in self.tree['dirs']:
                 name, content = dir
+                if name.startswith('.'): continue
                 fullpath = os.path.join(prefix, name)
-                ret.append(TextWidget(f"{indent_str}{name}/"))
-                self.onclicked.append(partial(dir_clicked, fullpath, content))
+                ret.append(TextWidget(f"{indent_str} + {name}/"))
+                click.append(partial(dir_clicked, fullpath))
+                if fullpath in self.opened: 
+                    _draw(fullpath + '/', indent + 5)
             for file in self.tree['files']: 
+                if name.startswith('.'): continue
                 ret.append(TextWidget(f"{indent_str}{file}"))
-                self.onclicked.append(partial(file_clicked, os.path.join(prefix, file)))
-            return ret
+                click.append(partial(file_clicked, os.path.join(prefix, file)))
+            return ret, click
 
-        texts = _draw(self.root_path, 0)
+        texts, click = _draw(self.root_path, 0)
+        debug(texts)
+        assert len(texts) == len(click)
+        self.onclicked = click
         self.root = WidgetList("", texts, reverse=False)
 
     def on_move_item(self, char):
@@ -161,6 +176,7 @@ class TranslatorBuffer(WidgetBufferWithInputs):
             vim.command(f'execute "normal i{translated}"')
             Normal_GI()
 
+
 @vim_register(command="Fanyi")
 def TestBaidufanyi(args):
     ff = TranslatorBuffer()
@@ -179,10 +195,15 @@ def TestPdocUI(args):
     ff.create()
     ff.show()
     
-@vim_register(command="FileTree")
-def TestFileTree(args):
+@Singleton
+def FileTree():
     from .remote_fs import FileSystem
     tree = FileSystem().tree()
-    ff = FileTreeBuffer("filetree", FileSystem().cwd, tree)
+    return FileSystem().cwd, tree
+
+@vim_register(command="FileTree")
+def TestFileTree(args):
+    cwd, tree = FileTree()
+    ff = FileTreeBuffer("filetree", cwd, tree)
     ff.create()
     ff.show(popup=True)

@@ -529,7 +529,7 @@ class GlobalPreviewWindow:# {{{
             GPW.pwin.destory()
             GPW.pwin = None
         if loc is None : return 
-        GPW.win_ops['title'] = "[%d / %d]"%(GPW.candidate_idx+1, len(GPW.candidate_locs)) + remote_fs.to_url(loc.getfile())
+        GPW.win_ops['title'] = "[%d / %d]"%(GPW.candidate_idx+1, len(GPW.candidate_locs)) + remote_fs.FileSystem().bufname(loc.getfile())
         GPW.pwin = PreviewWindow(loc, **GPW.win_ops)
         GPW.pwin.create()
         if GPW.hidden: GPW.pwin.hide()
