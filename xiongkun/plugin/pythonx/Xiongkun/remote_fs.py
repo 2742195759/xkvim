@@ -21,8 +21,8 @@ def RemoteSave(args):
     bufnr = vim.eval(f"bufnr('{bufname}')")
     lines = vim.eval(f"getbufline({bufnr}, 1, '$')")
     vim.command("set nomodified")
-    if rpc_wait("remotefs.store", filepath, "\n".join(lines)) is not True: 
-        vim.command(f"echom '{msg}'")
+    if FileSystem().store(filepath, "\n".join(lines)) is not True: 
+        vim.command(f"echom '{FileSystem().last_error()}'")
         vim.command("set modified")
 
 @vim_register(command="RemoteEdit", with_args=True)
@@ -150,8 +150,8 @@ class FileSystem:
     def store(self, filepath, content):
         assert isinstance(content, (list, str))
         if isinstance(content, list):
-            content = "\n".join(contents)
-        msg = rpc_wait("remotefs.store", filepath, contents)
+            content = "\n".join(content)
+        msg = rpc_wait("remotefs.store", filepath, content)
         if msg != "success.": 
             self._last_error = msg
             return False

@@ -111,6 +111,12 @@ class Buffer:
         if hasattr(self, "wid"): win_execute(self.wid, cmd)
         else: vim.command(cmd)
 
+    def normal(self, cmd):
+        pass
+
+    def eval(self, cmd):
+        pass
+
     def _name_generator(self):
         Buffer.number += 1
         return str(Buffer.number)
