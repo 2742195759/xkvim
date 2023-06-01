@@ -38,6 +38,39 @@ class BrowserSearchBuffer(WidgetBufferWithInputs):
 
 file_tree_history = BufferHistory("file_tree_history")
 
+class DirectoryTree:
+    def __init__(self, type, fullpath):
+        self.child = []
+        self.father = None
+        self.type = type
+        self.fullpath = fullpath
+        self.is_open = False
+
+    def add_child(self, tree):
+        self.child.append(tree)
+        tree.father = self
+
+    def files(self):
+        return [ item for item in self.child if item.type == 'file' ]
+
+    def dirs(self):
+        return [ item for item in self.child if item.type == 'dir' ]
+
+    @staticmethod
+    def from_dict(fullpath, content):
+        this = DirectoryTree("dir", fullpath)
+        for dir in content['dirs']:
+            name, dircontent = dir
+            if name.startswith('.'): continue
+            this.add_child(DirectoryTree.from_dict(os.path.join(fullpath, name), dircontent))
+        for file in content['files']: 
+            if file.startswith('.'): continue
+            this.add_child(DirectoryTree("file", os.path.join(fullpath, file)))
+        return this
+
+    def __eq__(self, other):
+        return other.fullpath == self.fullpath
+
 class FileTreeBuffer(WidgetBuffer): 
     def __init__(self, name, title, tree):
         widgets = [
@@ -46,15 +79,16 @@ class FileTreeBuffer(WidgetBuffer):
         options = {
             'title': title, 
             'maxwidth': 100, 
-            'minwidth': 50,
-            'maxheight':20, 
+            'minwidth':  50,
+            'minheight': 30,
+            'maxheight': 30, 
             'cursorline': 1,
         }
-        self.tree = tree
         self.root_path = title
-        self.onclicked = []
-        self.opened = set()
-        self.set_tree()
+        self.tree = DirectoryTree.from_dict(self.root_path, tree)
+        self.views = []
+        self.render_tree()
+        self.select_item = self.tree
         super().__init__(self.root, name, file_tree_history, options)
 
     def on_key(self, key):
@@ -69,64 +103,92 @@ class FileTreeBuffer(WidgetBuffer):
         if key in ['j', 'k']: 
             self.on_move_item(key)
             return True
+        if key in ['J', 'K']:
+            self.on_move_brother(key)
+            return True
+        if key in ['x']:
+            self.on_close_dir()
+            return True
+        if key in ['m']:
+            self.call_custom_function()
+            return True
+        if key in ['u']: 
+            self.goto_father()
+            return True
         if key in ['<cr>']: 
             self.on_enter()
             return True
         return False
 
+    def on_close_dir(self):
+        father = self.select_item.father
+        if father is None: return
+        father.is_open = False
+        self.select_item = father
+        self.redraw()
+
+    def on_move_brother(self, key):
+        offset = {'J': 1, 'K': -1}[key]
+        father = self.select_item.father
+        if father is None: return 
+        index = 0
+        for idx, child in enumerate(father.child): 
+            if child == self.select_item:
+                index = idx
+        newidx = index + offset
+        if newidx >= 0 and newidx < len(father.child): 
+            self.select_item = father.child[newidx]
+            self.redraw()
+
     def on_enter(self):
         cur = self.get_line_number()
-        if self.onclicked[cur]():
+        if self.views[cur][2](self.views[cur][1]):
             self.close()
 
     def view_in(self, lnum):
         self.execute(f":{lnum+1}")
         self.execute(f"normal zz")
 
-    def set_tree(self):
-        def file_clicked(filepath):
+    def render_tree(self):
+        def file_clicked(item):
             from .remote_fs import FileSystem
-            FileSystem().edit(filepath)
+            FileSystem().edit(item.fullpath)
             return True
 
-        def dir_clicked(dirpath):
-            if dirpath in self.opened: 
-                self.opened.remove(dirpath)
-            else: 
-                self.opened.add(dirpath)
-            cur_lnum = self.get_line_number()
-            self.set_tree()
+        def dir_clicked(item):
+            item.is_open = not item.is_open
             self.redraw()
-            self.view_in(cur_lnum)
             return False
              
-        def _draw(root, prefix, indent):
+        def _draw(root, indent):
             indent_str = " " * indent
-            ret = []
-            click = []
-            for dir in root['dirs']:
-                name, content = dir
-                if name.startswith('.'): continue
-                fullpath = os.path.join(prefix, name)
-                is_open = fullpath in self.opened
-                status_char = "-" if is_open else '+'
-                ret.append(TextWidget(f"{indent_str}{status_char} {name}/"))
-                click.append(partial(dir_clicked, fullpath))
-                if fullpath in self.opened: 
-                    dir_ret, dir_click = _draw(content, fullpath + '/', indent + 2)
-                    ret.extend(dir_ret)
-                    click.extend(dir_click)
-            for file in root['files']: 
-                if file.startswith('.'): continue
-                ret.append(TextWidget(f"{indent_str}  {file}"))
-                click.append(partial(file_clicked, os.path.join(prefix, file)))
-            return ret, click
+            views= [] # [ ( string, tree, callback ) ] 
+            for dir in root.dirs():
+                name, fullpath = os.path.basename(dir.fullpath), dir.fullpath
+                status_char = "-" if dir.is_open else '+'
+                views.append(( f"{indent_str}{status_char} {name}/", dir, dir_clicked ))
+                if dir.is_open:
+                    child_views = _draw(dir, indent + 2)
+                    views.extend(child_views)
+            for file in root.files():
+                name = os.path.basename(file.fullpath)
+                views.append((f"{indent_str}  {name}", file, file_clicked))
+            return views
+        self.views= _draw(self.tree, 0)
+        self.root = WidgetList("", [TextWidget(view[0]) for view in self.views])
 
-        texts, click = _draw(self.tree, self.root_path, 0)
-        debug(texts)
-        assert len(texts) == len(click)
-        self.onclicked = click
-        self.root = WidgetList("", texts, reverse=False)
+    def onredraw(self):
+        self.render_tree()
+        super().onredraw()
+        cur_lnum = self.get_lnum()
+        self.view_in(cur_lnum)
+
+    def get_lnum(self):
+        cur_lnum = 0
+        for idx, view in enumerate(self.views): 
+            if view[1] == self.select_item: 
+                cur_lnum = idx
+        return cur_lnum
 
     def _get_window_size(self):
         height = len(self.root.widgets) + 1
@@ -134,6 +196,9 @@ class FileTreeBuffer(WidgetBuffer):
 
     def on_move_item(self, char):
         self.execute(f'execute "normal! {char}"')
+        lnum = self.get_line_number()
+        if lnum < len(self.views): 
+            self.select_item = self.views[lnum][1]
 
     def get_line_number(self):
         self.execute("let g:filetree_line_number=getpos('.')")
@@ -142,16 +207,14 @@ class FileTreeBuffer(WidgetBuffer):
     def save(self):
         import copy
         history = {}
-        history['lnum'] = self.get_line_number()
-        history['opened'] = copy.deepcopy(self.opened)
+        history['tree'] = self.tree
+        history['cur'] = self.select_item
         return history
 
     def restore_view(self, history):
-        self.opened = history.value()['opened']
-        self.set_tree()
-        self.onredraw() # redraw to restore view.
-        self.view_in(history.value()['lnum'])
-        return history
+        self.tree = history.value()['tree']
+        self.select_item = history.value()['cur']
+        self.redraw()
 
 class GoogleSearch(BrowserSearchBuffer): 
     def __init__(self):
