@@ -31,6 +31,9 @@ class RemoteFS:
     def list_dir(self, dirpath):
         return os.listdir(dirpath)
 
+    @server_function
+    def exists(self, filepath):
+        return os.path.exists(filepath)
     
     @server_function
     def tree(self, dirpath):
@@ -53,6 +56,8 @@ if __name__ == "__main__":
     #servers.grepfinder = GrepSearcher(servers.queue)
     fn = servers.get_server_fn("remotefs.tree")
     print (fn (1, "/home/data/test/"))
+    fn = servers.get_server_fn("remotefs.exists")
+    print (fn (1, "/home/data/xxxx"))
     time.sleep(3)
     servers.stop()
 

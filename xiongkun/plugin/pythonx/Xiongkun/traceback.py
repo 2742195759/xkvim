@@ -49,7 +49,7 @@ def TracebackOneLine(args):
         if result is None: 
             continue
         filename, lineno = result.groups()
-        if osp.exists(filename): 
+        if remote_fs.FileSystem().exists(filename): 
             loc = remote_fs.Location(filename, int(lineno))
         else: 
             print ("trace back file not exists: ", filename)

@@ -223,6 +223,11 @@ class FileSystem:
     def completer(self, cur_input):
         pass
 
+    def exists(self, filepath):
+        """ whether this file exist in remote filesystem.
+        """
+        return rpc.wait("remotefs.exists", filepath)
+
     def edit(self, filepath): 
         bufnr = FileSystem().bufload_file(filepath)
         GoToBuffer(bufnr, '.')
