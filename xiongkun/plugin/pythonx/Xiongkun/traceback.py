@@ -36,6 +36,13 @@ def AnalysisTraceback(args):
 
 @vim_register(keymap="<space>gf", command="TracebackLine")
 def TracebackOneLine(args):
+    """ 
+    `TracebackLine`: goto the error line and quick fix bugs, auto parse the filename
+    >>> TracebackLine
+    --------------------
+    + remote
+    + key = n: <space> gf
+    """
     line = vim_utils.GetCurrentLine().strip()
     patterns = [
         f"({file_pattern}):({number_pattern})", 
