@@ -22,6 +22,9 @@ class ServerCluster:
         self.fuzzyfinder = FuzzyList(self.queue)
         self.yiyan = Yiyan(self.queue)
         self.grepfinder = GrepSearcher(self.queue)
+        def keeplive(*a, **kw): 
+            return [-1, True, 'ok']
+        self.keeplive = keeplive
         self._stop = False
 
     def _QueueLoop(self, process_fn):

@@ -226,7 +226,7 @@ class FileSystem:
     def exists(self, filepath):
         """ whether this file exist in remote filesystem.
         """
-        return rpc.wait("remotefs.exists", filepath)
+        return rpc_wait("remotefs.exists", filepath)
 
     def edit(self, filepath): 
         bufnr = FileSystem().bufload_file(filepath)

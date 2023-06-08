@@ -82,10 +82,6 @@ def vim_rpc_loop(handle):
                     else: 
                         print("[Server]: normal function.")
                         send(output)
-        else: 
-            # heart beat send !
-            #print('send heart beat.')
-            send([0, True, None])
     print ("stop handle, closing...")
     servers.stop()
     print ("===== stop a vim rpc server ======")
