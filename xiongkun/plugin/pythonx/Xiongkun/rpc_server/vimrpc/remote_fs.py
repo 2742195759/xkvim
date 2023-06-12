@@ -49,6 +49,10 @@ class RemoteFS:
             return ret
         return _tree(dirpath)
 
+    @server_function
+    def command(self, command_str):
+        return os.system(command_str)
+
 if __name__ == "__main__":
     from server_cluster import ServerCluster, printer_process_fn
     servers = ServerCluster()
@@ -58,6 +62,8 @@ if __name__ == "__main__":
     print (fn (1, "/home/data/test/"))
     fn = servers.get_server_fn("remotefs.exists")
     print (fn (1, "/home/data/xxxx"))
+    fn = servers.get_server_fn("remotefs.command")
+    print (fn (1, "ls /home/data"))
     time.sleep(3)
     servers.stop()
 

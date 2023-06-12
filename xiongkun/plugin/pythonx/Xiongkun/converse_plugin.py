@@ -235,12 +235,12 @@ def RunCurrentFile(args):
 def PaddleCopyfile(args):
     """ In paddlepaddle, we call /home/data/web/scripts/copy_file.sh under each build* directory.
     """
-    import glob
-    import os
-    for d in glob.glob("./build*"): 
-        d = os.path.abspath(d)
-        os.system(f"cd {d} && /home/data/web/scripts/copy_file.sh")
-    print ("You paddlepaddle is updated.")
+    from .remote_fs import FileSystem
+    filepath = FileSystem().current_filepath()
+    build_filepath = filepath.replace("Paddle/python/paddle", "Paddle/python/build/paddle")
+    ret = FileSystem().command(f"cp {filepath} {build_filepath}")
+    if ret:
+        print ("You paddlepaddle is updated.")
 
 @vim_register(command="Pdoc", with_args=True)
 def PaddleDocumentFile(args):

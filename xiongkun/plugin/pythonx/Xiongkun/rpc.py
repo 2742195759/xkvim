@@ -222,7 +222,6 @@ remote_project = None
 vim.command(
 """ 
 function! SendKeeplive(timer_id)
-    echom "send keepalive message."
     py3 Xiongkun.rpc_server().keeplive()
 endfunction
 """)
