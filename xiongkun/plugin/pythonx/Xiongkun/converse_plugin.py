@@ -237,7 +237,7 @@ def PaddleCopyfile(args):
     """
     from .remote_fs import FileSystem
     filepath = FileSystem().current_filepath()
-    build_filepath = filepath.replace("Paddle/python/paddle", "Paddle/python/build/paddle")
+    build_filepath = filepath.replace("Paddle/python/paddle", "Paddle/build/python/paddle")
     ret = FileSystem().command(f"cp {filepath} {build_filepath}")
     if ret:
         print ("You paddlepaddle is updated.")

@@ -10,6 +10,7 @@ from vimrpc.decorator import InQueue
 from vimrpc.remote_fs import RemoteFS
 from vimrpc.yiyan_server import Yiyan
 from vimrpc.grep_search import GrepSearcher
+from vimrpc.hoogle import HoogleSearcher
 
 import multiprocessing as mp
 from log import log
@@ -22,6 +23,7 @@ class ServerCluster:
         self.fuzzyfinder = FuzzyList(self.queue)
         self.yiyan = Yiyan(self.queue)
         self.grepfinder = GrepSearcher(self.queue)
+        self.hoogle = HoogleSearcher(self.queue)
         def keeplive(*a, **kw): 
             return [-1, True, 'ok']
         self.keeplive = keeplive

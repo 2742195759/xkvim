@@ -27,6 +27,7 @@ from .buf_app_filetree import *
 from .command_doc_popup import *
 from .filetype_plugin import *
 from .remote_fs import *
+from .haskell import *
 
 pro = None; 
 
