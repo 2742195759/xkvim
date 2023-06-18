@@ -27,6 +27,11 @@ def RemoteSave(args):
 
 @vim_register(command="RemoteEdit", with_args=True)
 def RemoteEdit(args):
+    if len(args) == 0: 
+        bufname = vim.eval("bufname()")
+        filepath = FileSystem().filepath(bufname)
+        FileSystem().edit(filepath, force=True)
+        return
     FileSystem().edit(args[0])
             
 vim_utils.commands(""" 
@@ -172,7 +177,7 @@ class FileSystem:
     def filepath(self, bufname):
         return bufname[len(self.prefix):]
 
-    def bufload_file(self, filepath):
+    def bufload_file(self, filepath, force=False):
         bufname = self.bufname(filepath)
         def do_open(content): 
             tmp_file = vim_utils.TmpName()
@@ -181,12 +186,13 @@ class FileSystem:
             bufnr = vim.eval(f'bufadd("{bufname}")')
             with vim_utils.CurrentBufferGuard():
                 vim.command(f"b {bufnr}")
+                vim.command(f"setlocal noswapfile")
                 vim.command(f"read {tmp_file}")
                 vim.command("normal ggdd")
                 vim.command("set nomodified")
             return bufnr
         bufnr = vim.eval(f"bufnr('{bufname}')")
-        if bufnr == "-1": 
+        if bufnr == "-1" or force : 
             if self.is_remote(): 
                 content = FileSystem().fetch(filepath)
                 bufnr = do_open(content)
@@ -226,12 +232,22 @@ class FileSystem:
     def exists(self, filepath):
         """ whether this file exist in remote filesystem.
         """
-        return rpc.wait("remotefs.exists", filepath)
+        return rpc_wait("remotefs.exists", filepath)
 
-    def edit(self, filepath): 
-        bufnr = FileSystem().bufload_file(filepath)
+    def edit(self, filepath, force=False): 
+        bufnr = FileSystem().bufload_file(filepath, force)
         GoToBuffer(bufnr, '.')
 
     def jumpto(self, location, method):
         GoToLocation(location, method)
 
+    def command(self, command_str):
+        ret = rpc_wait("remotefs.command", command_str)
+        if ret == 0:
+            return True
+        else: 
+            print (f"Command Failed: {command_str} with code {ret}")
+            return False
+
+    def current_filepath(self):
+        return self.filepath(vim.eval("bufname()"))

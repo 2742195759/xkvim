@@ -4,7 +4,6 @@ from .vim_utils import Singleton, dict2str, TotalWidthHeight, commands
 import vim
 from .log import log
 
-@Singleton
 class DocPreviewBuffer(Buffer):
     def __init__(self):
         col, line = TotalWidthHeight()
@@ -71,6 +70,8 @@ class DocPreviewBuffer(Buffer):
     def is_dirty(self):
         self.dirty
 
+CommandDocPreview = Singleton(DocPreviewBuffer)
+
 @vim_register(command="TestDocPreview", with_args=True)
 def TestDocPreview(args):
     """
@@ -83,7 +84,7 @@ def TestDocPreview(args):
         # remote name
         pc | mac
     """
-    ff = DocPreviewBuffer()
+    ff = CommandDocPreview()
     if "".join(args): 
         ff.set_markdown_doc(" ".join(args))
     ff.show()
@@ -95,7 +96,7 @@ def DocPreviewUpdate(args):
     *show* the CommandDocPreview window for promote.
     """
     cmd_type = vim.eval("expand('<afile>')")
-    if cmd_type == ':': DocPreviewBuffer().set_command_doc().show()
+    if cmd_type == ':': CommandDocPreview().set_command_doc().show()
 
 @vim_register(command="DocPreviewHide")
 def DocPreviewHide(args):
@@ -104,7 +105,7 @@ def DocPreviewHide(args):
     *hide* the CommandDocPreview window for promote.
     """
     cmd_type = vim.eval("expand('<afile>')")
-    if cmd_type == ':': DocPreviewBuffer().hide()
+    if cmd_type == ':': CommandDocPreview().hide()
 
 # AutoCmd for DocPreview
 commands("""

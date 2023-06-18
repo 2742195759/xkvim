@@ -66,7 +66,9 @@ class RPCChannel:
 
     def on_receive(self, msg):
         id, is_finished, output = json.loads(msg)
-        if id not in self.callbacks: return
+        if id not in self.callbacks: 
+            # maybe keeplive package.
+            return
         on_return = self.callbacks[id]
         on_return(id, is_finished, output)
         if is_finished: 
@@ -158,6 +160,10 @@ class RPCServer:
 
     def receive(self): # for hooker.
         self.channel.receive()
+
+    def keeplive(self):
+        self.channel.send([-1, "keeplive", []])
+
         
 
 local_rpc = None
@@ -212,6 +218,19 @@ def get_address():
     return host.strip(), port.strip()
 
 remote_project = None
+
+vim.command(
+""" 
+function! SendKeeplive(timer_id)
+    py3 Xiongkun.rpc_server().keeplive()
+endfunction
+""")
+
+vim.command(
+"""
+call timer_start(10000, function('SendKeeplive'), {'repeat': -1})
+"""
+)
 
 @vim_register(command="SetRPCProject", with_args=True, command_completer="file")
 def SetRPCServer(args):
