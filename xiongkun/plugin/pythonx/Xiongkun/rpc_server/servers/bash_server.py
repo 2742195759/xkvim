@@ -40,7 +40,6 @@ def bash_server(handle):
                 if pack['type'] == 'input': 
                     os.write(master_fd, pack['body'].encode('utf-8'))
                 elif pack['type'] == 'keeplive': 
-                    #print ("heart beat got.")
                     pass
             elif r in [master_fd]:
                 bytes = os.read(r, 10240)

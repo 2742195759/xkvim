@@ -7,7 +7,7 @@ from .clangd_client import *
 from .windows import *
 from .multiprocess_utils import *
 from .multi_location_ops import *
-from .indexer import *
+#from .indexer import *
 from .converse_plugin import *
 from .insert_keymap import *
 from .fold_plugin import *

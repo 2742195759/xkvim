@@ -13,12 +13,14 @@ import time
 from .log import log
 from urllib.parse import quote, unquote
 from . import remote_fs
+from .rpc import RPCServer
+from .remote_fs import FileSystem
 
 def _StartAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
-    autocmd BufEnter *.cc,*.h,*.cpp cal ClangdDidOpen([expand('%:p')])
+    autocmd BufEnter *.py,*.cc,*.h,*.cpp cal LSPOpenFile([])
     autocmd VimEnter * cal ClangdServerStart([])
     autocmd VimLeave * cal ClangdServerExit([])
     autocmd BufWritePost *.cc,*.h,*.cpp cal ClangdServerReparse([expand('%:p')])
@@ -49,73 +51,7 @@ def StopAutoCompileGuard():# {{{
         yield
         pass
 
-def init_clangd_config():
-    pwd = vim_utils.GetPwd()
-    path = os.path.join(pwd, "./.vim_clangd.py")
-    return
-    if os.path.isfile(path): 
-        config = vim_utils.absolute_import("vim_clangd", path)
-        clangd_config.path_map = config.path_map
-        clangd_config.enable = config.enable
-        clangd_config.url = config.url
-    if clangd_config.enable:
-        print ("Enable Clangd:")
-        print ("      URL    :", config.url)
-        print ("   path_map  :", config.path_map)
-        _StartAutoCompile()
-
-class ClangdConfig:
-    def __init__(self):
-        self.path_map = None
-        self.url = None
-        self.enable = False
-
-clangd_config = ClangdConfig()
-init_clangd_config()
-
-def do_path_map(path, fr="clangd", to="vim"):
-    """
-    prefix = None to disable the path map.
-    """
-    if not len(path.strip()): return path
-    prefix = clangd_config.path_map
-    if prefix is None:
-        return path
-    if not isinstance(prefix[fr], list): 
-        prefix[fr] = [prefix[fr]]
-    if not isinstance(prefix[to], list): 
-        prefix[to] = [prefix[to]]
-    optional = list(filter(lambda x: path.startswith(x), prefix[fr]))
-    if len(optional) > 0:
-        return prefix[to][0] + path[len(optional[0]):]
-    else:
-        #raise RuntimeError(f"Got `{fr}` path: `{path}`, which is not found in vim client.")
-        return path
-
-client_id = str(random.randint(1, 10000))
 clangd = None
-
-
-def send_by_python(json_req=None, cmd=None, url=clangd_config.url, timeout=(2,2), **args):# {{{
-    """ 
-    """
-    import json
-    import requests
-    if 'http_proxy' in os.environ: del os.environ['http_proxy']
-    if 'https_proxy' in os.environ: del os.environ['https_proxy']
-    headers = {"Content-Type":"application/json", "port": "2000", 'client_id':client_id}
-    if cmd != None: 
-        headers['cmd'] = cmd
-        headers.update(**args)
-        return requests.post(url, data=json.dumps({}), headers=headers)
-    assert json_req is not None, "json_req can't be empty."
-    try:
-        rsp = requests.post(url, data=json.dumps(json_req), headers=headers, timeout=timeout)
-        return rsp
-    except Exception as e:
-        log("[clangd error]", str(e))
-        return None
-        # }}}
 
 def clangd_initialize(id):# {{{
     json = {
@@ -126,43 +62,8 @@ def clangd_initialize(id):# {{{
     }
     send_by_python(json)# }}}
 
-def clangd_add_document(filepath="/home/data/hello_world.cpp"):# {{{
-    with open(filepath, 'r') as fp:
-        content = fp.readlines()
-    content = "".join(content)
-    #print (content)
-    json = {
-        "jsonrpc": "2.0",
-        "method": "textDocument/didOpen",
-        "params": {
-            "textDocument": {
-                "uri": "file://" + do_path_map(filepath, "vim", "clangd"),
-                "languageId": "cpp",
-                "text": content,
-            },
-        }
-    }
-    # we just want to run util end.
-    threading.Thread(target=send_by_python, args=(json,), daemon=True).start()
-# }}}
-
-def clangd_goto(id, filepath="/home/data/hello_world.cpp", method="definition", pos=(0,0)):# {{{
-    json = {
-        "jsonrpc": "2.0",
-        "id": str(id),
-        "method": "textDocument/%s" % method,
-        #"method": "textDocument/implementation",
-        "params": {
-            "textDocument": {
-                "uri": "file://" + do_path_map(filepath, "vim", "clangd"),
-            },
-            "position": {
-                "line": pos[0], 
-                "character" : pos[1] 
-            }
-        }
-    }
-    return send_by_python(json)# }}}
+def do_path_map(x, f, t):
+    return x
 
 def clangd_complete(id, filepath, pos=(0,0)):# {{{
     json = {
@@ -185,24 +86,18 @@ def clangd_complete(id, filepath, pos=(0,0)):# {{{
     }
     return send_by_python(json, timeout=(5, 5))# }}}
 
-class Clangd():# {{{
+class LSPClient():# {{{
+    def __init__(self):
+        self.lsp_server = RPCServer("LSP", "127.0.0.1:3000", "lsp")
+        self.loaded_file = set()
+        self.id = 1
+
     def _getid(self):
         self.id += 1
         return self.id
 
     def _lastid(self):
         return self.id
-
-    def __init__(self):
-        self.id = 1
-        clangd_initialize(self._getid())
-        self.loaded_file = set()
-
-    # non block
-    def did_open(self, filepath):
-        if filepath not in self.loaded_file:
-            clangd_add_document(filepath)
-            self.loaded_file.add(filepath)
 
     # non block
     def getContentChanges(self, filepath, content):
@@ -353,24 +248,26 @@ def Clangd_GoToRef(args):# {{{
 
 @vim_register(name="ClangdServerStart")
 def ClangdStart(args):# {{{
-    send_by_python(cmd='create', directory=do_path_map(vim_utils.GetPwd(), "vim", "clangd"))
     global clangd
-    if not clangd: clangd = Clangd()# }}}
+    _EndAutoCompile()
+    _StartAutoCompile()
+    if not clangd: clangd = LSPClient()# }}}
 
 @vim_register(name="ClangdServerExit")
 def ClangdExit(args):# {{{
     clangd = None
     send_by_python(cmd='remove', directory=do_path_map(vim_utils.GetPwd(), "vim", "clangd"))# }}}
 
-@vim_register(name="ClangdDidOpen")
-def ClangdDidOpen(files):# {{{
+@vim_register(name="LSPOpenFile")
+def LSPOpenFile(args):# {{{
     if not clangd: ClangdStart([])
-    for file in files: 
-        clangd.did_open(file)# }}}
+    #filepath = FileSystem().current_filepath()
+    filepath = vim_utils.CurrentEditFile(True)
+    clangd.lsp_server.call("add_document", None, filepath)
 
 @vim_register(name="ClangdServerRestart", command="ClangdRestart")
 def ClangdRestart(args):# {{{
-    send_by_python(cmd='restart', directory=do_path_map(vim_utils.GetPwd(), "vim", "clangd"))
+    #send_by_python(cmd='restart', directory=do_path_map(vim_utils.GetPwd(), "vim", "clangd"))
     global clangd
     clangd = None
     ClangdStart([])# }}}
@@ -427,8 +324,7 @@ def ClangdComplete(args):# {{{
 
 @vim_register(name="ClangdClose", command="ClangdStop")
 def ClangdClose(args):# {{{
-    if clangd:
-        _EndAutoCompile()
+    if clangd: _EndAutoCompile()
 
 def _clangd_to_location(result):# {{{
     loc = []

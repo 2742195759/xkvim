@@ -250,42 +250,6 @@ function! GI()
     endif
 endfunc
 
-function! RPCServer(channel, msg)
-    let g:rpc_receive=a:msg
-    "let g:rpc_vimcommand=a:msg
-    " receive [0, None, None] for heartbeat package.
-    "echom a:msg
-    py3 Xiongkun.rpc_server().receive()
-    redraw!
-endfunction
-
-function! SendMessageSync(id, channel, package)
-    call ch_sendraw(a:channel, a:package)
-    while 1
-        let out = ch_read(a:channel)
-        "echom "[Receive] " . out
-        if out == ""
-            let status = ch_status(a:channel)
-            if status == "fail" || status ==  "closed"
-                echom "[Warnings] Connection error: ".status
-            endif
-            continue
-        endif
-        let json = json_decode(out)
-        call RPCServer(a:channel, out)
-        if json[0] == a:id
-            break
-        endif
-    endwhile
-    return out
-endfunction
-
-function! RPCServerError(channel, msg)
-    let g:rpc_receive=a:msg
-    echom a:msg
-endfunction
-    
-
 function! DispatchFilter(winid, key)
     let g:popup_handle=0
     call BufApp_PopupDispatcher([a:winid, a:key])

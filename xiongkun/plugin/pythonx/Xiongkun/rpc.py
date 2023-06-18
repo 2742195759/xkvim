@@ -13,24 +13,63 @@ import json
 from .func_register import vim_register
 from .log import debug
 
+def create_rpc_handle(name, channel_name, receive_name):
+    vim.command(f"""
+    function! {name}Server(channel, msg)
+        let {receive_name}=a:msg
+        py3 Xiongkun.rpc_server().receive()
+        redraw!
+    endfunction
+    """)
+
+    vim.command(f"""function! {name}SendMessageSync(id, channel, package)
+        call ch_sendraw(a:channel, a:package)
+        while 1
+            let out = ch_read(a:channel)
+            "echom "[Receive] " . out
+            if out == ""
+                let status = ch_status(a:channel)
+                if status == "fail" || status ==  "closed"
+                    echom "[Warnings] Connection error: ".status
+                endif
+                continue
+            endif
+            let json = json_decode(out)
+            call {name}Server(a:channel, out)
+            if json[0] == a:id
+                break
+            endif
+        endwhile
+        return out
+    endfunction""")
+    
+    vim.command(f""" 
+    function! {name}ServerError(channel, msg)
+        let {receive_name}=a:msg
+        echom a:msg
+    endfunction
+    """)
+
 class RPCChannel:
-    def __init__(self, remote_server=None):
-        self.channel_name = "g:rpc_channel"
-        self.receive_name = "g:rpc_receive"
+    def __init__(self, name="RPC", remote_server=None, type="vimrpc"):
+        self.channel_name = f"g:{name}_channel"
+        self.receive_name = f"g:{name}_receive"
+        self.name = name
+        create_rpc_handle(name, self.channel_name, self.receive_name)
         if remote_server is None: 
             config = {
                 'in_mode': 'nl',
                 'out_mode': 'nl',
-                'out_cb': 'RPCServer',
-                'callback': 'RPCServer',
-                'err_cb': 'RPCServerError',
+                'out_cb': f'{name}Server',
+                'callback': f'{name}Server',
+                'err_cb': f'{name}ServerError',
                 'noblock': 0,
                 'out_io': "pipe",
                 'in_io': "pipe",
             }
             server_path = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/server.py"
 
-            self.job_name = "g:rpc_job"
+            self.job_name = f"g:{name}_job"
             vimcommand(
                 f'let {self.job_name} = job_start("{server_path}", {dict2str(config)})'
             )
@@ -40,7 +79,7 @@ class RPCChannel:
         else: 
             config = {
                 'mode': 'nl',
-                'callback': 'RPCServer',
+                'callback': f'{name}Server',
                 'drop': 'auto',
                 'noblock': 0,
                 'waittime': 3000,
@@ -51,7 +90,7 @@ class RPCChannel:
                 f'let {self.channel_name} = ch_open("{self.job_name}", {dict2str(config)})'
             )
             vimcommand(
-                f'call ch_sendraw({self.channel_name}, "vimrpc\n")'
+                f'call ch_sendraw({self.channel_name}, "{type}\n")'
             )
         # package is like: [serve_id, server_name, [arg0, arg1, ...]]
         # respond is like: [serve_id, is_finished, [return_val]]
@@ -84,7 +123,7 @@ class RPCChannel:
             vim.eval(f'ch_sendraw({self.channel_name}, {str_package})')
         else: 
             assert isinstance(sync, int)
-            return vim.eval(f'SendMessageSync({sync}, {self.channel_name}, {str_package})')
+            return vim.eval(f'{self.name}SendMessageSync({sync}, {self.channel_name}, {str_package})')
 
     def stream_new(self):
         class RPCStream:
@@ -116,8 +155,8 @@ def dummy_callback(*args, **kwargs):
     return None
 
 class RPCServer:
-    def __init__(self, remote_server=None):
-        self.channel = RPCChannel(remote_server)
+    def __init__(self, name="RPC", remote_server=None, type="vimrpc"):
+        self.channel = RPCChannel(name, remote_server, type)
 
 
     def call(self, name, on_return, *args):
@@ -207,7 +246,7 @@ class RemoteProject:
             data = yaml.safe_load(f)  
         self.root_directory = data['root']
         self.host = data['host']
-        self.rpc = RPCServer(self.host)
+        self.rpc = RPCServer(remote_server=self.host)
         print (self.root_directory, self.host)
 
     def effected_command(self):

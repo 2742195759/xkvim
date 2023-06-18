@@ -26,6 +26,7 @@ from threading import Thread
 from server_cluster import ServerCluster
 from vimrpc.decorator import InQueue
 from servers.bash_server import bash_server
+from servers.lsp_server import lsp_server
 import select
 from socket_stream import SockStream
 
@@ -95,6 +96,8 @@ class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
             bash_server(self)
         elif mode == b"vimrpc":
             vim_rpc_loop(self)
+        elif mode == b"lsp":
+            lsp_server(self)
         else: 
             print (f"Unknow command. {mode}")
 

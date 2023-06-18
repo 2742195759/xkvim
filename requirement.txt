@@ -2,3 +2,4 @@ PyYAML
 fuzzyfinder
 ply
 requests_toolbelt
+bs4
