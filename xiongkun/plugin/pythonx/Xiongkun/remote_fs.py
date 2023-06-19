@@ -137,7 +137,7 @@ class FileSystem:
         from .rpc import remote_project
         if remote_project is not None:
             print ("RemoteFileSystem Mounted.")
-            self.prefix = "remote://"
+            self.prefix = ""
             self.cwd = remote_project.root_directory
             self._is_remote = True
         else: 
@@ -175,7 +175,9 @@ class FileSystem:
         return self.prefix + abspath
 
     def filepath(self, bufname):
-        return bufname[len(self.prefix):]
+        if bufname.startswith(self.prefix): 
+            return bufname[len(self.prefix):]
+        return bufname
 
     def bufload_file(self, filepath, force=False):
         bufname = self.bufname(filepath)
@@ -190,6 +192,7 @@ class FileSystem:
                 vim.command(f"read {tmp_file}")
                 vim.command("normal ggdd")
                 vim.command("set nomodified")
+                vim.eval("setbufvar(bufnr(), 'remote', 'remote|')")
             return bufnr
         bufnr = vim.eval(f"bufnr('{bufname}')")
         if bufnr == "-1" or force : 

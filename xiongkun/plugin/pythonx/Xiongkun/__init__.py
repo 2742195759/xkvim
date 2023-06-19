@@ -148,3 +148,12 @@ def YankLine(args):
     word = vim_utils.GetVisualWords()
     word = word.replace("\n", "")
     vim_utils.SetVimRegister('"', word)
+
+@vim_register(command="SetRPCProject", with_args=True, command_completer="file")
+def SetRPCServer(args):
+    from .rpc import set_remote_project
+    from .clangd_client import set_remote_lsp
+    set_remote_project(args[0])
+    set_remote_lsp(args[0])
+    vim.command("wincmd o")
+

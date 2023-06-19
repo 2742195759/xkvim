@@ -11,8 +11,6 @@ from vimrpc.remote_fs import RemoteFS
 from vimrpc.yiyan_server import Yiyan
 from vimrpc.grep_search import GrepSearcher
 from vimrpc.hoogle import HoogleSearcher
-from vimrpc.lsp import LSPProxy
-
 import multiprocessing as mp
 from log import log
 
@@ -25,7 +23,6 @@ class ServerCluster:
         self.yiyan = Yiyan(self.queue)
         self.grepfinder = GrepSearcher(self.queue)
         self.hoogle = HoogleSearcher(self.queue)
-        self.lsp = LSPProxy(self.queue)
         def keeplive(*a, **kw): 
             return [-1, True, 'ok']
         self.keeplive = keeplive
@@ -63,7 +60,6 @@ class ServerCluster:
     def stop(self):
         self._stop = True
         self.queue_thread.join()
-        self.lsp.close()
 
 def printer_process_fn(output):
     print (output)

@@ -249,21 +249,16 @@ let g:netrw_ftp_cmd="ftp -p "
 
 abbre fftp ftp://10.255.129.13:8081/
 
-if !(&diff)
-    " add branch information. 2022/5/19
-    let g:airline_section_b = trim(system("git symbolic-ref --short HEAD"))
-endif
 set foldopen=hor,search,jump,block,mark,quickfix
 set foldclose=all
 hi CursorLine term=bold ctermbg=240
 "hi CursorLine term=bold ctermbg=24 guibg=#13354A
 
 function! MyPlugin(...)
-    if &filetype == 'filefinder'
-      let w:airline_section_a = 'FileFinder'
-      let w:airline_section_b = getwinvar(winnr(), "filefinder_mode")
-      let w:airline_section_c = getwinvar(winnr(), "filefinder_dir")
+    if !(&diff) " add branch information. 2022/5/19
+        let branch = trim(system("git symbolic-ref --short HEAD 2>/dev/null"))
     endif
+    let w:airline_section_b = getbufvar(bufnr(), "remote") . branch
   endfunction
 call airline#add_statusline_func('MyPlugin')
 " Go to the last position.

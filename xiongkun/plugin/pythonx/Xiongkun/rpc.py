@@ -13,11 +13,11 @@ import json
 from .func_register import vim_register
 from .log import debug
 
-def create_rpc_handle(name, channel_name, receive_name):
+def create_rpc_handle(name, function_name, receive_name):
     vim.command(f"""
     function! {name}Server(channel, msg)
         let {receive_name}=a:msg
-        py3 Xiongkun.rpc_server().receive()
+        py3 {function_name}.receive()
         redraw!
     endfunction
     """)
@@ -51,11 +51,12 @@ def create_rpc_handle(name, channel_name, receive_name):
     """)
 
 class RPCChannel:
-    def __init__(self, name="RPC", remote_server=None, type="vimrpc"):
+    def __init__(self, name, remote_server, type, function):
         self.channel_name = f"g:{name}_channel"
         self.receive_name = f"g:{name}_receive"
         self.name = name
-        create_rpc_handle(name, self.channel_name, self.receive_name)
+        self.func_name = function
+        create_rpc_handle(name, self.func_name, self.receive_name)
         if remote_server is None: 
             config = {
                 'in_mode': 'nl',
@@ -93,7 +94,7 @@ class RPCChannel:
                 f'call ch_sendraw({self.channel_name}, "{type}\n")'
             )
         # package is like: [serve_id, server_name, [arg0, arg1, ...]]
-        # respond is like: [serve_id, is_finished, [return_val]]
+        # respond is like: [serve_id, is_finished, return_val]
         self.id = 0
         self.receives = {}
         self.callbacks = {} # id -> (on_receive)
@@ -155,8 +156,8 @@ def dummy_callback(*args, **kwargs):
     return None
 
 class RPCServer:
-    def __init__(self, name="RPC", remote_server=None, type="vimrpc"):
-        self.channel = RPCChannel(name, remote_server, type)
+    def __init__(self, name="RPC", remote_server=None, type="vimrpc", function="Xiongkun.rpc_server()"):
+        self.channel = RPCChannel(name, remote_server, type, function)
 
 
     def call(self, name, on_return, *args):
@@ -271,12 +272,10 @@ call timer_start(10000, function('SendKeeplive'), {'repeat': -1})
 """
 )
 
-@vim_register(command="SetRPCProject", with_args=True, command_completer="file")
-def SetRPCServer(args):
-    global remote_project
-    remote_project = RemoteProject(args[0])
-    vim.command("wincmd o")
-
 @vim_register(command="TestRPC")
 def TestRPC(args):
     print (rpc_wait("filefinder.set_root", "/home/data"))
+
+def set_remote_project(config_file):
+    global remote_project
+    remote_project = RemoteProject(config_file)

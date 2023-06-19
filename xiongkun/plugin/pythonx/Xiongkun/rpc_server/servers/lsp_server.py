@@ -10,18 +10,20 @@ import json
 import time
 import requests  
 from socket_stream import SockStream
+import traceback
 
 def pack(package):
     bytes = json.dumps(package)
     package = f"Content-Length: {len(bytes)}\r\n\r\n" + bytes
     print ("PackageSend: ", package)
-    return package.encode('utf-8')
+    return package
 
 class LSPProxy:
     def __init__(self):
         self.loaded_file = set()
         self.suffix2server = {}
         self.server_candidate = [JediConfig]
+        self.version_map = {}
 
     def getFds(self):
         ret = []
@@ -29,13 +31,20 @@ class LSPProxy:
             ret.append(value.stdout)
         return ret
 
+    def nextVersion(self, filepath):
+        if filepath not in self.version_map:
+            self.version_map[filepath] = 1
+        else:
+            self.version_map[filepath] += 1
+        return self.version_map[filepath] 
+
     #@interface
     def goto(self, id, filepath, method="definition", pos=(0,0)):
         """ definition | implementation
         """
         json = {
             "jsonrpc": "2.0",
-            "id": str(id),
+            "id": id,
             "method": "textDocument/%s" % method,
             "params": {
                 "textDocument": {
@@ -50,9 +59,8 @@ class LSPProxy:
         self.dispatch(filepath, json)
 
     #@interface
-    def did_change(self, filepath, content, want_diag=True):
-
-        def getContentChanges(self, filepath, content):
+    def did_change(self, id, filepath, content, want_diag=True):
+        def getContentChanges(filepath, content):
             return {
                 'range': None, 
                 'rangeLength': None,
@@ -61,9 +69,10 @@ class LSPProxy:
 
         param = {
             "textDocument": {
-                "uri": "file://" + do_path_map(filepath, "vim", "clangd"),
+                "uri": "file://" + filepath,
+                "version": self.nextVersion(filepath),
             },
-            "contentChanges": [self.getContentChanges(filepath, content)],
+            "contentChanges": [{"text": "\n".join(content)}],
             "wantDiagnostics": want_diag,
             "forceRebuild": False,
         }
@@ -72,7 +81,7 @@ class LSPProxy:
             "method": "textDocument/didChange",
             "params": param,
         }
-        return json
+        self.dispatch(filepath, json)
 
     #@interface
     def add_document(self, id, filepath):
@@ -87,7 +96,7 @@ class LSPProxy:
                     "textDocument": {
                         "uri": "file://" + filepath,
                         "languageId": languageId,
-                        "version": 1,
+                        "version": self.nextVersion(filepath),
                         "text": content,
                     },
                 }
@@ -102,20 +111,24 @@ class LSPProxy:
         return None
 
     def dispatch(self, filepath, json):
-        print ("[LSP] ", json)
+        print ("[LSP input ] ", json)
         server = self.get_server(filepath)
         server.stdin.write(pack(json))
+        server.stdin.flush()
 
     def get_server(self, filepath):
         suff = filepath.split('.')[-1]
         if suff in self.suffix2server: 
             return self.suffix2server[suff]
 
+        server = None
         for s in self.server_candidate: 
             if s.match_suffix(suff): 
                 server = s.start()
                 break
 
+        if not server:
+            raise RuntimeError("no server for suffix %s" % suff)
         self.suffix2server[suff] = server
         return server
 
@@ -138,8 +151,8 @@ class JediConfig:
     def start(cls):
         #os.system("pip install -U jedi-language-server")
         import subprocess
-        cmd = ['jedi-language-server ']
-        server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=False)
+        cmd = ['jedi-language-server 2>log']
+        server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
         server.stdin.write(pack(cls.initialize()))
         return server
 
@@ -150,33 +163,67 @@ def getlanguageId(filepath):
     if filepath.split('.')[-1] == "cpp":
         return "cpp"
 
-def handle_input(lsp, req):
-    id = req[0]
-    func = getattr(lsp, req[1])
-    func(id, *req[2])
-    
-def handle_lsp_output(r):
-    breakpoint() 
+
+def handle_input(handle, lsp, req):
+    try:
+        id = req[0]
+        func = getattr(lsp, req[1])
+        func(id, *req[2])
+    except Exception as e:
+        print ("[LSP] error: ", e)
+        traceback.print_exc()
+        send_to_vim(handle, {"error": f"{str(e)}"})
+
+def receive_package(r):
+    size = int(r.readline().strip().split(':')[1])
+    while True:
+        line = r.readline().strip()
+        if not line: break
+    output = r.read(size)
+    print ("[LSP output]", output)
+    return json.loads(output)
+
+def is_method(package):
+    return "method" in package
+
+def is_response(package):
+    return "id" in package
+
+def send_to_vim(handle, package):
+    if is_response(package):
+        id = int(package["id"])
+        handle.wfile.write(json.dumps([id, True, package]).encode('utf-8') + b"\n")
+    else: 
+        print ("[LSP] receive method.")
+
+def handle_lsp_output(r, handle):
+    package = receive_package(r)
+    if is_response(package): 
+        send_to_vim(handle, package)
+    elif is_method(package):
+        handle_method(handle, package)
+
+def handle_method(handle, package):
     pass
 
 def lsp_server(handle):
     lsp_proxy = LSPProxy()
     stream = SockStream()
-    while True:
+    exit = False
+    while not exit:
         rfds = lsp_proxy.getFds()
-        print ("[LSP]", rfds + [handle.rfile.fileno()])
         rs, ws, es = select.select(rfds + [handle.rfile.fileno()], [], [], 1.0)
-        print ("[get]", rs)
         for r in rs:
             if r in [handle.rfile.fileno()]:
                 try:
                     bytes = handle.request.recv(10240)
                 except socket.error:
                     print("=== socket error ===")
-                    break
+                    exit = True
+
                 if bytes == b'':
                     print("=== socket closed ===")
-                    break
+                    exit = True
 
                 stream.put_bytes(bytes)
                 while stream.can_read():
@@ -187,9 +234,10 @@ def lsp_server(handle):
                     except ValueError:
                         print("json decoding failed")
                         req = [-1, '']
-                    handle_input(lsp_proxy, req)
+                    handle_input(handle, lsp_proxy, req)
             else:
-                handle_lsp_output(r)
+                handle_lsp_output(r, handle)
+    lsp_proxy.close()
 
     # exit bash or killed.
     print ("[LSP] exit bash server.")
@@ -197,10 +245,12 @@ def lsp_server(handle):
 
 if __name__ == "__main__":
     lsp = LSPProxy()
-    lsp.add_document(1, "/home/xiongkun/test/ttt.py")
-    lsp.goto(1, "/home/xiongkun/test/ttt.py", "definition", (5,4))
+    lsp.add_document(1, "/root/test/ttt.py")
+    lsp.goto(2, "/root/test/ttt.py", "definition", (4,4))
     server = lsp.suffix2server['py']
 
-    rs, ws, es = select.select([server.stdout], [], [], 1.0)
-    print (rs)
+    while True:
+        rs, ws, es = select.select([server.stdout], [], [], 1.0)
+        if rs : 
+            receive_package(rs[0])
     lsp.close()
