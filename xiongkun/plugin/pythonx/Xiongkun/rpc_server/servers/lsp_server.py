@@ -18,6 +18,18 @@ def pack(package):
     print ("PackageSend: ", package)
     return package
 
+class Protocal: 
+    @classmethod
+    def CreateShowMessage(cls, type, message):
+        json = {
+            'method': 'window/showMessage',
+            'params': {
+                'type': type,
+                'message': message,
+            }
+        }
+        return json
+
 class LSPProxy:
     def __init__(self):
         self.loaded_file = set()
@@ -172,7 +184,7 @@ def handle_input(handle, lsp, req):
     except Exception as e:
         print ("[LSP] error: ", e)
         traceback.print_exc()
-        send_to_vim(handle, {"error": f"{str(e)}"})
+        send_to_vim(handle, Protocal.CreateShowMessage(1, f"{str(e)}"))
 
 def receive_package(r):
     size = int(r.readline().strip().split(':')[1])
@@ -194,7 +206,7 @@ def send_to_vim(handle, package):
         id = int(package["id"])
         handle.wfile.write(json.dumps([id, True, package]).encode('utf-8') + b"\n")
     else: 
-        print ("[LSP] receive method.")
+        handle.wfile.write(json.dumps([-1, True, package]).encode('utf-8') + b"\n")
 
 def handle_lsp_output(r, handle):
     package = receive_package(r)

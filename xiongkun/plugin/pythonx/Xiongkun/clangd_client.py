@@ -93,11 +93,15 @@ class LSPServer(RPCServer):
             print (f"[lsp] error happen: {output}")
             return 
         if id == -1: 
-            return self.handle_method(output)
+            if "method" in output: return self.handle_method(output)
         return self.channel.on_receive(msg)
 
     def handle_method(self, package):
-        pass
+        from .haskell import HoogleSearchWindow
+        if package["method"] == "textDocument/showMessage":
+            markdown_doc = package['params']['type'] + "\n==============" + package['params']['message']
+            HoogleSearchWindow().set_markdowns([markdown_doc])
+            HoogleSearchWindow().show()
 
 class LSPClient():# {{{
     def __init__(self, host):

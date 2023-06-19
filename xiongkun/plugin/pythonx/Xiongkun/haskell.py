@@ -37,4 +37,3 @@ def HoogleSearch(args):
         HoogleSearchWindow().hide()
     else:
         rpc_call("hoogle.search", on_return, keyword)
-
