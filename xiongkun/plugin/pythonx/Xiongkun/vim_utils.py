@@ -299,6 +299,7 @@ def GetLineFromLocation(location):
     return lines[location.getline()-1].strip()
 
 def SetQuickFixList(locations, jump="none", cwin=False, textlist=None):
+    # local only function.
     if jump == True: jump = "first"
     assert jump in ['first', 'last', 'none']
     results = []

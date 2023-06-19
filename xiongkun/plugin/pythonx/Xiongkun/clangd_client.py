@@ -21,7 +21,8 @@ def _StartAutoCompile():# {{{
 augroup ClangdServer
     autocmd!
     autocmd BufEnter *.py,*.cc,*.h,*.cpp cal LSPDidOpen([])
-    autocmd BufWritePost *.py,*.cc,*.h,*.cpp cal LSPDidChange([])
+    autocmd TextChanged *.py,*.cc,*.h,*.cpp cal LSPDidChange([])
+    autocmd TextChangedI *.py,*.cc,*.h,*.cpp cal LSPDidChange([])
 augroup END
 """
     vim_utils.commands(cmd)# }}}
@@ -166,7 +167,7 @@ class LSPClient():# {{{
         return results
 #}}}
 
-def goto_definition(args, preview=False):# {{{
+def goto_definition(args):# {{{
     """ if preview is True, open in preview windows.
     """
     cur_file = osp.abspath(vim_utils.CurrentEditFile())
@@ -179,19 +180,15 @@ def goto_definition(args, preview=False):# {{{
             return []
         all_locs = _clangd_to_location( rsp['result'] )
         if len(all_locs) == 0: 
-            print ("Implementation No Found !")
+            print ("Definition No Found !")
             return []
-        if preview: 
+        if len(all_locs) == 1:
+            first_loc = all_locs[0]
+            log("[Clangd Get Result]", first_loc.getfile())
+            remote_fs.GoToLocation(first_loc, '.')
+        else: 
             GlobalPreviewWindow.set_locs(all_locs)
             GlobalPreviewWindow.show()
-        else:
-            if len(all_locs) == 1:
-                first_loc = all_locs[0]
-                log("[Clangd Get Result]", first_loc.getfile())
-                remote_fs.GoToLocation(first_loc, '.')
-            else: 
-                vim_utils.SetQuickFixList(all_locs, True, False)
-        
     if args[0] == 'def': 
         clangd.lsp_server.call("goto", handle, cur_file, "definition", position)
     elif args[0] == 'ref': 
@@ -210,31 +207,25 @@ def Clangd_GoToRef(args):# {{{
 
 @vim_register(name="LSPDidOpen")
 def LSPDidOpen(args):# {{{
-    if not clangd: ClangdStart([])
+    if not clangd: return
     #filepath = FileSystem().current_filepath()
     filepath = vim_utils.CurrentEditFile(True)
     filepath = FileSystem().filepath(filepath)
     clangd.lsp_server.call("add_document", None, filepath)
 
-@vim_register(command="LSPRestart")
-def LSPRestart(args):# {{{
-    #send_by_python(cmd='restart', directory=do_path_map(vim_utils.GetPwd(), "vim", "clangd"))
-    global clangd
-    clangd = None
-    ClangdStart([])# }}}
-
 @vim_register(name="LSPDidChange")
 def LSPDidChange(args):
+    if not clangd: return
     filepath = vim_utils.CurrentEditFile(True)
     content = vim_utils.GetAllLines()
     lsp_server().call("did_change", None, filepath, content, True)
 
 @vim_register(name="ClangdServerDiags", command="Compile")
 def ClangdGetDiags(args):
-    if clangd: 
-        clangd.reparse_currentfile(True) # make sure file is the newest.
-        time.sleep(0.5)
-        clangd.get_diagnostics(vim_utils.CurrentEditFile(True))
+    if not clangd: return
+    clangd.reparse_currentfile(True) # make sure file is the newest.
+    time.sleep(0.5)
+    clangd.get_diagnostics(vim_utils.CurrentEditFile(True))
 
 @vim_register(name="ClangdServerComplete1", command="CP")
 def ClangdCompleteInterface(args):# {{{

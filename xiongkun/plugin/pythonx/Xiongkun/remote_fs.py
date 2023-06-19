@@ -14,16 +14,24 @@ from .rpc import rpc_call, rpc_wait
 from .vim_utils import vimcommand
 import os
 
+def is_buf_remote():
+    remote = vim.eval("getbufvar(bufnr(), 'remote')")
+    return remote == "remote"
+
 @vim_register(command="RemoteSave")
 def RemoteSave(args):
-    bufname = vim.eval("bufname()")
-    filepath = FileSystem().filepath(bufname)
-    bufnr = vim.eval(f"bufnr('{bufname}')")
-    lines = vim.eval(f"getbufline({bufnr}, 1, '$')")
-    vim.command("set nomodified")
-    if FileSystem().store(filepath, "\n".join(lines)) is not True: 
-        vim.command(f"echom '{FileSystem().last_error()}'")
-        vim.command("set modified")
+    if is_buf_remote():
+        bufname = vim.eval("bufname()")
+        filepath = FileSystem().filepath(bufname)
+        bufnr = vim.eval(f"bufnr('{bufname}')")
+        lines = vim.eval(f"getbufline({bufnr}, 1, '$')")
+        vim.command("set nomodified")
+        if FileSystem().store(filepath, "\n".join(lines)) is not True: 
+            vim.command(f"echom '{FileSystem().last_error()}'")
+            vim.command("set modified")
+    else:
+        vim.command("write")
+        
 
 @vim_register(command="RemoteEdit", with_args=True)
 def RemoteEdit(args):
@@ -37,7 +45,7 @@ def RemoteEdit(args):
 vim_utils.commands(""" 
 augroup RemoteWrite
     autocmd!
-    autocmd BufWriteCmd remote://* RemoteSave
+    autocmd BufWriteCmd * RemoteSave
 augroup END
     """)
 
@@ -192,7 +200,7 @@ class FileSystem:
                 vim.command(f"read {tmp_file}")
                 vim.command("normal ggdd")
                 vim.command("set nomodified")
-                vim.eval("setbufvar(bufnr(), 'remote', 'remote|')")
+                vim.eval("setbufvar(bufnr(), 'remote', 'remote')")
             return bufnr
         bufnr = vim.eval(f"bufnr('{bufname}')")
         if bufnr == "-1" or force : 
