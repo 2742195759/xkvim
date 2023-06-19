@@ -210,13 +210,7 @@ def send_to_vim(handle, package):
 
 def handle_lsp_output(r, handle):
     package = receive_package(r)
-    if is_response(package): 
-        send_to_vim(handle, package)
-    elif is_method(package):
-        handle_method(handle, package)
-
-def handle_method(handle, package):
-    pass
+    send_to_vim(handle, package)
 
 def lsp_server(handle):
     lsp_proxy = LSPProxy()
