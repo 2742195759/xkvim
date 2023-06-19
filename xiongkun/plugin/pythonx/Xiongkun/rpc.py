@@ -26,7 +26,6 @@ def create_rpc_handle(name, function_name, receive_name):
         call ch_sendraw(a:channel, a:package)
         while 1
             let out = ch_read(a:channel)
-            "echom "[Receive] " . out
             if out == ""
                 let status = ch_status(a:channel)
                 if status == "fail" || status ==  "closed"
@@ -49,6 +48,17 @@ def create_rpc_handle(name, function_name, receive_name):
         echom a:msg
     endfunction
     """)
+
+    vim.command(f""" 
+    function! {name}SendKeeplive(timer_id)
+        py3 {function_name}.keeplive()
+    endfunction
+    """)
+
+    vim.command("""
+    call timer_start(30000, function('%sSendKeeplive'), {'repeat': -1})
+    """ % name
+    )
 
 class RPCChannel:
     def __init__(self, name, remote_server, type, function):
@@ -258,19 +268,6 @@ def get_address():
     return host.strip(), port.strip()
 
 remote_project = None
-
-vim.command(
-""" 
-function! SendKeeplive(timer_id)
-    py3 Xiongkun.rpc_server().keeplive()
-endfunction
-""")
-
-vim.command(
-"""
-call timer_start(10000, function('SendKeeplive'), {'repeat': -1})
-"""
-)
 
 @vim_register(command="TestRPC")
 def TestRPC(args):

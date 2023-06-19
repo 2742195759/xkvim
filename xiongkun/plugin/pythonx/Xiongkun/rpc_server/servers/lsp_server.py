@@ -1,4 +1,3 @@
-import os
 import sys
 import select
 import termios
@@ -147,7 +146,9 @@ class LSPProxy:
     def close(self):
         for key, value in self.suffix2server.items():
             value.kill()
-        
+
+    def keeplive(id): 
+        pass
 
 class JediConfig: 
     @classmethod
