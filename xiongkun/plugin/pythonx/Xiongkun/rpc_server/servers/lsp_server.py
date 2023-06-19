@@ -147,7 +147,7 @@ class LSPProxy:
         for key, value in self.suffix2server.items():
             value.kill()
 
-    def keeplive(id): 
+    def keeplive(self, id): 
         pass
 
 class JediConfig: 
