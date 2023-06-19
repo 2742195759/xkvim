@@ -89,13 +89,11 @@ class LSPServer(RPCServer):
         msg = vim.eval(f"{self.channel.receive_name}")
         if not msg: return
         id, is_finished, output = json.loads(msg)
-        print ("receive:", msg)
         if id == -1 and "method" in output: 
             return self.handle_method(output)
         return self.channel.on_receive(msg)
 
     def handle_method(self, package):
-        print (package)
         from .haskell import HoogleSearchWindow
         if package["method"] == "window/showMessage":
             markdown_doc = "[LSP Show Message]:" + "\n=================\n" + package['params']['message']
