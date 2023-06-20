@@ -254,6 +254,8 @@ class FileSystem:
         GoToLocation(location, method)
 
     def command(self, command_str):
+        cwd = self.getcwd()
+        command_str = f"cd {cwd} && " + command_str
         ret = rpc_wait("remotefs.command", command_str)
         if ret == 0:
             return True
@@ -261,8 +263,13 @@ class FileSystem:
             print (f"Command Failed: {command_str} with code {ret}")
             return False
 
+    def getcwd(self):
+        return self.cwd
+
     def eval(self, command_str): 
         """ call bash command and get output """
+        cwd = self.getcwd()
+        command_str = f"cd {cwd} && " + command_str
         ret = rpc_wait("remotefs.eval", command_str)
         if ret['status'] == "ok":
             return ret['output']

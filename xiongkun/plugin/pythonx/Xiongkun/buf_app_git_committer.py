@@ -26,7 +26,7 @@ class GitCommitter(CursorLineBuffer):
             line = line.rstrip()
             type, file = line[:2], line[3:]
             if type == "??"  : file = f"untrace | {file}"
-            if type[0] == " ": file = f"unstage | {file}"
+            if type[1] != " ": file = f"unstage | {file}"
             if type[1] == " ": file = f"stage   | {file}"
             selected[file] = False
             if type[1] == " ":
@@ -67,11 +67,17 @@ class GitCommitter(CursorLineBuffer):
             if number < 1: return True
             self.git_show(self.mult.items[number-1])
             return True
+        if key == "c": 
+            self.precommit()
+            return True
         if super().on_key(key):
             return True
         return False
 
     def git_show(self, item):
+        if "untrace" in item: 
+            print ("Can't show untrace file.")
+            return
         if "unstage" in item: 
             lines = FileSystem().eval(f"git diff {item[10:]}")
         elif "stage" in item: 
