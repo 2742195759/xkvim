@@ -285,6 +285,21 @@ class Buffer:
     def on_exit(self):
         pass
 
+class FixStringBuffer(Buffer):
+    def __init__(self, contents, syntax=None):
+        super().__init__(appname='FixStringBufer')
+        self.contents = contents
+        self.syntax = syntax
+
+    def onredraw(self):
+        self._clear()
+        for idx, content in enumerate(self.contents):
+            self._put_string(content, idx+1)
+
+    def oninit(self):
+        if self.syntax: 
+            self.execute(f'set syntax={self.syntax}')
+        
 
 class BufferSmartPoint:
     def __init__(self):
@@ -372,15 +387,6 @@ class Application:
     def start(self):
         pass
 
-class FixStringBuffer(Buffer):
-    def __init__(self, text, history=None, options=None):
-        super().__init__("fix_string", history, options)
-        self.text = text
-
-    def onredraw(self):
-        self._clear()
-        self._put_string(self.text)
-
 class BashCommandResultBuffer(Buffer):
     def __init__(self, bash_cmd, syntax=None, history=None, options=None):
         super().__init__("bash_cmd", history, options)
@@ -451,6 +457,61 @@ class Widget():
             setattr(self, name, TextProp(name, bufnr, hi))
         hi = getattr(self, name)
         return hi
+
+class MultiSelectWidget(Widget):
+    def __init__(self, items, selected, name=None):
+        opt = WidgetOption()
+        opt.is_focus = True
+        opt.is_input = False
+        opt.name = name
+        super().__init__(opt)
+        self.reset(items, selected)
+
+    def reset(self, items, selected):
+        self.items = items
+        self.selected = selected
+
+    def get_height(self):
+        return len(self.items)
+    
+    def onselect(self, idx):
+        """ user select the idx item.
+        """
+        self.selected[self.items[idx]] = not self.selected[self.items[idx]]
+
+    def sort_item(self):
+        pass
+
+    def get_selected(self):
+        for item in self.items:
+            if self.selected[item]: 
+                yield item
+
+    def get_not_selected(self):
+        for item in self.items:
+            if not self.selected[item]: 
+                yield item
+
+    def ondraw(self, draw_context, position):
+        """
+       +------TODO--------+
+       |item1             |
+       |item2             |
+       +------DONE--------+
+       |selected_item1    |
+       |selected_item2    |
+       +------------------+
+        """
+        self.position = position
+        buffer = draw_context.string_buffer
+        self.sort_item()
+        buffer[position[0]] = "+" + "-" * 10 + "+"
+        for idx, item in enumerate(self.items):
+            buffer[position[0] + idx] = self.indicator(idx) + "  " + str(item)
+
+    def indicator(self, idx):
+        return "[x]" if self.selected[self.items[idx]] else "[ ]"
+
 
 class TextWidget(Widget):
     def __init__(self, text, name=None):
@@ -780,6 +841,7 @@ class WidgetList(Widget):
 
     def get_widgets(self):
         return [ [w.wopt.name, w] for w in self.widgets ]
+
 
 class ListBoxWidget(Widget):
     def __init__(self, name=None, height=5, items=[]): 

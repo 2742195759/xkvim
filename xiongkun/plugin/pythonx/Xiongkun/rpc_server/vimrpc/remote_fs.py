@@ -53,6 +53,21 @@ class RemoteFS:
     def command(self, command_str):
         return os.system(command_str)
 
+    @server_function
+    def eval(self, command_str):
+        import subprocess
+        child = subprocess.Popen(command_str, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        child.stdin.close()
+        outputs = [line[:-1] for line in child.stdout.readlines()]
+        errors = [line[:-1] for line in child.stderr.readlines()]
+        ret = {}
+        ret['status'] = 'ok'
+        if errors: 
+            ret['status'] = 'error'
+            ret['error'] = errors
+        ret['output'] = outputs
+        return ret
+
 if __name__ == "__main__":
     from server_cluster import ServerCluster, printer_process_fn
     servers = ServerCluster()

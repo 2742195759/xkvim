@@ -11,6 +11,7 @@ from functools import partial
 from . import remote_fs
 import os
 from .rpc import rpc_wait, rpc_call
+from .buf_app import FixStringBuffer
 
 
 class Buffer:# {{{
@@ -115,16 +116,57 @@ class Window:# {{{
         pass# }}}
 
 class PreviewWindow(Window):# {{{
-    def __init__(self, loc, **args):
+    class ShowableItem:
+        def getBuffer(self):
+            raise NotImplementedError()
+        def getTitle(self):
+            raise NotImplementedError()
+        def getWinOptions(self):
+            return {}
+        def getLineNumber(self):
+            raise NotImplementedError()
+
+    class LocationItem(ShowableItem):
+        def __init__(self, loc):
+            self.loc = loc
+        def getBuffer(self):
+            filename = self.loc.getfile()
+            return remote_fs.FileSystem().bufload_file(filename)
+        def getTitle(self):
+            return self.loc.getfile()
+        def getLineNumber(self):
+            return self.loc.getline()
+
+    class ContentItem(ShowableItem):
+        def __init__(self, title, content, syntax, line, options={}):
+            self.syntax = syntax
+            self.content = content
+            self.title = title
+            self.line = line
+            self.options = options
+            self.buffer = FixStringBuffer(self.content, self.syntax)
+            self.buffer.create()
+        def getBuffer(self):
+            return self.buffer.bufnr
+        def getTitle(self):
+            return self.title
+        def getLineNumber(self):
+            return self.line
+        def getWinOptions(self):
+            return self.options
+
+    def __init__(self, showable: ShowableItem, **args):
         super().__init__()
-        self.loc = loc
+        self.showable = showable
+        if "title" not in args:
+            args['title'] = showable.getTitle()
         self.options = {
             "maxheight": 17, 
             "minheight": 17, 
             "line": 'cursor+5',
             "pos": "topleft", 
             "border": [], 
-            "title": loc.getfile(),
+            "title": args['title'],
             "minwidth": 100, 
             "maxwidth": 100, 
             "posinvert": False,
@@ -134,6 +176,7 @@ class PreviewWindow(Window):# {{{
                 "line": "cursor-5", 
                 "pos": "botleft"
             })
+        self.options.update(showable.getWinOptions())
         self.options.update(args) 
     
     def create(self):
@@ -141,12 +184,11 @@ class PreviewWindow(Window):# {{{
         from .clangd_client import StopAutoCompileGuard
         with StopAutoCompileGuard():
             opt = VimVariable().assign(self.options)
-            filename = self.loc.getfile()
-            self.buf = remote_fs.FileSystem().bufload_file(filename)
+            self.buf = self.showable.getBuffer()
             self.wid = int(vimeval("popup_create(%s, %s)"% (self.buf, opt)))
             for setting in ['cursorline', 'number', 'relativenumber']:
                 self._execute('silent setlocal ' + setting)
-            self.gotoline(self.loc.getline())
+            self.gotoline(self.showable.getLineNumber())
             if 'search' in self.options: 
                 self._execute("match Search /%s/" % self.options['search'])
 # }}}
@@ -529,14 +571,19 @@ class GlobalPreviewWindow:# {{{
             GPW.pwin.destory()
             GPW.pwin = None
         if loc is None : return 
-        GPW.win_ops['title'] = "[%d / %d]"%(GPW.candidate_idx+1, len(GPW.candidate_locs)) + remote_fs.FileSystem().bufname(loc.getfile())
+        GPW.win_ops['title'] = f"[{GPW.candidate_idx+1} / {len(GPW.candidate_locs)}] " + loc.getTitle()
         GPW.pwin = PreviewWindow(loc, **GPW.win_ops)
         GPW.pwin.create()
         if GPW.hidden: GPW.pwin.hide()
 
     @staticmethod
     def set_locs(locs, idx=0, **args):
-        GPW.candidate_locs = locs
+        shows = [ PreviewWindow.LocationItem(loc) for loc in locs ]
+        GPW.set_showable(shows)
+
+    @staticmethod
+    def set_showable(showable, idx=0, **args):
+        GPW.candidate_locs = showable
         GPW.win_ops = args
         GPW.candidate_idx = idx
         GPW.go()
@@ -612,8 +659,9 @@ class GlobalPreviewWindow:# {{{
     
     @staticmethod
     def open_in_preview_window():
-        if GPW.cur_loc() is not None: 
-            remote_fs.GoToLocation(GPW.cur_loc(), ".") 
+        if GPW.cur_loc() is not None and isinstance(loc, PreviewWindow.LocationItem):
+            loc = loc.loc
+            remote_fs.GoToLocation(loc, ".") 
         else: 
             print("Please set locations of preview windows.")
         GPW.hide()
@@ -941,11 +989,11 @@ def test():# {{{
     USE = UniverseSearchEngine.singleton()
     USE.search("InterpreterCore")
     USE.render()
-    
+
 def test1():
     win = PreviewWindow(
-        remote_fs.Location("/home/data/web/scripts/test_unsqueeze.py", 20, 1)
-    )
+        PreviewWindow.LocationItem(remote_fs.Location("/home/data/web/scripts/test_unsqueeze.py", 20, 1)
+    ))
     win.create()
     win.show()
     time.sleep (1)
@@ -966,4 +1014,11 @@ def test2():
 def test_grep():
     grep = GrepSearcher({})
     grep.do_search("Interpreter", "/home/data/Paddle/")
+
+def test3():
+    GlobalPreviewWindow.set_showable([
+        PreviewWindow.ContentItem("Custom", ["## sdfsdf"], "markdown", 1),
+        PreviewWindow.ContentItem("ssss", ["xiongkun", "good"], "markdown", 1)
+    ])
+    GlobalPreviewWindow.show()
 # }}}

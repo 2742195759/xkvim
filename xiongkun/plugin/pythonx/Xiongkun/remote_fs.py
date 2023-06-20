@@ -197,8 +197,9 @@ class FileSystem:
             with vim_utils.CurrentBufferGuard():
                 vim.command(f"b {bufnr}")
                 vim.command(f"setlocal noswapfile")
-                vim.command(f"read {tmp_file}")
-                vim.command("normal ggdd")
+                vim.command(f"keepjumps normal ggdG")
+                vim.command(f"keepjumps read {tmp_file}")
+                vim.command("keepjumps normal ggdd")
                 vim.command("set nomodified")
                 vim.eval("setbufvar(bufnr(), 'remote', 'remote')")
             return bufnr
@@ -259,6 +260,14 @@ class FileSystem:
         else: 
             print (f"Command Failed: {command_str} with code {ret}")
             return False
+
+    def eval(self, command_str): 
+        """ call bash command and get output """
+        ret = rpc_wait("remotefs.eval", command_str)
+        if ret['status'] == "ok":
+            return ret['output']
+        if ret['status'] == "error":
+            raise RuntimeError(f"Eval Failed: {command_str} with error: {ret['error']}")
 
     def current_filepath(self):
         return self.filepath(vim.eval("bufname()"))

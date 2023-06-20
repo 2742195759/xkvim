@@ -24,6 +24,7 @@ from .yiyan import *
 from .buf_app_translate import *
 from .buf_app_code_action import *
 from .buf_app_filetree import *
+from .buf_app_git_committer import *
 from .command_doc_popup import *
 from .filetype_plugin import *
 from .remote_fs import *

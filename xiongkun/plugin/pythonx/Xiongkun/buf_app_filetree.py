@@ -41,6 +41,79 @@ class DirectoryTree:
     def __eq__(self, other):
         return other.fullpath == self.fullpath
 
+class CursorLineBuffer(WidgetBuffer):
+    def __init__(self, widgets, name, title):
+        options = {
+            'title': title, 
+            'maxwidth': 100, 
+            'minwidth':  50,
+            'minheight': 30,
+            'maxheight': 30, 
+            'cursorline': 1,
+        }
+        super().__init__(widgets, name, None, options)
+
+    def show_label(self, cmd):
+        from .quick_jump import JumpLines
+        JumpLines([self.wid, self.on_jump_label])
+
+    def on_jump_label(self):
+        pass
+
+    def on_enter(self):
+        raise NotImplementedError()
+
+    def normal(self, str):
+        self.execute(f'normal! {str}')
+
+    def view_in(self, lnum):
+        self.execute(f":{lnum+1}")
+
+    def get_line_number(self):
+        self.execute("let g:filetree_line_number=getpos('.')")
+        return int(vim.eval("g:filetree_line_number")[1]) - 1
+
+    def on_pagemove(self, char):
+        char = {
+            'h': '',
+            'l': '', 
+            'j': 'j' ,
+            'k': 'k' ,
+        }[char]
+        self.normal(char)
+
+    def on_key(self, key):
+        if super().on_key(key):
+            return True
+        if key in ['j', 'k', 'l', 'h']: 
+            self.on_pagemove(key)
+            return True
+        if key in ['<cr>']: 
+            self.on_enter()
+            return True
+        if key in ['<tab>', 'g']: 
+            self.show_label(key)
+            return True
+        if key in ['/']: 
+            search = vim.eval('input("/")')
+            self.last_search = search
+            self.normal(f"/{search}\n")
+            return True
+        if key in ['n', 'N']: 
+            try:
+                if self.last_search: 
+                    search_dir = {'n': '/', 'N': '?'}
+                    self.normal(f"{search_dir[key]}{self.last_search}\n")
+            except:
+                pass
+            return True
+        return False
+
+    def onredraw(self):
+        line = self.get_line_number()
+        super().onredraw()
+        self.view_in(line)
+
 class FileTreeBuffer(WidgetBuffer): 
     def __init__(self, name, title, tree):
         widgets = [
@@ -206,12 +279,6 @@ class FileTreeBuffer(WidgetBuffer):
             'k': 'k' ,
         }[char]
         self.normal(char)
-
-    def normal(self, str):
-        self.execute(f'normal! {str}')
-        lnum = self.get_line_number()
-        if lnum < len(self.views): 
-            self.select_item = self.views[lnum][1]
 
     def get_line_number(self):
         self.execute("let g:filetree_line_number=getpos('.')")

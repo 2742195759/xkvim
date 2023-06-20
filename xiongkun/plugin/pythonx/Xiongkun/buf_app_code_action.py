@@ -5,6 +5,7 @@ import vim
 import os
 
 code_action_dict = {
+    "git committer     |  开始git提交   |": "GitCommit",
     "file tree         |  远程的文件树  |": "FileTree",
     "file finder       |  文件模糊查找  |": "FF",
     "universe find     |   关键字查找   |": "call UniverseSearch()",

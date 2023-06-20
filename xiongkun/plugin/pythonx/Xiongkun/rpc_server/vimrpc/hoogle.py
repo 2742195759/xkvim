@@ -42,8 +42,6 @@ def hoogle_search(keyword):
         results.append(HoogleResult(sig, pac, doc, exp))
     return results
 
-#print(hoogle_search("head")[0].to_markdown())
-
 class HoogleSearcher:
     def __init__(self, queue):
         self.last = []
@@ -52,7 +50,7 @@ class HoogleSearcher:
     def search(self, keyword):
         results = hoogle_search(keyword)
         self.last = results
-        return self.last[0].to_markdown()
+        return [item.to_markdown() for item in self.last]
 
 if __name__ == "__main__":
     from server_cluster import ServerCluster, printer_process_fn
