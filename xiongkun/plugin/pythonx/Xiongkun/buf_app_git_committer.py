@@ -16,6 +16,7 @@ class GitCommitter(CursorLineBuffer):
             TextWidget("Press space to select: "),
             self.mult,
         ])
+        self.syntax = "gitcommit"
         super().__init__(self.widgets, name, "Git Committer")
 
     def git_stage_files(self):
