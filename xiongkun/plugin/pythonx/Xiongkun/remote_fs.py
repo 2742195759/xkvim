@@ -135,6 +135,52 @@ def GotoFile(args):
     filepath = vim.eval('expand("<cfile>")')
     FileSystem().edit(filepath)
 
+class DirectoryTree:
+    def __init__(self, type, fullpath):
+        self.child = []
+        self.father = None
+        self.type = type
+        self.fullpath = fullpath
+        self.is_open = False
+
+    def add_child(self, tree):
+        self.child.append(tree)
+        tree.father = self
+
+    def files(self):
+        return [ item for item in self.child if item.type == 'file' ]
+
+    def dirs(self):
+        return [ item for item in self.child if item.type == 'dir' ]
+
+    @staticmethod
+    def from_dict(fullpath, content):
+        this = DirectoryTree("dir", fullpath)
+        for dir in content['dirs']:
+            name, dircontent = dir
+            if name.startswith('.'): continue
+            this.add_child(DirectoryTree.from_dict(os.path.join(fullpath, name), dircontent))
+        for file in content['files']: 
+            if file.startswith('.'): continue
+            this.add_child(DirectoryTree("file", os.path.join(fullpath, file)))
+        return this
+
+    def __eq__(self, other):
+        return other.fullpath == self.fullpath
+
+    def find_by_fullpath(self, fullpath):
+        def _find(cur, fullpath):
+            if fullpath == cur.fullpath: return cur
+            for child in cur.child: 
+                if fullpath.startswith(child.fullpath): 
+                    return _find(child, fullpath)
+        return _find(self, fullpath)
+
+    def open_path(self, node):
+        while node.father is not self: 
+            node.father.is_open = True
+            node = node.father
+
 
 @vim_utils.Singleton
 class FileSystem:
@@ -227,16 +273,23 @@ class FileSystem:
     def tree(self, dirpath=None):
         # return format:
         # DIR = {'files': [], 'dirs': DIR}
-        if not dirpath:
-            dirpath = self.cwd
-        results = rpc_wait("remotefs.tree", dirpath)
-        return results
+        if not hasattr(self, "cached_tree"):
+            if not dirpath:
+                dirpath = self.cwd
+            results = rpc_wait("remotefs.tree", dirpath)
+            self.cached_tree = DirectoryTree.from_dict(dirpath, results)
+        return self.cached_tree
 
-    def mkdir(self, dirpath):
-        pass
+    def create_node(self, filepath):
+        if filepath[-1] == '/': command = "mkdir"
+        else: command = "touch"
+        del self.cached_tree
+        return self.command(f"{command} {filepath}")
 
-    def touch(self, filepath):
-        pass
+    def remove_node(self, filepath):
+        del self.cached_tree
+        return self.command(f"rm -r {filepath}")
+        
 
     def completer(self, cur_input):
         pass

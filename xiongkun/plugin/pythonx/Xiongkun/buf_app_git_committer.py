@@ -1,7 +1,7 @@
 import os
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer, BufferHistory, MultiSelectWidget
 from .func_register import vim_register
-from .vim_utils import SetVimRegister, Normal_GI, Singleton, Input, escape
+from .vim_utils import SetVimRegister, Normal_GI, Singleton, input_no_throw, escape
 import vim
 from functools import partial
 from .log import debug
@@ -78,12 +78,13 @@ class GitCommitter(CursorLineBuffer):
         return False
 
     def commit(self):
-        message = Input("Commit Message: ")
+        message = input_no_throw("Commit Message: ")
         if message is None: 
             return
-        message = escape(message, "\"'\\")
-        FileSystem().command(f'git commit -m "{message}"')
         self.close()
+        message = escape(message, "\"'\\")
+        if FileSystem().command(f'git commit -m "{message}"'):
+            print ("Success.")
 
     def start_edit(self):
         number = self.cur_cursor_line()

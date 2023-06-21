@@ -1,59 +1,14 @@
 import os
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer, BufferHistory
 from .func_register import vim_register
-from .vim_utils import SetVimRegister, Normal_GI, Singleton, CurrentEditFile, Input
+from .vim_utils import SetVimRegister, Normal_GI, Singleton, CurrentEditFile, input_no_throw, get_char_no_throw
 import vim
 from functools import partial
 from .log import debug
 from .remote_fs import FileSystem
+from .windows import MessageWindow
 
 file_tree_history = BufferHistory("file_tree_history")
-
-class DirectoryTree:
-    def __init__(self, type, fullpath):
-        self.child = []
-        self.father = None
-        self.type = type
-        self.fullpath = fullpath
-        self.is_open = False
-
-    def add_child(self, tree):
-        self.child.append(tree)
-        tree.father = self
-
-    def files(self):
-        return [ item for item in self.child if item.type == 'file' ]
-
-    def dirs(self):
-        return [ item for item in self.child if item.type == 'dir' ]
-
-    @staticmethod
-    def from_dict(fullpath, content):
-        this = DirectoryTree("dir", fullpath)
-        for dir in content['dirs']:
-            name, dircontent = dir
-            if name.startswith('.'): continue
-            this.add_child(DirectoryTree.from_dict(os.path.join(fullpath, name), dircontent))
-        for file in content['files']: 
-            if file.startswith('.'): continue
-            this.add_child(DirectoryTree("file", os.path.join(fullpath, file)))
-        return this
-
-    def __eq__(self, other):
-        return other.fullpath == self.fullpath
-
-    def find_by_fullpath(self, fullpath):
-        def _find(cur, fullpath):
-            if fullpath == cur.fullpath: return cur
-            for child in cur.child: 
-                if fullpath.startswith(child.fullpath): 
-                    return _find(child, fullpath)
-        return _find(self, fullpath)
-
-    def open_path(self, node):
-        while node.father is not self: 
-            node.father.is_open = True
-            node = node.father
 
 class CursorLineBuffer(WidgetBuffer):
     def __init__(self, widgets, name, title, history=None, options=None):
@@ -115,7 +70,7 @@ class CursorLineBuffer(WidgetBuffer):
             self.show_label(key)
             return True
         if key in ['/']: 
-            search = Input("/")
+            search = input_no_throw("/")
             self.last_search = search
             self.execute(f"match Search /{search}/")
             self.normal_no_except(f"/{search}\n")
@@ -137,12 +92,12 @@ class CursorLineBuffer(WidgetBuffer):
 
 
 class FileTreeBuffer(CursorLineBuffer): 
-    def __init__(self, name, title, tree):
+    def __init__(self, name, title):
         widgets = [
             TextWidget("", name=""),
         ]
         self.root_path = title
-        self.tree = DirectoryTree.from_dict(self.root_path, tree)
+        self.tree = FileSystem().tree(title)
         self.views = []
         self.render_tree()
         self.select_item = self.tree
@@ -154,7 +109,8 @@ class FileTreeBuffer(CursorLineBuffer):
             self.on_close_dir()
             return True
         if key in ['m']:
-            self.call_custom_function()
+            node = self.select_item
+            self.call_custom_function(node)
             return True
         if key in ['u']: 
             self.goto_father()
@@ -253,13 +209,11 @@ class FileTreeBuffer(CursorLineBuffer):
     def save(self):
         import copy
         history = {}
-        history['tree'] = self.tree
         history['cur'] = self.select_item
         history['win_view'] = self.eval("winsaveview()")
         return history
 
     def restore_view(self, history):
-        self.tree = history.value()['tree']
         self.select_item = history.value()['cur']
         self.redraw()
         self.execute(f"call winrestview({history.value()['win_view']})")
@@ -274,21 +228,29 @@ class FileTreeBuffer(CursorLineBuffer):
         self.redraw()
         return True
 
-    def call_custom_function(self):
+    def call_custom_function(self, node):
         # TODO:
         self.close()
-        print ("You are calling custom method: ")
-        print ("(m) for move   a file. ")
-        print ("(c) for copy   a file. ")
-        print ("(d) for delete a file. ")
-        ret = Input(":")
-        print ('you press ' + ret)
-
-@Singleton
-def FileTree():
-    from .remote_fs import FileSystem
-    tree = FileSystem().tree()
-    return FileSystem().cwd, tree
+        message = """ 
+        You are calling custom method: "
+        (a) for add a new file.
+        (m) for move a file.
+        (c) for copy a file.
+        (d) for delete a file.
+        """
+        self.close()
+        MessageWindow().set_markdowns([message])
+        MessageWindow().show()
+        ret = get_char_no_throw()
+        if ret == "a": 
+            MessageWindow().set_markdowns(["创建：\n输入文件名完整路径，目录以 '/' 结尾"])
+            path = input_no_throw("", f"{node.fullpath}")
+            if FileSystem().create_node(path): 
+                vim.command(f"echow 'success creating {path}'")
+        if ret == 'd': 
+            if FileSystem().remove_node(node.fullpath): 
+                vim.command(f"echow 'success remove {node.fullpath}'")
+        MessageWindow().hide()
 
 @vim_register(command="FileTree")
 def FileTreeCommand(args):
@@ -296,15 +258,15 @@ def FileTreeCommand(args):
     >>> FileTree
     show a file tree and explore the file system. 
     """
-    cwd, tree = FileTree()
-    ff = FileTreeBuffer("filetree", cwd, tree)
+    cwd = FileSystem().getcwd()
+    ff = FileTreeBuffer("filetree", cwd)
     ff.create()
     ff.show(popup=True)
 
 @vim_register(keymap="<leader>F")
 def FileTreeCurrentFile(args):
-    cwd, tree = FileTree()
-    ff = FileTreeBuffer("filetree", cwd, tree)
+    cwd = FileSystem().getcwd()
+    ff = FileTreeBuffer("filetree", cwd)
     ff.create()
     ff.show()
     file = CurrentEditFile(abs=True)

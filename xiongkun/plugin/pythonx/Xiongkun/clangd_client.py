@@ -94,11 +94,11 @@ class LSPServer(RPCServer):
         return self.channel.on_receive(msg)
 
     def handle_method(self, package):
-        from .haskell import HoogleSearchWindow
+        from .windows import MessageWindow
         if package["method"] == "window/showMessage":
             markdown_doc = "[LSP Show Message]:" + "\n=================\n" + package['params']['message']
-            HoogleSearchWindow().set_markdowns([markdown_doc])
-            HoogleSearchWindow().show()
+            MessageWindow().set_markdowns([markdown_doc])
+            MessageWindow().show()
 
 class LSPClient():# {{{
     def __init__(self, host):

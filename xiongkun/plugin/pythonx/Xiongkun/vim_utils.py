@@ -212,11 +212,24 @@ def CurrentEditFile(abs=False):
 def CurrentWord():
     return vimeval("expand('<cword>')")
 
-def Input(promote=""):
+def input_no_throw(prompt="", text="", completion=None):
     try:
-        return vimeval("input('%s')" % promote)
+        return vimeval(f"input('{prompt}', '{text}')")
     except: 
         return None
+
+def get_char_no_throw():
+    try:
+        while True:
+            c = vim.eval("getchar()")
+            # TODO: figure out why lots of '\udc80\udcfd`' is typed.
+            if c == '\udc80\udcfd`': continue  
+            break
+        c = chr(int(c))
+    except:
+        c = None
+    return c
+
 
 def GetPwd():
     return vimeval("getcwd()")

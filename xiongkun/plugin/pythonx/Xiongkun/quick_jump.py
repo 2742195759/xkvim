@@ -9,7 +9,7 @@ from functools import partial
 import re
 from .log import log
 import threading
-from .vim_utils import VimWindow, Singleton, VimKeyToChar, CursorGuard
+from .vim_utils import VimWindow, Singleton, VimKeyToChar, CursorGuard, get_char_no_throw
 
 
 """ 
@@ -147,18 +147,6 @@ def inner_window_lines(wid, on_select):
             if VimWindow(wid).in_window_view(*bufpos): 
                 searched.append(JumpItem.from_buffer_pos(bufpos, wid, on_select))
     return searched
-
-def get_char_no_throw():
-    try:
-        while True:
-            c = vim.eval("getchar()")
-            # TODO: figure out why lots of '\udc80\udcfd`' is typed.
-            if c == '\udc80\udcfd`': continue  
-            break
-        c = chr(int(c))
-    except:
-        c = None
-    return c
 
 def interactive_buffer_jump(keys, search_fn): 
     # perform jump

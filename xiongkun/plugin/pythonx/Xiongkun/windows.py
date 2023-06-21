@@ -12,6 +12,7 @@ from . import remote_fs
 import os
 from .rpc import rpc_wait, rpc_call
 from .buf_app import FixStringBuffer
+from .command_doc_popup import DocPreviewBuffer
 
 
 class Buffer:# {{{
@@ -659,7 +660,8 @@ class GlobalPreviewWindow:# {{{
     
     @staticmethod
     def open_in_preview_window():
-        if GPW.cur_loc() is not None and isinstance(loc, PreviewWindow.LocationItem):
+        loc = GPW.cur_loc()
+        if  loc is not None and isinstance(loc, PreviewWindow.LocationItem):
             loc = loc.loc
             remote_fs.GoToLocation(loc, ".") 
         else: 
@@ -720,6 +722,28 @@ class Searcher:# {{{
     def force_cancel(self, inp, d):
         pass
 # }}}
+@Singleton
+class MessageWindow:
+    def __init__(self):
+        self.doc_buffer = DocPreviewBuffer()
+        self.markdowns = []
+        self.cur = 0
+        self.is_show = False
+
+    def hide(self):
+        self.doc_buffer.hide()
+        self.is_show = False
+
+    def show(self):
+        if self.cur < len(self.markdowns) and self.cur >= 0:
+            self.doc_buffer.set_markdown_doc(self.markdowns[self.cur])
+            self.doc_buffer.show()
+            self.is_show = True
+
+    def set_markdowns(self, markdowns):
+        self.markdowns = markdowns
+        if self.is_show: self.show()
+
 
 class LSPSearcher(Searcher):# {{{
     def do_search(self, inp, d):
