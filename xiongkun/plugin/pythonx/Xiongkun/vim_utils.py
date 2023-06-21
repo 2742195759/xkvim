@@ -213,7 +213,10 @@ def CurrentWord():
     return vimeval("expand('<cword>')")
 
 def Input(promote=""):
-    return vimeval("input('%s')" % promote)
+    try:
+        return vimeval("input('%s')" % promote)
+    except: 
+        return None
 
 def GetPwd():
     return vimeval("getcwd()")

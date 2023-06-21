@@ -115,7 +115,9 @@ class Buffer:
         pass
 
     def eval(self, cmd):
-        pass
+        cmd = f"let g:buffer_tmp={cmd}"
+        self.execute(cmd)
+        return vim.eval("g:buffer_tmp")
 
     def _name_generator(self):
         Buffer.number += 1
@@ -173,6 +175,8 @@ class Buffer:
         vim.command("setlocal buftype=nofile")
         vim.command("setlocal noswapfile")
         vim.command("setlocal nofoldenable")
+        if hasattr(self, "syntax"): 
+            self.execute(f'set syntax={self.syntax}')
 
     def create(self):
         self._create_buffer()
@@ -280,7 +284,6 @@ class Buffer:
     def close(self):
         vim.command("set updatetime=4000")
         vim.command(f"call popup_close({self.wid})")
-        self.delete()
 
     def on_exit(self):
         pass
@@ -296,9 +299,6 @@ class FixStringBuffer(Buffer):
         for idx, content in enumerate(self.contents):
             self._put_string(content, idx+1)
 
-    def oninit(self):
-        if self.syntax: 
-            self.execute(f'set syntax={self.syntax}')
         
 
 class BufferSmartPoint:
@@ -676,7 +676,8 @@ class WidgetBuffer(Buffer):
         lines = GetAllLines(self.bufnr)
 
     def _get_window_size(self):
-        return int(vim.eval("winheight(0)")), int(vim.eval("winwidth(0)"))
+        height = self.root.get_height()
+        return int(height), int(vim.eval("winwidth(0)"))
 
     def oninit(self):
         vim.command("set nowrap")
@@ -685,7 +686,7 @@ class WidgetBuffer(Buffer):
     def onredraw(self):
         wsize = self._get_window_size()
         draw_context = DrawContext(self.bufnr, wsize, [""] * (wsize[0] + 1))
-        given_lines = (1, draw_context.screen_size[0] + 1)
+        given_lines = (1, draw_context.screen_size[0] + 2) # [start, end)
         self._clear()
         self.root.ondraw(draw_context, given_lines)
         for idx, line in enumerate(draw_context.string_buffer[1:]):

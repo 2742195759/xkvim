@@ -76,7 +76,3 @@ function! NERDTreeChangeSearchPath(dirnode)
     echom "change search path: ".path
     echoh None
 endf
-
-
-nnoremap <leader>f :call GrepUnderCursor()<cr>
-nnoremap <leader>F :NERDTreeFind<cr>

@@ -175,8 +175,8 @@ class FileSystem:
         return content
 
     def abspath(self, filepath):
-        # TODO: 
-        return filepath
+        if filepath.startswith("/"): return filepath
+        else: return os.path.join(self.getcwd(), filepath)
 
     def bufname(self, filepath):
         abspath = self.abspath(filepath)
@@ -210,7 +210,7 @@ class FileSystem:
                 bufnr = do_open(content)
             else: 
                 bufnr = vim.eval(f'bufadd("{filepath}")')
-                vim.eval(f"bufload('{filepath}')")
+                vim.command(f"noswapfile call bufload('{filepath}')")
             return bufnr
         else: 
             return bufnr
@@ -247,6 +247,7 @@ class FileSystem:
         return rpc_wait("remotefs.exists", filepath)
 
     def edit(self, filepath, force=False): 
+        filepath = self.abspath(filepath)
         bufnr = FileSystem().bufload_file(filepath, force)
         GoToBuffer(bufnr, '.')
 
@@ -254,14 +255,13 @@ class FileSystem:
         GoToLocation(location, method)
 
     def command(self, command_str):
-        cwd = self.getcwd()
-        command_str = f"cd {cwd} && " + command_str
-        ret = rpc_wait("remotefs.command", command_str)
-        if ret == 0:
+        try: 
+            self.eval(command_str)
             return True
-        else: 
-            print (f"Command Failed: {command_str} with code {ret}")
+        except Exception as e: 
+            print (f"Error while execute: {command_str}, {e}")
             return False
+            
 
     def getcwd(self):
         return self.cwd

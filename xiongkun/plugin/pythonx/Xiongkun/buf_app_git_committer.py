@@ -1,7 +1,7 @@
 import os
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer, BufferHistory, MultiSelectWidget
 from .func_register import vim_register
-from .vim_utils import SetVimRegister, Normal_GI, Singleton
+from .vim_utils import SetVimRegister, Normal_GI, Singleton, Input, escape
 import vim
 from functools import partial
 from .log import debug
@@ -25,9 +25,9 @@ class GitCommitter(CursorLineBuffer):
         for line in lines:
             line = line.rstrip()
             type, file = line[:2], line[3:]
-            if type == "??"  : file = f"untrace | {file}"
-            if type[1] != " ": file = f"unstage | {file}"
-            if type[1] == " ": file = f"stage   | {file}"
+            if   type == "??"  : file = f"untrace | {file}"
+            elif type[1] != " ": file = f"unstage | {file}"
+            elif type[1] == " ": file = f"stage   | {file}"
             selected[file] = False
             if type[1] == " ":
                 selected[file] = True
@@ -38,7 +38,7 @@ class GitCommitter(CursorLineBuffer):
         FileSystem().command(f"git add {item}")
 
     def git_unstage(self, item):
-        FileSystem().command(f"git restore --stage {item}")
+        FileSystem().command(f"git reset HEAD {item}")
 
     def on_enter(self):
         for item in self.mult.get_selected(): 
@@ -56,23 +56,42 @@ class GitCommitter(CursorLineBuffer):
             { 'j': GPW.page_down, 'k': GPW.page_up }[key]()
             return True
         if key == "<space>":
-            number = self.get_line_number()
+            number = self.cur_cursor_line()
             if number < 1: return True
             self.mult.onselect(number - 1)
-            self.redraw()
+            self.on_enter()
             return True
         if key == "p": 
             """preview the changes"""
-            number = self.get_line_number()
+            number = self.cur_cursor_line()
             if number < 1: return True
             self.git_show(self.mult.items[number-1])
             return True
         if key == "c": 
-            self.precommit()
+            self.commit()
+            return True
+        if key == "e": 
+            self.start_edit()
             return True
         if super().on_key(key):
             return True
         return False
+
+    def commit(self):
+        message = Input("Commit Message: ")
+        if message is None: 
+            return
+        message = escape(message, "\"'\\")
+        FileSystem().command(f'git commit -m "{message}"')
+        self.close()
+
+    def start_edit(self):
+        number = self.cur_cursor_line()
+        if number < 1: return True
+        file = self.mult.items[number-1][10:]
+        GPW.hide()
+        self.close()
+        FileSystem().edit(file)
 
     def git_show(self, item):
         if "untrace" in item: 
@@ -84,13 +103,16 @@ class GitCommitter(CursorLineBuffer):
             lines = FileSystem().eval(f"git diff --cached {item[10:]}")
         self.preview(item[10:], lines)
         
-
     def preview(self, file, lines):
         position = { 'zindex': 1000, }
         GPW.set_showable([
             PreviewWindow.ContentItem(file, lines, "magit", 1, position)
         ])
         GPW.trigger()
+
+    def on_exit(self): 
+        GPW.hide()
+        
 
 @vim_register(command="GitCommit")
 def StartGitCommit(args):
