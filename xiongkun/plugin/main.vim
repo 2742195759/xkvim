@@ -218,7 +218,7 @@ endfunc
 
 augroup PopupPreview
     autocmd!
-    autocmd InsertLeave  * py3 Xiongkun.windows.GlobalPreviewWindow.hide()
+    autocmd InsertLeavePre  * py3 Xiongkun.windows.GlobalPreviewWindow.hide()
 augroup END
 
 augroup FileIndentAutoCommand

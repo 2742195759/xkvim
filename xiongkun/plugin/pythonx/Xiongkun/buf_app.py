@@ -291,6 +291,8 @@ class Buffer:
 class FixStringBuffer(Buffer):
     def __init__(self, contents, syntax=None):
         super().__init__(appname='FixStringBufer')
+        if isinstance(contents, str):
+            contents = contents.split('\n')
         self.contents = contents
         self.syntax = syntax
 

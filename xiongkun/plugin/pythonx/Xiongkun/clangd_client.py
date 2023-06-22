@@ -8,7 +8,7 @@ import random
 import threading
 import json
 from contextlib import contextmanager
-from .windows import GlobalPreviewWindow
+from .windows import GlobalPreviewWindow, PreviewWindow
 import time
 from .log import log
 from urllib.parse import quote, unquote
@@ -16,7 +16,7 @@ from . import remote_fs
 from .rpc import RPCServer, RPCChannel
 from .remote_fs import FileSystem
 
-vim.command("set cot=menuone,popup,noselect")
+vim.command("set cot=menuone,noselect")
 
 def _StartAutoCompile():# {{{
     cmd = """
@@ -182,7 +182,7 @@ class CompleteResult:
             if item['label'] == label:
                 return item
 
-    def done():
+    def done(self):
         self.items = None
 
 @vim_register(name="LSPComplete")
@@ -201,8 +201,8 @@ def complete(args):
         vim_l = vim_utils.VimVariable().assign(results)
         vim.eval('complete(%d, %s)' % (find_start_pos(), vim_l))
         
-    #cur_char = vim_utils.CurrentChar()
-    #if cur_char == " ": return
+    cur_word = vim_utils.CurrentWordBeforeCursor()
+    if len(cur_word) < 3 and '.' not in cur_word: return
     cur_file = vim_utils.CurrentEditFile(True)
     position = vim_utils.GetCursorXY()
     position = position[0]-1, position[1]-1
@@ -214,10 +214,6 @@ vim.command("imap <silent> <c-p> <cmd>call LSPComplete([])<cr>")
 @vim_register(name="GoToDefinition", command="Def")
 def py_goto_definition(args):
     goto_definition(['def'])
-
-@vim_register(name="GoToReference", command="Ref")
-def Clangd_GoToRef(args):# {{{
-    Clangd_GoTo(['ref'])# }}}
 
 @vim_register(name="Py_add_document")
 def add_document(args):# {{{
@@ -235,11 +231,11 @@ def did_change(args):
 
 @vim_register(name="Py_complete_done")
 def complete_done(args):
-    print ("done  .")
+    CompleteResult().done()
+    GlobalPreviewWindow.hide()
 
 @vim_register(name="Py_complete_select")
 def complete_select(args):
-    print (args)
     filepath = vim_utils.CurrentEditFile(True)
     if len(args[0]) == 0: 
         # not selected any.
@@ -248,6 +244,25 @@ def complete_select(args):
     item = CompleteResult().find_item_by_label(label)
     def handle(rsp):
         # set completepopup option to make ui beautiful
+        pum_pos = vim.eval("pum_getpos()")
+        window_options = {
+            "line": int(pum_pos['row']),
+            "col" : int(pum_pos['col']) + int(pum_pos['width']) + 2,
+            "maxwidth": 70,
+            "minwidth": 70,
+            "maxheight":15, 
+        }
+        def get_content(rsp):
+            content = []
+            content.extend(rsp['result']['detail'].split("\n"))
+            content.append("")
+            content.append("===========Documentation=========")
+            content.extend(rsp['result']['documentation']['value'].split("\n"))
+            return content
+
+        GlobalPreviewWindow.set_showable(
+            [PreviewWindow.ContentItem(f" {label}    ", get_content(rsp), vim.eval("&ft"), 1, window_options)])
+        GlobalPreviewWindow.show()
         pass
     lsp_server().call("complete_resolve", handle, filepath, item)
 

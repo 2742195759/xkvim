@@ -205,11 +205,23 @@ def CurrentBufReload():
 def SyncCurrentFile():
     vimcommand("e")
 
-def CurrentChar():
+def CurrentWordBeforeCursor():
     text = GetCurrentLine()
     _, col = GetCursorXY()
-    if col - 1 >= len(text): return " "
-    else: return text[col-2]
+    col -= 2
+    start = col + 1
+    print (text, col)
+    def pred(ch):
+        print (ch)
+        if ord(ch) >= ord('a') and ord(ch) <= ord('z'):
+            return True
+        if ord(ch) >= ord('A') and ord(ch) <= ord('Z'):
+            return True
+        if ch in "_.'\"": return True
+        return False
+    while col >= 0 and (col >= len(text) or pred(text[col])):
+        col -= 1
+    return text[col+1:start]
 
 def CurrentEditFile(abs=False):
     abs_path = vimeval("expand('%:p')")

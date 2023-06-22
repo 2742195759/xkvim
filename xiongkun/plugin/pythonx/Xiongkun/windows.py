@@ -572,7 +572,10 @@ class GlobalPreviewWindow:# {{{
             GPW.pwin.destory()
             GPW.pwin = None
         if loc is None : return 
-        GPW.win_ops['title'] = f"[{GPW.candidate_idx+1} / {len(GPW.candidate_locs)}] " + loc.getTitle()
+        if len(GPW.candidate_locs) == 1: 
+            GPW.win_ops['title'] = loc.getTitle()
+        else: 
+            GPW.win_ops['title'] = f"[{GPW.candidate_idx+1} / {len(GPW.candidate_locs)}] " + loc.getTitle()
         GPW.pwin = PreviewWindow(loc, **GPW.win_ops)
         GPW.pwin.create()
         if GPW.hidden: GPW.pwin.hide()
