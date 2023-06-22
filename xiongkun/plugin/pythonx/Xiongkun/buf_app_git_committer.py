@@ -16,7 +16,7 @@ class GitCommitter(CursorLineBuffer):
             TextWidget("Press space to select: "),
             self.mult,
         ])
-        self.syntax = "gitcommit"
+        self.syntax = "gitcommitter"
         super().__init__(self.widgets, name, "Git Committer")
 
     def git_stage_files(self):
@@ -39,7 +39,7 @@ class GitCommitter(CursorLineBuffer):
         FileSystem().command(f"git add {item}")
 
     def git_unstage(self, item):
-        FileSystem().command(f"git reset HEAD {item}")
+        FileSystem().command(f"git reset HEAD -- {item}")
 
     def on_enter(self):
         for item in self.mult.get_selected(): 
@@ -100,7 +100,7 @@ class GitCommitter(CursorLineBuffer):
             print ("Can't show untrace file.")
             return
         if "unstage" in item: 
-            lines = FileSystem().eval(f"git diff {item[10:]}")
+            lines = FileSystem().eval(f"git diff -- {item[10:]}")
         elif "stage" in item: 
             lines = FileSystem().eval(f"git diff --cached {item[10:]}")
         self.preview(item[10:], lines)
