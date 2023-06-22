@@ -15,6 +15,7 @@ def pack(package):
     bytes = json.dumps(package)
     package = f"Content-Length: {len(bytes)}\r\n\r\n" + bytes
     print ("PackageSend: ", package)
+    sys.stdout.flush()
     return package
 
 class Protocal: 
@@ -49,6 +50,43 @@ class LSPProxy:
             self.version_map[filepath] += 1
         return self.version_map[filepath] 
 
+    def lastest(self, filepath):
+        return self.version_map[filepath] 
+
+    def complete_resolve(self, id, filepath, complete_item):
+        json = {
+            "jsonrpc": "2.0",
+            "id": id,
+            "method": "completionItem/resolve",
+            "params": complete_item,
+        }
+        self.dispatch(filepath, json)
+
+    # @interface
+    def complete(self, id, filepath, pos):
+        def lsp_complete(id, filepath, pos=(0,0)):
+            json = {
+                "jsonrpc": "2.0",
+                "id": id,
+                "method": "textDocument/completion",
+                "params": {
+                    "context": {
+                        "triggerKind": 1, # invoke trigger.
+                    },
+                    "textDocument": {
+                        "uri": "file://" + filepath,
+                        "version": self.lastest(filepath),
+                    },
+                    "position": {
+                        "line": pos[0], 
+                        "character" : pos[1],
+                    },
+                }
+            }
+            return json
+        json = lsp_complete(id, filepath, pos)
+        self.dispatch(filepath, json)
+        
     #@interface
     def goto(self, id, filepath, method="definition", pos=(0,0)):
         """ definition | implementation
@@ -208,6 +246,8 @@ def send_to_vim(handle, package):
         handle.wfile.write(json.dumps([id, True, package]).encode('utf-8') + b"\n")
     else: 
         handle.wfile.write(json.dumps([-1, True, package]).encode('utf-8') + b"\n")
+    print(f"[SendVim] {package}")
+    sys.stdout.flush()
 
 def handle_lsp_output(r, handle):
     package = receive_package(r)

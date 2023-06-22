@@ -13,16 +13,21 @@ import time
 from .log import log
 from urllib.parse import quote, unquote
 from . import remote_fs
-from .rpc import RPCServer
+from .rpc import RPCServer, RPCChannel
 from .remote_fs import FileSystem
+
+vim.command("set cot=menuone,popup,noselect")
 
 def _StartAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
-    autocmd BufEnter *.py,*.cc,*.h,*.cpp cal LSPDidOpen([])
-    autocmd TextChanged *.py,*.cc,*.h,*.cpp cal LSPDidChange([])
-    autocmd TextChangedI *.py,*.cc,*.h,*.cpp cal LSPDidChange([])
+    autocmd BufEnter *.py,*.cc,*.h,*.cpp call Py_add_document([])
+    autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
+    autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
+    autocmd TextChangedI *.py,*.cc,*.h,*.cpp call LSPComplete([])
+    autocmd CompleteDonePre *.py,*.cc,*.h,*.cpp call Py_complete_done([])
+    autocmd CompleteChanged *.py,*.cc,*.h,*.cpp call Py_complete_select([v:event['completed_item']])
 augroup END
 """
     vim_utils.commands(cmd)# }}}
@@ -58,27 +63,6 @@ def clangd_initialize(id):# {{{
 
 def do_path_map(x, f, t):
     return x
-
-def clangd_complete(id, filepath, pos=(0,0)):# {{{
-    json = {
-        "jsonrpc": "2.0",
-        "id": str(id),
-        "method": "textDocument/completion",
-        "params": {
-            "limit": 20,
-            "context": {
-                "triggerKind": 1, # invoke trigger.
-            },
-            "textDocument": {
-                "uri": "file://" + do_path_map(filepath, "vim", "clangd"),
-            },
-            "position": {
-                "line": pos[0], 
-                "character" : pos[1],
-            },
-        }
-    }
-    return json
 
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
@@ -131,7 +115,7 @@ class LSPClient():# {{{
             for diag in diags['params']['diagnostics']: 
                 texts.append(diag['message'])
                 locs.append(remote_fs.Location(
-                    uri2abspath(diags['params']['uri']),
+                    diags['params']['uri'][7:],
                     diag['range']['start']['line']+1, 
                     diag['range']['start']['character']+1))
             vim_utils.vim_dispatcher.call(vim_utils.SetQuickFixList, [locs, True, False, texts])
@@ -146,32 +130,8 @@ class LSPClient():# {{{
         rsp = [json.loads(rsp.content)]
         return [r for r in rsp if r.get('id', -1) == str(id)][0]
 
-    def complete(self, filepath, position):
-        id = self._getid()
-        self.did_open(filepath)
-        rsp = clangd_complete(id, filepath, position)
-        if rsp is None: return None
-        rsp = json.loads(rsp.content)
-        kind2type = {# {{{
-            7: "c", 2: "m", 1: "t", 4: "m", 22: "s", 6: "v", 3: "f"
-        }# }}}
-        results = []
-        for item in rsp['result']['items']:# {{{
-            #if '•' in item['label']: continue  # dont contain other library function.
-            r = {}
-            r['word'] = item['insertText']
-            r['abbr'] = item['label']
-            r['info'] = item['label']
-            r['kind'] = kind2type.get(item['kind'], str(item['kind']))
-            r['dup'] = 1
-            results.append(r)# }}}
-        return results
-#}}}
-
-def goto_definition(args):# {{{
-    """ if preview is True, open in preview windows.
-    """
-    cur_file = osp.abspath(vim_utils.CurrentEditFile())
+def goto_definition(args):
+    cur_file = vim_utils.CurrentEditFile(True)
     position = vim_utils.GetCursorXY()
     position = position[0]-1, position[1]-1
 
@@ -179,7 +139,7 @@ def goto_definition(args):# {{{
         if rsp['result'] is None: 
             print ("Definition No Found !")
             return []
-        all_locs = _clangd_to_location( rsp['result'] )
+        all_locs = lsp_to_location( rsp['result'] )
         if len(all_locs) == 0: 
             print ("Definition No Found !")
             return []
@@ -191,35 +151,105 @@ def goto_definition(args):# {{{
             GlobalPreviewWindow.set_locs(all_locs)
             GlobalPreviewWindow.show()
     if args[0] == 'def': 
-        clangd.lsp_server.call("goto", handle, cur_file, "definition", position)
+        lsp_server().call("goto", handle, cur_file, "definition", position)
     elif args[0] == 'ref': 
-        clangd.lsp_server.call("goto", handle, cur_file, "implementation", position)
+        lsp_server().call("goto", handle, cur_file, "implementation", position)
+
+@vim_utils.Singleton
+class CompleteResult:
+    def set(self, items):
+        self.items = items
+
+    def to_locs(self):
+        kind2type = {
+            7: "class", 2: "method", 1: "text", 4: "constructor", 22: "struct", 6: "variable", 3: "function", 14: "keyword",
+        }
+        results = []
+        for item in self.items:
+            #if '•' in item['label']: continue  # dont contain other library function.
+            r = {}
+            r['word'] = item['insertText']
+            r['abbr'] = item['label']
+            r['info'] = item['document'] if 'document' in item else item['label']
+            r['kind'] = kind2type.get(item['kind'], str(item['kind']))
+            r['dup'] = 1
+            r['user_data'] = item['label']
+            results.append(r)
+        return results
+
+    def find_item_by_label(self, label):
+        for item in self.items:
+            if item['label'] == label:
+                return item
+
+    def done():
+        self.items = None
+
+@vim_register(name="LSPComplete")
+def complete(args):
+    def handle(rsp):
+        if 'result' not in rsp or rsp['result'] == None: return
+        CompleteResult().set(rsp['result']['items'])
+        results = CompleteResult().to_locs()
+        def find_start_pos():
+            line = vim_utils.GetCurrentLine()
+            col = vim_utils.GetCursorXY()[1] - 2 # 1-base -> 0-base
+            while col >= 0 and (col >= len(line) or line[col].isalpha() or line[col] in ['_']):
+                col -= 1
+            return col + 2  # 1 for offset, 2 for 1-base}}}
+        # set complete list.
+        vim_l = vim_utils.VimVariable().assign(results)
+        vim.eval('complete(%d, %s)' % (find_start_pos(), vim_l))
+        
+    #cur_char = vim_utils.CurrentChar()
+    #if cur_char == " ": return
+    cur_file = vim_utils.CurrentEditFile(True)
+    position = vim_utils.GetCursorXY()
+    position = position[0]-1, position[1]-1
+    did_change(args)
+    lsp_server().call("complete", handle, cur_file, position)
+
+vim.command("imap <silent> <c-p> <cmd>call LSPComplete([])<cr>")
 
 @vim_register(name="GoToDefinition", command="Def")
 def py_goto_definition(args):
-    file = vim_utils.CurrentEditFile()
-    if clangd: goto_definition(['def'])
-    else: 
-        vim.command("normal gd")
+    goto_definition(['def'])
 
 @vim_register(name="GoToReference", command="Ref")
 def Clangd_GoToRef(args):# {{{
     Clangd_GoTo(['ref'])# }}}
 
-@vim_register(name="LSPDidOpen")
-def LSPDidOpen(args):# {{{
+@vim_register(name="Py_add_document")
+def add_document(args):# {{{
     if not clangd: return
     #filepath = FileSystem().current_filepath()
     filepath = vim_utils.CurrentEditFile(True)
     filepath = FileSystem().filepath(filepath)
     clangd.lsp_server.call("add_document", None, filepath)
 
-@vim_register(name="LSPDidChange")
-def LSPDidChange(args):
-    if not clangd: return
+@vim_register(name="Py_did_change")
+def did_change(args):
     filepath = vim_utils.CurrentEditFile(True)
     content = vim_utils.GetAllLines()
     lsp_server().call("did_change", None, filepath, content, True)
+
+@vim_register(name="Py_complete_done")
+def complete_done(args):
+    print ("done  .")
+
+@vim_register(name="Py_complete_select")
+def complete_select(args):
+    print (args)
+    filepath = vim_utils.CurrentEditFile(True)
+    if len(args[0]) == 0: 
+        # not selected any.
+        return
+    label = args[0]['user_data']
+    item = CompleteResult().find_item_by_label(label)
+    def handle(rsp):
+        # set completepopup option to make ui beautiful
+        pass
+    lsp_server().call("complete_resolve", handle, filepath, item)
 
 @vim_register(name="ClangdServerDiags", command="Compile")
 def ClangdGetDiags(args):
@@ -228,56 +258,18 @@ def ClangdGetDiags(args):
     time.sleep(0.5)
     clangd.get_diagnostics(vim_utils.CurrentEditFile(True))
 
-@vim_register(name="ClangdServerComplete1", command="CP")
-def ClangdCompleteInterface(args):# {{{
-    support_filetype = ['cc', 'h', 'cpp']
-    cur_file = osp.abspath(vim_utils.CurrentEditFile())
-    suffix =  cur_file.split(".")[-1]
-    if suffix not in support_filetype:
-        print("Not a cpp file")
-        return []
-    position = vim_utils.GetCursorXY()
-    position = position[0]-1, position[1]-1
-    clangd.reparse_currentfile(True) # make sure file is the newest.
-    time.sleep(0.3)
-    return clangd.complete(cur_file, position)
-# }}}
-
-def uri2abspath(uri):
-    """
-    NOTES: uri is quoted. 
-    C++ -> "C%2B%2B", we need unquote to decode.
-    """
-    uri = unquote(uri)
-    return do_path_map(uri[7:], "clangd", "vim")
-
-@vim_register(name="ClangdServerComplete")
-def ClangdComplete(args):# {{{
-    """
-    {'isIncomplete': False, 'items': [{'filterText': 'MyClass', 'insertText': 'MyClass', 'insertTextFormat': 1, 'kind': 7, 'label': ' MyClass', 'score': 2.0423638820648193, 'sortText': '3ffd49e9MyClass', 'textEdit': {'newText': 'MyClass', 'range': {'end': {'character': 10, 'line': 16}, 'start': {'character': 4, 'line': 16}} } }]}
-    """
-    def find_start_pos():# {{{
-        line = vim_utils.GetCurrentLine()
-        col = vim_utils.GetCursorXY()[1] - 2 # 1-base -> 0-base
-        while col >= 0 and (col >= len(line) or line[col].isalpha() or line[col] in ['_']):
-            col -= 1
-        return col + 2  # 1 for offset, 2 for 1-base}}}
-    if clangd:
-        l = ClangdCompleteInterface(args)
-        vim_l = vim_utils.VimVariable().assign(l)
-        vim.eval('complete(%d, %s)' % (find_start_pos(), vim_l))# }}}
-
-@vim_register(name="ClangdClose", command="ClangdStop")
-def ClangdClose(args):# {{{
-    if clangd: _EndAutoCompile()
-
-def _clangd_to_location(result):# {{{
+def lsp_to_location(result):# {{{
     loc = []
     for r in result:
-        loc.append(remote_fs.Location(uri2abspath(r['uri']), r['range']['start']['line']+1, r['range']['start']['character']+1))
+        loc.append(remote_fs.Location(r['uri'][7:], r['range']['start']['line']+1, r['range']['start']['character']+1))
     return loc# }}}
 
 def lsp_server():
+    global clangd
+    if clangd is None: 
+        _EndAutoCompile()
+        _StartAutoCompile()
+        clangd = LSPClient(f"127.0.0.1:{RPCChannel.local_port}")
     return clangd.lsp_server
 
 def set_remote_lsp(config_file):

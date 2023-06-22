@@ -38,7 +38,7 @@ except ImportError:
     import SocketServer as socketserver
 
 def vim_rpc_loop(handle):
-    print ("===== start a vim rpc server ======")
+    print ("===== start a vim lsp server ======")
     def send(obj):
         encoded = json.dumps(obj) + "\n"
         handle.wfile.write(encoded.encode('utf-8'))

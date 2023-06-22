@@ -41,7 +41,7 @@ class GitCommitter(CursorLineBuffer):
     def git_unstage(self, item):
         FileSystem().command(f"git reset HEAD -- {item}")
 
-    def on_enter(self):
+    def on_enter(self, current):
         for item in self.mult.get_selected(): 
             self.git_add(item[10:])
         for item in self.mult.get_not_selected(): 
@@ -60,7 +60,7 @@ class GitCommitter(CursorLineBuffer):
             number = self.cur_cursor_line()
             if number < 1: return True
             self.mult.onselect(number - 1)
-            self.on_enter()
+            self.on_enter(number)
             return True
         if key == "p": 
             """preview the changes"""

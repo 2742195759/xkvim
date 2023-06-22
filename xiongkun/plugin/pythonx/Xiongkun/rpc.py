@@ -12,6 +12,7 @@ from .vim_utils import *
 import json
 from .func_register import vim_register
 from .log import debug
+import time
 
 def create_rpc_handle(name, function_name, receive_name):
     vim.command(f"""
@@ -60,49 +61,40 @@ def create_rpc_handle(name, function_name, receive_name):
     """ % name
     )
 
+
 class RPCChannel:
+    local_port = find_free_port()
+    is_init = False
+    rpc_log = f"/tmp/log.{local_port}"
     def __init__(self, name, remote_server, type, function):
+        if remote_server is None: 
+            port = RPCChannel.local_port
+            remote_server = f"127.0.0.1:{port}"
+            if not RPCChannel.is_init: 
+                start_server_cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {port} 1>{RPCChannel.rpc_log} 2>&1"
+                os.system(f"{start_server_cmd} &")
+                RPCChannel.is_init = True
+
+
         self.channel_name = f"g:{name}_channel"
         self.receive_name = f"g:{name}_receive"
         self.name = name
         self.func_name = function
         create_rpc_handle(name, self.func_name, self.receive_name)
-        if remote_server is None: 
-            config = {
-                'in_mode': 'nl',
-                'out_mode': 'nl',
-                'out_cb': f'{name}Server',
-                'callback': f'{name}Server',
-                'err_cb': f'{name}ServerError',
-                'noblock': 0,
-                'out_io': "pipe",
-                'in_io': "pipe",
-            }
-            server_path = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/server.py"
-
-            self.job_name = f"g:{name}_job"
-            vimcommand(
-                f'let {self.job_name} = job_start("{server_path}", {dict2str(config)})'
-            )
-            vimcommand(
-                f'let {self.channel_name} = job_getchannel({self.job_name})'
-            )
-        else: 
-            config = {
-                'mode': 'nl',
-                'callback': f'{name}Server',
-                'drop': 'auto',
-                'noblock': 0,
-                'waittime': 3000,
-            }
-            self.job_name = remote_server
-            print (remote_server)
-            vimcommand(
-                f'let {self.channel_name} = ch_open("{self.job_name}", {dict2str(config)})'
-            )
-            vimcommand(
-                f'call ch_sendraw({self.channel_name}, "{type}\n")'
-            )
+        config = {
+            'mode': 'nl',
+            'callback': f'{name}Server',
+            'drop': 'auto',
+            'noblock': 0,
+            'waittime': 3000,
+        }
+        self.job_name = remote_server
+        vimcommand(
+            f'let {self.channel_name} = ch_open("{self.job_name}", {dict2str(config)})'
+        )
+        vimcommand(
+            f'call ch_sendraw({self.channel_name}, "{type}\n")'
+        )
         # package is like: [serve_id, server_name, [arg0, arg1, ...]]
         # respond is like: [serve_id, is_finished, return_val]
         self.id = 0
@@ -272,6 +264,10 @@ remote_project = None
 @vim_register(command="TestRPC")
 def TestRPC(args):
     print (rpc_wait("filefinder.set_root", "/home/data"))
+
+@vim_register(command="Show")
+def ShowLog(args):
+    vim.command(f"tabe {RPCChannel.rpc_log}")
 
 def set_remote_project(config_file):
     global remote_project

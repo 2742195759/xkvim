@@ -19,6 +19,8 @@ from contextlib import contextmanager
 from threading import Lock
 from .multiprocess_utils import *
 from .log import log
+import socket
+from contextlib import closing
 import os#}}}
 
 HOME_PREFIX=os.environ["HOME"]
@@ -202,6 +204,12 @@ def CurrentBufReload():
 
 def SyncCurrentFile():
     vimcommand("e")
+
+def CurrentChar():
+    text = GetCurrentLine()
+    _, col = GetCursorXY()
+    if col - 1 >= len(text): return " "
+    else: return text[col-2]
 
 def CurrentEditFile(abs=False):
     abs_path = vimeval("expand('%:p')")
@@ -952,3 +960,10 @@ def TotalWidthHeight():
 
 def getHomeDirectory(): 
     return HOME_PREFIX
+
+def find_free_port():
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(('', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
+
