@@ -49,7 +49,7 @@ def CodeAction(args):
         minheight=15,
         maxheight=15,
     )
-    code_action = CommandList("[ CodeAction ]", keys, vals, options, code_action_history)
+    code_action = CommandList("    [ CodeAction ]    ", keys, vals, options, code_action_history)
     code_action.create()
     code_action.show()
 

@@ -4,10 +4,11 @@ import os.path as osp
 from .func_register import *
 from .vim_utils import *
 from collections import OrderedDict
-from .rpc import rpc_call, rpc_wait, rpc_server
+from .rpc import rpc_call, rpc_wait, rpc_server, rpc_server
 from .log import debug
 from .remote_fs import GoToLocation, FileSystem
 from . import remote_fs
+from .log import debug
 
 start = None
 
@@ -148,6 +149,7 @@ class Buffer:
         #vim.eval(f"setbufline({self.bufnr}, {pos}, \"{text}\")")
 
     def _put_strings(self, texts):
+        if isinstance(texts, str): texts = [texts]
         for idx, text in enumerate(texts):
             self._put_string(text, idx+1)
 
@@ -279,7 +281,7 @@ class Buffer:
 
     def _create_buffer(self):
         self.bufnr = vim.eval(f"bufadd('{self.name}')")
-        vim.eval(f"bufload({self.bufnr})")
+        vim.command(f"silent! bufload({self.bufnr})")
 
     def close(self):
         vim.command("set updatetime=4000")

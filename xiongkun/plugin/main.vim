@@ -267,9 +267,9 @@ function! VimPopupExperiment(bufnr, filter, options)
         let new_dict['cursorline'] = get(a:options, 'cursorline', 0)
         return popup_menu(a:bufnr, new_dict)
     endif
-    let new_dict['border'] = []
-    let new_dict['wrap'] = 0
-    let new_dict['padding'] = [0, 1, 0, 1]
+    let new_dict['border'] = get(a:options, 'border', [])
+    let new_dict['wrap'] = get(a:options, 'wrap', 0)
+    let new_dict['padding'] = get(a:options, 'padding', [0, 1, 0, 1])
     return popup_create(a:bufnr, new_dict)
 endfunction
 

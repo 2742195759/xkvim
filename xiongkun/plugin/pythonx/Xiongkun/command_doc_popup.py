@@ -5,7 +5,7 @@ import vim
 from .log import log
 
 class DocPreviewBuffer(Buffer):
-    def __init__(self):
+    def __init__(self, options={}):
         col, line = TotalWidthHeight()
         self.win_options = {
             'maxwidth': 120,
@@ -17,6 +17,7 @@ class DocPreviewBuffer(Buffer):
             'line': line - 1,
             'col': 1,
         }
+        self.win_options.update(options)
         super().__init__("doc-preview", None, self.win_options)
         self.markdown_doc = "EmptyBuffer"
         self.dirty = False

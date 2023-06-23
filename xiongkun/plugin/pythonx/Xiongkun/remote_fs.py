@@ -10,7 +10,7 @@ import re
 from .log import log
 import threading
 import os.path as osp
-from .rpc import rpc_call, rpc_wait
+from .rpc import rpc_call, rpc_wait, rpc_server
 from .vim_utils import vimcommand
 import os
 

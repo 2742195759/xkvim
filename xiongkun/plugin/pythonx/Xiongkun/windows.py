@@ -14,21 +14,6 @@ from .rpc import rpc_wait, rpc_call
 from .buf_app import FixStringBuffer
 from .command_doc_popup import DocPreviewBuffer
 
-
-class Buffer:# {{{
-    def __init__(self, name):
-        self.bufid = -1
-        self.name = name
-
-    def load(self, file=None):
-        if file: self.name = file
-        self.bufid = int(vimeval("bufadd('%s')"% self.name))
-        vimeval("bufload(%s)" % self.bufid)
-        return self
-
-    def __str__(self):
-        return str(self.bufid)# }}}
-
 class USEWindowCallback:# {{{
     def on_update(self):
         pass

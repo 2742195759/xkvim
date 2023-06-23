@@ -15,6 +15,7 @@ from urllib.parse import quote, unquote
 from . import remote_fs
 from .rpc import RPCServer, RPCChannel
 from .remote_fs import FileSystem
+from .command_doc_popup import DocPreviewBuffer
 
 vim.command("set cot=menuone,noselect")
 
@@ -22,12 +23,13 @@ def _StartAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
-    autocmd BufEnter *.py,*.cc,*.h,*.cpp call Py_add_document([])
     autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
     autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
+    autocmd CursorMovedI *.py call Py_signature_help([]) 
     autocmd TextChangedI *.py,*.cc,*.h,*.cpp call LSPComplete([])
-    autocmd CompleteDonePre *.py,*.cc,*.h,*.cpp call Py_complete_done([])
+    autocmd CompleteDonePre *.py,*.cc,*.h,*.cpp call Py_complete_done([v:completed_item])
     autocmd CompleteChanged *.py,*.cc,*.h,*.cpp call Py_complete_select([v:event['completed_item']])
+    autocmd InsertLeave * py3 Xiongkun.SignatureWindow().hide()
 augroup END
 """
     vim_utils.commands(cmd)# }}}
@@ -61,9 +63,6 @@ def clangd_initialize(id):# {{{
     }
     send_by_python(json)# }}}
 
-def do_path_map(x, f, t):
-    return x
-
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
         self.server = RPCServer("LSP", remote_server, "lsp", "Xiongkun.lsp_server()")
@@ -83,6 +82,12 @@ class LSPServer(RPCServer):
             markdown_doc = "[LSP Show Message]:" + "\n=================\n" + package['params']['message']
             MessageWindow().set_markdowns([markdown_doc])
             MessageWindow().show()
+
+    def text_document_location(self):
+        cur_file = vim_utils.CurrentEditFile(True)
+        position = vim_utils.GetCursorXY()
+        position = position[0]-1, position[1]-1
+        return cur_file, position
 
 class LSPClient():# {{{
     def __init__(self, host):
@@ -161,6 +166,8 @@ class CompleteResult:
         self.items = items
 
     def to_locs(self):
+        if not hasattr(self, "items"): 
+            return []
         kind2type = {
             7: "class", 2: "method", 1: "text", 4: "constructor", 22: "struct", 6: "variable", 3: "function", 14: "keyword",
         }
@@ -183,7 +190,7 @@ class CompleteResult:
                 return item
 
     def done(self):
-        self.items = None
+        pass
 
 @vim_register(name="LSPComplete")
 def complete(args):
@@ -209,19 +216,11 @@ def complete(args):
     did_change(args)
     lsp_server().call("complete", handle, cur_file, position)
 
-vim.command("imap <silent> <c-p> <cmd>call LSPComplete([])<cr>")
+vim.command("imap <silent> <c-p> <cmd>call Py_signature_help([])<cr>")
 
 @vim_register(name="GoToDefinition", command="Def")
 def py_goto_definition(args):
     goto_definition(['def'])
-
-@vim_register(name="Py_add_document")
-def add_document(args):# {{{
-    if not clangd: return
-    #filepath = FileSystem().current_filepath()
-    filepath = vim_utils.CurrentEditFile(True)
-    filepath = FileSystem().filepath(filepath)
-    clangd.lsp_server.call("add_document", None, filepath)
 
 @vim_register(name="Py_did_change")
 def did_change(args):
@@ -229,8 +228,58 @@ def did_change(args):
     content = vim_utils.GetAllLines()
     lsp_server().call("did_change", None, filepath, content, True)
 
+@vim_utils.Singleton
+class SignatureWindow(DocPreviewBuffer):
+    def __init__(self):
+        options = {
+            "maxheight": 1,
+            "line": "cursor-1",
+            "col" : "cursor",
+            "title": "",
+            "border": [0, 0, 0, 0],
+        }
+        self.content = ""
+        self.param = ""
+        self.syntax = ""
+        super().__init__(options)
+        
+    def set_content(self, function, param, syntax):
+        self.content = function
+        self.param = param
+        self.syntax = syntax
+        self.redraw()
+        self.show()
+
+    def onredraw(self):
+        self._clear()
+        if self.content: self._put_strings(self.content)
+        if self.syntax: self.execute(f'set syntax={self.syntax}')
+        if self.param : self.execute(f"match Search /{self.param}/")
+
+@vim_register(name="Py_signature_help")
+def signature_help(args):
+    def handle(rsp):
+        if 'result' not in rsp or rsp['result'] == None:
+            SignatureWindow().hide()
+            return
+        result = rsp['result']
+        sigs = result['signatures'][result['activeSignature']]
+        param = ""
+        if 'activeParameter' in result: 
+            param_nr= result['activeParameter'] 
+            param = sigs["parameters"][param_nr]['label']
+        function = sigs["label"]
+        SignatureWindow().set_content(function, param, vim.eval("&ft"))
+
+    did_change([])
+    file, pos = lsp_server().text_document_location()
+    lsp_server().call("signature_help", handle, file, pos)
+
 @vim_register(name="Py_complete_done")
 def complete_done(args):
+    if len(args[0]) == 0: return
+    label = args[0]['user_data']
+    item = CompleteResult().find_item_by_label(label)
     CompleteResult().done()
     GlobalPreviewWindow.hide()
 

@@ -14,7 +14,6 @@ import traceback
 def pack(package):
     bytes = json.dumps(package)
     package = f"Content-Length: {len(bytes)}\r\n\r\n" + bytes
-    print ("PackageSend: ", package)
     sys.stdout.flush()
     return package
 
@@ -49,6 +48,9 @@ class LSPProxy:
         else:
             self.version_map[filepath] += 1
         return self.version_map[filepath] 
+
+    def file_exist(self, filepath):
+        return filepath in self.version_map
 
     def lastest(self, filepath):
         return self.version_map[filepath] 
@@ -108,7 +110,32 @@ class LSPProxy:
         self.dispatch(filepath, json)
 
     #@interface
+    def signature_help(self, id, filepath, pos=(0,0)):
+        json = {
+            "jsonrpc": "2.0",
+            "id": id,
+            "method": "textDocument/signatureHelp",
+            "params": {
+                "context": {
+                    "triggerKind": 1, # invoke trigger.
+                    "isRetrigger": False,
+                },
+                "textDocument": {
+                    "uri": "file://" + filepath,
+                    "version": self.lastest(filepath),
+                },
+                "position": {
+                    "line": pos[0], 
+                    "character" : pos[1],
+                },
+            }
+        }
+        self.dispatch(filepath, json)
+
+    #@interface
     def did_change(self, id, filepath, content, want_diag=True):
+        if not self.file_exist(filepath): 
+            self.add_document(-1, filepath)
         def getContentChanges(filepath, content):
             return {
                 'range': None, 
@@ -275,7 +302,7 @@ def lsp_server(handle):
                 stream.put_bytes(bytes)
                 while stream.can_read():
                     data = stream.readline().decode('utf-8')
-                    print("[LSP] received: {0}".format(data))
+                    print("[FromVim] received: {0}".format(data))
                     try:
                         req = json.loads(data)
                     except ValueError:

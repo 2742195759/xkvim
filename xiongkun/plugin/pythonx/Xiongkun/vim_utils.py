@@ -210,9 +210,7 @@ def CurrentWordBeforeCursor():
     _, col = GetCursorXY()
     col -= 2
     start = col + 1
-    print (text, col)
     def pred(ch):
-        print (ch)
         if ord(ch) >= ord('a') and ord(ch) <= ord('z'):
             return True
         if ord(ch) >= ord('A') and ord(ch) <= ord('Z'):

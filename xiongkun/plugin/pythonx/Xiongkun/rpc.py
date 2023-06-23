@@ -75,7 +75,6 @@ class RPCChannel:
                 os.system(f"{start_server_cmd} &")
                 RPCChannel.is_init = True
 
-
         self.channel_name = f"g:{name}_channel"
         self.receive_name = f"g:{name}_receive"
         self.name = name
@@ -208,13 +207,11 @@ class RPCServer:
 
         
 
-local_rpc = None
+local_rpc = RPCServer("Local", None, "vimrpc")
 
 def rpc_server():
     global local_rpc
     if remote_project is None: 
-        if local_rpc is None: 
-            local_rpc = RPCServer()
         return local_rpc
     return remote_project.rpc
 
