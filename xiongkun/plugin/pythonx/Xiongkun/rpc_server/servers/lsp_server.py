@@ -10,6 +10,7 @@ import requests
 from socket_stream import SockStream
 import traceback
 import os
+import sys
 
 def Singleton(cls):
     instance = None
