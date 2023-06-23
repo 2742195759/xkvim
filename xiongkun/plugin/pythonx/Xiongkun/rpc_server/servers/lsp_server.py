@@ -195,7 +195,7 @@ class LSPProxy:
             }
             return json
 
-        if filepath and self.file_exist(filepath)
+        if filepath and self.file_exist(filepath):
             server = self.get_server(filepath)
             json = _add_document(filepath, server.getLanguageId())
             self.dispatch(filepath, json)
