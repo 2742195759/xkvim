@@ -41,7 +41,6 @@ class Protocal:
 
 class LSPProxy:
     def __init__(self):
-        self.loaded_file = set()
         self.suffix2server = {}
         self.server_candidate = [JediServer(), ClangdServer()]
         self.version_map = {}
@@ -196,13 +195,13 @@ class LSPProxy:
             }
             return json
 
-        if filepath and filepath not in self.loaded_file:
+        if filepath and self.file_exist(filepath)
             server = self.get_server(filepath)
             json = _add_document(filepath, server.getLanguageId())
-            self.loaded_file.add(filepath)
             self.dispatch(filepath, json)
         return None
 
+    #@interface
     def dispatch(self, filepath, json):
         print ("[LSP input ] ", json)
         server = self.get_server(filepath)
