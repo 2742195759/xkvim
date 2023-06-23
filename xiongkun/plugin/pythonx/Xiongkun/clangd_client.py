@@ -88,7 +88,7 @@ class LSPClient:# {{{
         buffers = vim_utils.GetBufferList()
         for buffer in buffers:
             buffer = FileSystem().abspath(buffer)
-            self.lsp_server.call("add_document", None, buffer)
+            if not buffer.endswith('/'): self.lsp_server.call("add_document", None, buffer)
 
 
     def get_diagnostics(self, filepath):

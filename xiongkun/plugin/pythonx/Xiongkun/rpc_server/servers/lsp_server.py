@@ -10,6 +10,7 @@ import time
 import requests  
 from socket_stream import SockStream
 import traceback
+import os
 
 def Singleton(cls):
     instance = None
@@ -239,8 +240,25 @@ class LanguageServer:
         self.stderr = server.stderr
         pass
 
+    def is_installed(self):
+        import os
+        return os.system(f"which {self.executable()}") == 0
+
     def kill(self):
         self.server.kill()
+
+    def start(self, rootUri):
+        import subprocess
+        if not self.is_installed(): 
+            raise RuntimeError(f"{self.__class__} is not installed")
+        self.rootUri = rootUri
+        cmd = self.get_command()
+        server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+        server.stdin.write(pack(self.initialize(rootUri)))
+        server.stdin.flush()
+        self.set_process(server)
+        return self
+
 
 @Singleton
 class JediServer(LanguageServer): 
@@ -253,14 +271,13 @@ class JediServer(LanguageServer):
 
     def getLanguageId(self):
         return "python"
-        
-    def start(self, rootUri):
-        import subprocess
-        cmd = [f'cd {rootUri} && jedi-language-server 2>jedi.log']
-        server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
-        server.stdin.write(pack(self.initialize(rootUri)))
-        self.set_process(server)
-        return self
+
+    def executable(self):
+        return "jedi-language-server"
+
+    def get_command(self):
+        cmd = [f'cd {self.rootUri} && jedi-language-server 2>jedi.log']
+        return cmd
 
 @Singleton
 class ClangdServer(LanguageServer): 
@@ -275,15 +292,12 @@ class ClangdServer(LanguageServer):
 
     def getLanguageId(self):
         return "cpp"
-        
-    def start(self, rootUri):
-        #os.system("pip install -U jedi-language-server")
-        import subprocess
-        cmd = [f'cd {rootUri} && clangd 2>clangd.log']
-        server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
-        server.stdin.write(pack(self.initialize(rootUri)))
-        self.set_process(server)
-        return self
+
+    def executable(self):
+        return "clangd"
+
+    def get_command(self):
+        return [f'cd {self.rootUri} && clangd 2>clangd.log']
 
 def handle_input(handle, lsp, req):
     try:
