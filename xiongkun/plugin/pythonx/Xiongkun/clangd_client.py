@@ -23,7 +23,7 @@ def _StartAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
-    autocmd BufAdd *.cc,*.h,*.cpp call Py_add_document([])
+    autocmd BufReadPost *.cc,*.h,*.cpp call Py_add_document([])
     autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
     autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
     autocmd CursorMovedI *.py,*.cc,*.h,*.cpp call Py_signature_help([]) 
