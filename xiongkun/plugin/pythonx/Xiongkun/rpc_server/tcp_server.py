@@ -29,6 +29,7 @@ from servers.bash_server import bash_server
 from servers.lsp_server import lsp_server
 import select
 from socket_stream import SockStream
+from log import log
 
 try:
     # Python 3
@@ -38,7 +39,7 @@ except ImportError:
     import SocketServer as socketserver
 
 def vim_rpc_loop(handle):
-    print ("===== start a vim lsp server ======")
+    print ("===== start a vim rpc server ======")
     def send(obj):
         encoded = json.dumps(obj) + "\n"
         handle.wfile.write(encoded.encode('utf-8'))
@@ -49,6 +50,7 @@ def vim_rpc_loop(handle):
 
     while True:
         rs, ws, es = select.select([handle.rfile.fileno()], [], [], 3.0)
+        sys.stdout.flush()
         if handle.rfile.fileno() in rs:
             try:
                 bytes = handle.request.recv(10240)
@@ -90,7 +92,12 @@ def vim_rpc_loop(handle):
 class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
     def handle(self):
         print("=== socket opened ===")
-        mode = self.rfile.readline()
+        mode = b""
+        c = self.request.recv(1)
+        while c != b'\n': # read just one line and don't buffer.
+            mode += c
+            c = self.request.recv(1)
+        print ("[TCPServer] receive: ", mode)
         mode = mode.strip()
         if mode == b"bash": 
             bash_server(self)
@@ -100,6 +107,7 @@ class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
             lsp_server(self)
         else: 
             print (f"Unknow command. {mode}")
+        sys.stdout.flush()
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass

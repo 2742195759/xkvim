@@ -73,6 +73,7 @@ class RPCChannel:
             if not RPCChannel.is_init: 
                 start_server_cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {port} 1>{RPCChannel.rpc_log} 2>&1"
                 os.system(f"{start_server_cmd} &")
+                print (f"log path: {RPCChannel.rpc_log}")
                 RPCChannel.is_init = True
 
         self.channel_name = f"g:{name}_channel"
@@ -91,6 +92,7 @@ class RPCChannel:
         vimcommand(
             f'let {self.channel_name} = ch_open("{self.job_name}", {dict2str(config)})'
         )
+
         vimcommand(
             f'call ch_sendraw({self.channel_name}, "{type}\n")'
         )
@@ -160,7 +162,6 @@ class RPCServer:
     def __init__(self, name="RPC", remote_server=None, type="vimrpc", function="Xiongkun.rpc_server()"):
         self.channel = RPCChannel(name, remote_server, type, function)
 
-
     def call(self, name, on_return, *args):
         stream = self.channel.stream_new()
         def on_return_wrapper(id, is_finished, output): 
@@ -172,14 +173,12 @@ class RPCServer:
         stream.send(name, None, *args)
         return stream
 
-
     def call_sync(self, name, *args):
         stream = self.channel.stream_new()
         stream.register_hook(dummy_callback)
         output = stream.send(name, stream.id, *args)
         id, is_finished, output = json.loads(output)
         return output
-
 
     def call_stream(self, name, on_return, on_finish, *args): 
         """
@@ -198,7 +197,6 @@ class RPCServer:
         stream.send(name, None, *args)
         return stream
 
-
     def receive(self): # for hooker.
         self.channel.receive()
 
@@ -206,7 +204,6 @@ class RPCServer:
         self.channel.send([-1, "keeplive", []])
 
         
-
 local_rpc = RPCServer("Local", None, "vimrpc")
 
 def rpc_server():

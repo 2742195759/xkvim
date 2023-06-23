@@ -10,7 +10,7 @@ import json
 from contextlib import contextmanager
 from .windows import GlobalPreviewWindow, PreviewWindow
 import time
-from .log import log
+from .log import debug, log
 from urllib.parse import quote, unquote
 from . import remote_fs
 from .rpc import RPCServer, RPCChannel
@@ -23,9 +23,10 @@ def _StartAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
+    autocmd BufAdd *.cc,*.h,*.cpp call Py_add_document([])
     autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
     autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
-    autocmd CursorMovedI *.py call Py_signature_help([]) 
+    autocmd CursorMovedI *.py,*.cc,*.h,*.cpp call Py_signature_help([]) 
     autocmd TextChangedI *.py,*.cc,*.h,*.cpp call LSPComplete([])
     autocmd CompleteDonePre *.py,*.cc,*.h,*.cpp call Py_complete_done([v:completed_item])
     autocmd CompleteChanged *.py,*.cc,*.h,*.cpp call Py_complete_select([v:event['completed_item']])
@@ -52,21 +53,10 @@ def StopAutoCompileGuard():# {{{
     finally:
         _StartAutoCompile()
 
-clangd = None
-
-def clangd_initialize(id):# {{{
-    json = {
-        "jsonrpc": "2.0",
-        "id" : str(id),
-        "method": "initialize",
-        "params": {}
-    }
-    send_by_python(json)# }}}
-
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
-        self.server = RPCServer("LSP", remote_server, "lsp", "Xiongkun.lsp_server()")
-        self.channel = self.server.channel
+        self.channel = RPCChannel("LSP", remote_server, "lsp", "Xiongkun.lsp_server()")
+        self.call("init", None, FileSystem().getcwd())
 
     def receive(self): # for hooker.
         msg = vim.eval(f"{self.channel.receive_name}")
@@ -89,18 +79,17 @@ class LSPServer(RPCServer):
         position = position[0]-1, position[1]-1
         return cur_file, position
 
-class LSPClient():# {{{
+class LSPClient:# {{{
     def __init__(self, host):
         self.lsp_server = LSPServer(host)
-        self.loaded_file = set()
-        self.id = 1
+        self.add_document_for_buffer()
 
-    def _getid(self):
-        self.id += 1
-        return self.id
+    def add_document_for_buffer(self): 
+        buffers = vim_utils.GetBufferList()
+        for buffer in buffers:
+            buffer = FileSystem().abspath(buffer)
+            self.lsp_server.call("add_document", None, buffer)
 
-    def _lastid(self):
-        return self.id
 
     def get_diagnostics(self, filepath):
         self.did_open(filepath)
@@ -125,15 +114,6 @@ class LSPClient():# {{{
                     diag['range']['start']['character']+1))
             vim_utils.vim_dispatcher.call(vim_utils.SetQuickFixList, [locs, True, False, texts])
         threading.Thread(target=get_diags, args=(json,), daemon=True).start()
-    # block
-    def goto_ref(self, filepath, position):
-        id = self._getid()
-        self.did_open(filepath)
-        rsp = clangd_goto(id, filepath, 'references', position)
-        if rsp is None:
-            return None
-        rsp = [json.loads(rsp.content)]
-        return [r for r in rsp if r.get('id', -1) == str(id)][0]
 
 def goto_definition(args):
     cur_file = vim_utils.CurrentEditFile(True)
@@ -216,8 +196,6 @@ def complete(args):
     did_change(args)
     lsp_server().call("complete", handle, cur_file, position)
 
-vim.command("imap <silent> <c-p> <cmd>call Py_signature_help([])<cr>")
-
 @vim_register(name="GoToDefinition", command="Def")
 def py_goto_definition(args):
     goto_definition(['def'])
@@ -250,6 +228,10 @@ class SignatureWindow(DocPreviewBuffer):
         self.redraw()
         self.show()
 
+    def hide(self):
+        self.execute(f"match none")
+        super().hide()
+
     def onredraw(self):
         self._clear()
         if self.content: self._put_strings(self.content)
@@ -259,16 +241,21 @@ class SignatureWindow(DocPreviewBuffer):
 @vim_register(name="Py_signature_help")
 def signature_help(args):
     def handle(rsp):
+        debug(rsp)
         if 'result' not in rsp or rsp['result'] == None:
             SignatureWindow().hide()
             return
         result = rsp['result']
-        sigs = result['signatures'][result['activeSignature']]
+        sigs = result['signatures']
+        if not len(sigs): return 
+        sig = result['signatures'][result['activeSignature']]
         param = ""
         if 'activeParameter' in result: 
-            param_nr= result['activeParameter'] 
-            param = sigs["parameters"][param_nr]['label']
-        function = sigs["label"]
+            param_nr = result['activeParameter'] 
+            if 'activeParameter' in sig: 
+                param_nr = sig['activeParameter']
+            param = sig["parameters"][param_nr]['label']
+        function = sig["label"]
         SignatureWindow().set_content(function, param, vim.eval("&ft"))
 
     did_change([])
@@ -282,6 +269,11 @@ def complete_done(args):
     item = CompleteResult().find_item_by_label(label)
     CompleteResult().done()
     GlobalPreviewWindow.hide()
+
+@vim_register(name="Py_add_document")
+def add_document(args):
+    filepath = vim_utils.CurrentEditFile(True)
+    lsp_server().call("add_document", None, filepath)
 
 @vim_register(name="Py_complete_select")
 def complete_select(args):
@@ -302,19 +294,28 @@ def complete_select(args):
             "maxheight":15, 
         }
         def get_content(rsp):
+            if "result" not in rsp or rsp['result'] is None:
+                rsp = {'result': item}
             content = []
-            content.extend(rsp['result']['detail'].split("\n"))
-            content.append("")
-            content.append("===========Documentation=========")
-            content.extend(rsp['result']['documentation']['value'].split("\n"))
+            rsp = rsp['result']
+            if 'detail' in rsp: 
+                content.extend(rsp['detail'].split("\n"))
+                content.append("")
+            if 'documentation' in rsp: 
+                content.append("===========Documentation=========")
+                content.extend(rsp['documentation']['value'].split("\n"))
             return content
 
+        content = get_content(rsp)
         GlobalPreviewWindow.set_showable(
-            [PreviewWindow.ContentItem(f" {label}    ", get_content(rsp), vim.eval("&ft"), 1, window_options)])
+            [PreviewWindow.ContentItem(f" {label}    ", content, vim.eval("&ft"), 1, window_options)])
         GlobalPreviewWindow.show()
-        pass
+        if not content: 
+            GlobalPreviewWindow.hide()
+
     lsp_server().call("complete_resolve", handle, filepath, item)
 
+clangd = None
 @vim_register(name="ClangdServerDiags", command="Compile")
 def ClangdGetDiags(args):
     if not clangd: return

@@ -11,10 +11,19 @@ import requests
 from socket_stream import SockStream
 import traceback
 
+def Singleton(cls):
+    instance = None
+    def get_instance():
+        nonlocal instance
+        if instance is None: 
+            instance = cls()
+        return instance
+    return get_instance
+
+
 def pack(package):
     bytes = json.dumps(package)
     package = f"Content-Length: {len(bytes)}\r\n\r\n" + bytes
-    sys.stdout.flush()
     return package
 
 class Protocal: 
@@ -33,8 +42,10 @@ class LSPProxy:
     def __init__(self):
         self.loaded_file = set()
         self.suffix2server = {}
-        self.server_candidate = [JediConfig]
+        self.server_candidate = [JediServer(), ClangdServer()]
         self.version_map = {}
+        self.rootUri = ""
+        self.is_init = False
 
     def getFds(self):
         ret = []
@@ -63,6 +74,11 @@ class LSPProxy:
             "params": complete_item,
         }
         self.dispatch(filepath, json)
+
+    # @interface
+    def init(self, id, rootUri):
+        self.rootUri = rootUri
+        self.is_init = True
 
     # @interface
     def complete(self, id, filepath, pos):
@@ -181,7 +197,7 @@ class LSPProxy:
 
         if filepath and filepath not in self.loaded_file:
             server = self.get_server(filepath)
-            json = _add_document(filepath, getlanguageId(filepath))
+            json = _add_document(filepath, server.getLanguageId())
             self.loaded_file.add(filepath)
             self.dispatch(filepath, json)
         return None
@@ -200,7 +216,7 @@ class LSPProxy:
         server = None
         for s in self.server_candidate: 
             if s.match_suffix(suff): 
-                server = s.start()
+                server = s.start(self.rootUri)
                 break
 
         if not server:
@@ -215,37 +231,66 @@ class LSPProxy:
     def keeplive(self, id): 
         pass
 
-class JediConfig: 
-    @classmethod
-    def initialize(cls):
+class LanguageServer: 
+    def set_process(self, server):
+        self.server = server
+        self.stdin = server.stdin
+        self.stdout = server.stdout
+        self.stderr = server.stderr
+        pass
+
+    def kill(self):
+        self.server.kill()
+
+@Singleton
+class JediServer(LanguageServer): 
+    def initialize(self, rootUri):
         init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":"file:///home/ubuntu/artifacts/","workspaceFolders":null}}'
         return json.loads(init)
 
-    @classmethod
-    def match_suffix(cls, suf):
+    def match_suffix(self, suf):
         return suf == 'py'
+
+    def getLanguageId(self):
+        return "python"
         
-    @classmethod
-    def start(cls):
+    def start(self, rootUri):
+        import subprocess
+        cmd = [f'cd {rootUri} && jedi-language-server 2>jedi.log']
+        server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+        server.stdin.write(pack(self.initialize(rootUri)))
+        self.set_process(server)
+        return self
+
+@Singleton
+class ClangdServer(LanguageServer): 
+    def initialize(self, rootUri):
+        init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":null,"workspaceFolders":null}}'
+        package = json.loads(init)
+        package['params']['rootUri'] = rootUri
+        return package
+
+    def match_suffix(self, suf):
+        return suf in ['cc', 'h', 'cpp', 'hpp', 'cu']
+
+    def getLanguageId(self):
+        return "cpp"
+        
+    def start(self, rootUri):
         #os.system("pip install -U jedi-language-server")
         import subprocess
-        cmd = ['jedi-language-server 2>log']
+        cmd = [f'cd {rootUri} && clangd 2>clangd.log']
         server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
-        server.stdin.write(pack(cls.initialize()))
-        return server
-
-
-def getlanguageId(filepath):
-    if filepath.split('.')[-1] == "py":
-        return "python"
-    if filepath.split('.')[-1] == "cpp":
-        return "cpp"
-
+        server.stdin.write(pack(self.initialize(rootUri)))
+        self.set_process(server)
+        return self
 
 def handle_input(handle, lsp, req):
     try:
         id = req[0]
         func = getattr(lsp, req[1])
+        if req[1] != "init" and not lsp.is_init: 
+            raise RuntimeError("Please call lsp init first.")
         func(id, *req[2])
     except Exception as e:
         print ("[LSP] error: ", e)
@@ -274,7 +319,6 @@ def send_to_vim(handle, package):
     else: 
         handle.wfile.write(json.dumps([-1, True, package]).encode('utf-8') + b"\n")
     print(f"[SendVim] {package}")
-    sys.stdout.flush()
 
 def handle_lsp_output(r, handle):
     package = receive_package(r)
@@ -286,6 +330,7 @@ def lsp_server(handle):
     exit = False
     while not exit:
         rfds = lsp_proxy.getFds()
+        sys.stdout.flush()
         rs, ws, es = select.select(rfds + [handle.rfile.fileno()], [], [], 1.0)
         for r in rs:
             if r in [handle.rfile.fileno()]:
@@ -319,7 +364,6 @@ def lsp_server(handle):
 
 if __name__ == "__main__":
     lsp = LSPProxy()
-    lsp.add_document(1, "/root/test/ttt.py")
     lsp.goto(2, "/root/test/ttt.py", "definition", (4,4))
     server = lsp.suffix2server['py']
 
