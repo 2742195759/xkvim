@@ -150,6 +150,8 @@ class LSPProxy:
 
     #@interface
     def did_change(self, id, filepath, content, want_diag=True):
+        if not os.path.isfile(filepath): 
+            return 
         if not self.file_exist(filepath): 
             self.add_document(-1, filepath)
         def getContentChanges(filepath, content):
@@ -177,6 +179,8 @@ class LSPProxy:
 
     #@interface
     def add_document(self, id, filepath):
+        if not os.path.isfile(filepath): 
+            return 
         def _add_document(filepath, languageId):
             with open(filepath, 'r') as fp:
                 content = fp.readlines()
