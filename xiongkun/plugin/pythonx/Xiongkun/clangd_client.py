@@ -23,7 +23,7 @@ def _StartAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
-    autocmd BufReadPost *.cc,*.h,*.cpp call Py_add_document([])
+    autocmd BufNew *.py,*.cc,*.h,*.cpp call Py_add_document([expand("<afile>")])
     autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
     autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
     autocmd CursorMovedI *.py,*.cc,*.h,*.cpp call Py_signature_help([]) 
@@ -272,7 +272,7 @@ def complete_done(args):
 
 @vim_register(name="Py_add_document")
 def add_document(args):
-    filepath = vim_utils.CurrentEditFile(True)
+    filepath = args[0]
     lsp_server().call("add_document", None, filepath)
 
 @vim_register(name="Py_complete_select")
