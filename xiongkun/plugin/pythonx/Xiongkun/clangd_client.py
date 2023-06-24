@@ -323,6 +323,11 @@ def ClangdGetDiags(args):
     time.sleep(0.5)
     clangd.get_diagnostics(vim_utils.CurrentEditFile(True))
 
+@vim_register(command="LSPDisableFile", with_args=True)
+def PyDisableFile(args):
+    suffix = args[0]
+    lsp_server().call("disable_file", None, suffix)
+
 def lsp_to_location(result):# {{{
     loc = []
     for r in result:

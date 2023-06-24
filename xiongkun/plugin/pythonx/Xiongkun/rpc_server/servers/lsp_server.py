@@ -12,6 +12,9 @@ import traceback
 import os
 import sys
 
+class DisableException(Exception):
+    pass
+
 def Singleton(cls):
     instance = None
     def get_instance():
@@ -43,6 +46,7 @@ class LSPProxy:
     def __init__(self):
         self.server_candidate = [JediServer(), ClangdServer()]
         self.version_map = {}
+        self.disable_filetype = []
         self.rootUri = ""
         self.is_init = False
 
@@ -82,6 +86,10 @@ class LSPProxy:
     def init(self, id, rootUri):
         self.rootUri = rootUri
         self.is_init = True
+
+    # @interface
+    def disable_file(self, id, suffix): # disable_file cu
+        self.disable_filetype.append(suffix)
 
     # @interface
     def complete(self, id, filepath, pos):
@@ -220,7 +228,6 @@ class LSPProxy:
             if s.match_suffix(suff): 
                 s.try_start(self.rootUri)
                 return s
-
         raise RuntimeError("no server for suffix %s" % suff)
 
     def iter_servers(self):
@@ -323,9 +330,15 @@ def handle_input(handle, lsp, req):
     try:
         id = req[0]
         func = getattr(lsp, req[1])
+        filepath = req[2][0]
+        if filepath.split('.')[-1] in lsp.disable_filetype: 
+            raise DisableException()
         if req[1] != "init" and not lsp.is_init: 
             raise RuntimeError("Please call lsp init first.")
         func(id, *req[2])
+    except DisableException as e: 
+        print ("[LSP] disabled file")
+        send_to_vim(handle, {'result': None})
     except Exception as e:
         print ("[LSP] error: ", e)
         traceback.print_exc()

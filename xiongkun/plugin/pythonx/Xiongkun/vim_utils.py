@@ -215,7 +215,7 @@ def CurrentWordBeforeCursor():
             return True
         if ord(ch) >= ord('A') and ord(ch) <= ord('Z'):
             return True
-        if ch in "_.'\"": return True
+        if ch in "_.'\"->": return True
         return False
     while col >= 0 and (col >= len(text) or pred(text[col])):
         col -= 1
