@@ -292,7 +292,7 @@ class Buffer:
 
 class FixStringBuffer(Buffer):
     def __init__(self, contents, syntax=None):
-        super().__init__(appname='FixStringBufer')
+        super().__init__(appname='FixStringBuffer')
         if isinstance(contents, str):
             contents = contents.split('\n')
         self.contents = contents
@@ -303,7 +303,9 @@ class FixStringBuffer(Buffer):
         for idx, content in enumerate(self.contents):
             self._put_string(content, idx+1)
 
-        
+    def show(self):
+        super()._set_default_options()
+        self.execute("setlocal bufhidden=wipe")
 
 class BufferSmartPoint:
     def __init__(self):

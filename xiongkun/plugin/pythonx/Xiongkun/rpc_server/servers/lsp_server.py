@@ -42,6 +42,7 @@ class Protocal:
         }
         return json
 
+
 class LSPProxy:
     def __init__(self):
         self.server_candidate = [JediServer(), ClangdServer()]
@@ -56,6 +57,10 @@ class LSPProxy:
             fd = server.get_output_fd()
             if fd is not None: ret.append(fd)
         return ret
+
+    def check_disable(self, filepath):
+        if filepath.split('.')[-1] in self.disable_filetype: 
+            raise DisableException()
 
     def updateVersion(self, filepath, content):
         strings = "\n".join(content)
@@ -93,6 +98,7 @@ class LSPProxy:
 
     # @interface
     def complete(self, id, filepath, pos):
+        self.check_disable(filepath)
         def lsp_complete(id, filepath, pos=(0,0)):
             json = {
                 "jsonrpc": "2.0",
@@ -118,6 +124,7 @@ class LSPProxy:
         
     #@interface
     def goto(self, id, filepath, method="definition", pos=(0,0)):
+        self.check_disable(filepath)
         """ definition | implementation
         """
         json = {
@@ -138,6 +145,7 @@ class LSPProxy:
 
     #@interface
     def signature_help(self, id, filepath, pos=(0,0)):
+        self.check_disable(filepath)
         json = {
             "jsonrpc": "2.0",
             "id": id,
@@ -161,6 +169,7 @@ class LSPProxy:
 
     #@interface
     def did_change(self, id, filepath, content, want_diag=True):
+        self.check_disable(filepath)
         if not os.path.isfile(filepath): 
             return 
         if not self.file_exist(filepath): 
@@ -190,6 +199,7 @@ class LSPProxy:
 
     #@interface
     def add_document(self, id, filepath):
+        self.check_disable(filepath)
         if not os.path.isfile(filepath): 
             return 
         def _add_document(filepath, languageId):
@@ -330,9 +340,6 @@ def handle_input(handle, lsp, req):
     try:
         id = req[0]
         func = getattr(lsp, req[1])
-        filepath = req[2][0]
-        if filepath.split('.')[-1] in lsp.disable_filetype: 
-            raise DisableException()
         if req[1] != "init" and not lsp.is_init: 
             raise RuntimeError("Please call lsp init first.")
         func(id, *req[2])

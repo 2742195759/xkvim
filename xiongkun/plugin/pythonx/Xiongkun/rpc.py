@@ -71,7 +71,7 @@ class RPCChannel:
             port = RPCChannel.local_port
             remote_server = f"127.0.0.1:{port}"
             if not RPCChannel.is_init: 
-                start_server_cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {port} 1>{RPCChannel.rpc_log} 2>&1"
+                start_server_cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {port} 1>{RPCChannel.rpc_log} 2>{RPCChannel.rpc_log}"
                 os.system(f"{start_server_cmd} &")
                 print (f"log path: {RPCChannel.rpc_log}")
                 RPCChannel.is_init = True
