@@ -338,11 +338,7 @@ def receive_package(r):
         if not line: break
     output = r.read(size).decode("utf-8")
     print ("[LSP output]", output)
-    try:
-        return json.loads(output)
-    except: 
-        breakpoint() 
-        a = 0
+    return json.loads(output)
 
 def is_method(package):
     return "method" in package
