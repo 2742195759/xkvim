@@ -41,7 +41,6 @@ class Protocal:
 
 class LSPProxy:
     def __init__(self):
-        self.suffix2server = {}
         self.server_candidate = [JediServer(), ClangdServer()]
         self.version_map = {}
         self.rootUri = ""
@@ -49,8 +48,9 @@ class LSPProxy:
 
     def getFds(self):
         ret = []
-        for key, value in self.suffix2server.items():
-            ret.append(value.stdout)
+        for server in self.server_candidate:
+            fd = server.get_output_fd()
+            if fd is not None: ret.append(fd)
         return ret
 
     def nextVersion(self, filepath):
@@ -214,37 +214,37 @@ class LSPProxy:
 
     def get_server(self, filepath):
         suff = filepath.split('.')[-1]
-        if suff in self.suffix2server: 
-            return self.suffix2server[suff]
-
-        server = None
-        for s in self.server_candidate: 
+        for s in self.iter_servers():
             if s.match_suffix(suff): 
-                server = s.start(self.rootUri)
-                break
+                s.try_start(self.rootUri)
+                return s
 
-        if not server:
-            raise RuntimeError("no server for suffix %s" % suff)
-        self.suffix2server[suff] = server
-        return server
+        raise RuntimeError("no server for suffix %s" % suff)
+
+    def iter_servers(self):
+        for server in self.server_candidate:
+            yield server
 
     def close(self):
-        for key, value in self.suffix2server.items():
-            value.kill()
+        for server in self.iter_servers():
+            server.kill()
 
     def keeplive(self, id): 
         pass
 
 class LanguageServer: 
+    def __init__(self):
+        self.is_init = False
+
     def set_process(self, server):
         self.server = server
         self.stdin = server.stdin
         self.stdout = server.stdout
         self.stderr = server.stderr
-        pass
+        self.is_init = False
 
     def is_installed(self):
-        import os
+        print (f"which {self.executable()}")
         return os.system(f"which {self.executable()}") == 0
 
     def kill(self):
@@ -260,11 +260,22 @@ class LanguageServer:
         server.stdin.write(pack(self.initialize(rootUri)))
         server.stdin.flush()
         self.set_process(server)
+        self.is_init = True
         return self
 
+    def try_start(self, *args, **kwargs):
+        if not self.is_init: 
+            self.start(*args, **kwargs)
+
+    def get_output_fd(self):
+        if not self.is_init: return None
+        return self.server.stdout
 
 @Singleton
 class JediServer(LanguageServer): 
+    def __init__(self):
+        super().__init__()
+
     def initialize(self, rootUri):
         init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":"file:///home/ubuntu/artifacts/","workspaceFolders":null}}'
         return json.loads(init)
@@ -284,6 +295,9 @@ class JediServer(LanguageServer):
 
 @Singleton
 class ClangdServer(LanguageServer): 
+    def __init__(self):
+        super().__init__()
+
     def initialize(self, rootUri):
         init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":null,"workspaceFolders":null}}'
         package = json.loads(init)
@@ -380,12 +394,4 @@ def lsp_server(handle):
     print("=== socket closed ===")
 
 if __name__ == "__main__":
-    lsp = LSPProxy()
-    lsp.goto(2, "/root/test/ttt.py", "definition", (4,4))
-    server = lsp.suffix2server['py']
-
-    while True:
-        rs, ws, es = select.select([server.stdout], [], [], 1.0)
-        if rs : 
-            receive_package(rs[0])
-    lsp.close()
+    pass
