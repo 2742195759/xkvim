@@ -25,7 +25,7 @@ def Singleton(cls):
 def pack(package):
     bytes = json.dumps(package)
     package = f"Content-Length: {len(bytes)}\r\n\r\n" + bytes
-    return package
+    return package.encode("utf-8")
 
 class Protocal: 
     @classmethod
@@ -256,7 +256,7 @@ class LanguageServer:
             raise RuntimeError(f"{self.__class__} is not installed")
         self.rootUri = rootUri
         cmd = self.get_command()
-        server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+        server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=False)
         server.stdin.write(pack(self.initialize(rootUri)))
         server.stdin.flush()
         self.set_process(server)
@@ -329,11 +329,11 @@ def handle_input(handle, lsp, req):
         send_to_vim(handle, Protocal.CreateShowMessage(1, f"{str(e)}"))
 
 def receive_package(r):
-    size = int(r.readline().strip().split(':')[1])
+    size = int(r.readline().strip().split(b':')[1])
     while True:
         line = r.readline().strip()
         if not line: break
-    output = r.read(size)
+    output = r.read(size).decode("utf-8")
     print ("[LSP output]", output)
     return json.loads(output)
 
