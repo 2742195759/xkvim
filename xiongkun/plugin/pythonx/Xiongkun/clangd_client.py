@@ -272,7 +272,7 @@ def complete_done(args):
 
 @vim_register(name="Py_add_document")
 def add_document(args):
-    filepath = args[0]
+    filepath = FileSystem().abspath(args[0])
     lsp_server().call("add_document", None, filepath)
 
 @vim_register(name="Py_complete_select")
