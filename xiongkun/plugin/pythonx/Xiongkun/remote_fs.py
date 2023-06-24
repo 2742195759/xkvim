@@ -32,7 +32,6 @@ def RemoteSave(args):
     else:
         vim.command("write")
         
-
 @vim_register(command="RemoteEdit", with_args=True)
 def RemoteEdit(args):
     if len(args) == 0: 
@@ -46,6 +45,7 @@ vim_utils.commands("""
 augroup RemoteWrite
     autocmd!
     autocmd BufWriteCmd * RemoteSave
+    autocmd FileChangedRO * set noreadonly
 augroup END
     """)
 
@@ -241,8 +241,8 @@ class FileSystem:
                 f.write(content)
             bufnr = vim.eval(f'bufadd("{bufname}")')
             with vim_utils.CurrentBufferGuard():
+                vim.eval(f"setbufvar({bufnr}, '&buftype', 'acwrite')")
                 vim.command(f"b {bufnr}")
-                vim.command(f"setlocal noswapfile")
                 vim.command(f"keepjumps normal ggdG")
                 vim.command(f"keepjumps read {tmp_file}")
                 vim.command("keepjumps normal ggdd")

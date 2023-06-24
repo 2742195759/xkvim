@@ -25,9 +25,8 @@ augroup ClangdServer
     autocmd!
     autocmd BufNew *.py,*.cc,*.h,*.cpp call Py_add_document([expand("<afile>")])
     autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
-    autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
+    autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_complete([])
     autocmd CursorMovedI *.py,*.cc,*.h,*.cpp call Py_signature_help([]) 
-    autocmd TextChangedI *.py,*.cc,*.h,*.cpp call LSPComplete([])
     autocmd CompleteDonePre *.py,*.cc,*.h,*.cpp call Py_complete_done([v:completed_item])
     autocmd CompleteChanged *.py,*.cc,*.h,*.cpp call Py_complete_select([v:event['completed_item']])
     autocmd InsertLeave * py3 Xiongkun.SignatureWindow().hide()
@@ -172,9 +171,10 @@ class CompleteResult:
     def done(self):
         pass
 
-@vim_register(name="LSPComplete")
+@vim_register(name="Py_complete")
 def complete(args):
     def handle(rsp):
+        if not vim.eval("mode()").startswith('i'): return 
         if 'result' not in rsp or rsp['result'] == None: return
         CompleteResult().set(rsp['result']['items'])
         results = CompleteResult().to_locs()
@@ -241,6 +241,7 @@ class SignatureWindow(DocPreviewBuffer):
 @vim_register(name="Py_signature_help")
 def signature_help(args):
     def handle(rsp):
+        if not vim.eval("mode()").startswith('i'): return 
         debug(rsp)
         if 'result' not in rsp or rsp['result'] == None:
             SignatureWindow().hide()
@@ -258,7 +259,6 @@ def signature_help(args):
         function = sig["label"]
         SignatureWindow().set_content(function, param, vim.eval("&ft"))
 
-    did_change([])
     file, pos = lsp_server().text_document_location()
     lsp_server().call("signature_help", handle, file, pos)
 

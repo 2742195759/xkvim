@@ -53,18 +53,21 @@ class LSPProxy:
             if fd is not None: ret.append(fd)
         return ret
 
-    def nextVersion(self, filepath):
+    def updateVersion(self, filepath, content):
+        strings = "\n".join(content)
         if filepath not in self.version_map:
-            self.version_map[filepath] = 1
+            self.version_map[filepath] = (1, hash(strings))
         else:
-            self.version_map[filepath] += 1
-        return self.version_map[filepath] 
+            cnt, hash_id = self.version_map[filepath]
+            if hash(strings) != hash_id: 
+                self.version_map[filepath] = (cnt+1, hash(strings))
+        return self.lastest(filepath)
 
     def file_exist(self, filepath):
         return filepath in self.version_map
 
     def lastest(self, filepath):
-        return self.version_map[filepath] 
+        return self.version_map[filepath][0]
 
     def complete_resolve(self, id, filepath, complete_item):
         json = {
@@ -164,7 +167,7 @@ class LSPProxy:
         param = {
             "textDocument": {
                 "uri": "file://" + filepath,
-                "version": self.nextVersion(filepath),
+                "version": self.updateVersion(filepath, content),
             },
             "contentChanges": [{"text": "\n".join(content)}],
             "wantDiagnostics": want_diag,
@@ -184,7 +187,6 @@ class LSPProxy:
         def _add_document(filepath, languageId):
             with open(filepath, 'r') as fp:
                 content = fp.readlines()
-            content = "".join(content)
             json = {
                 "jsonrpc": "2.0",
                 "method": "textDocument/didOpen",
@@ -192,8 +194,8 @@ class LSPProxy:
                     "textDocument": {
                         "uri": "file://" + filepath,
                         "languageId": languageId,
-                        "version": self.nextVersion(filepath),
-                        "text": content,
+                        "version": self.updateVersion(filepath, content),
+                        "text": "".join(content),
                     },
                 }
             }
@@ -227,7 +229,8 @@ class LSPProxy:
 
     def close(self):
         for server in self.iter_servers():
-            server.kill()
+            if server.is_init:
+                server.kill()
 
     def keeplive(self, id): 
         pass
@@ -335,7 +338,11 @@ def receive_package(r):
         if not line: break
     output = r.read(size)
     print ("[LSP output]", output)
-    return json.loads(output)
+    try:
+        return json.loads(output)
+    except: 
+        breakpoint() 
+        a = 0
 
 def is_method(package):
     return "method" in package
