@@ -24,7 +24,7 @@ def _StartAutoCompile():# {{{
 augroup ClangdServer
     autocmd!
     autocmd BufNew *.py,*.cc,*.h,*.cpp call Py_add_document([expand("<afile>")])
-    autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([]) 
+    autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([1]) 
     autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_complete([])
     autocmd CursorMovedI *.py,*.cc,*.h,*.cpp call Py_signature_help([]) 
     autocmd CompleteDonePre *.py,*.cc,*.h,*.cpp call Py_complete_done([v:completed_item])
@@ -193,7 +193,7 @@ def complete(args):
     cur_file = vim_utils.CurrentEditFile(True)
     position = vim_utils.GetCursorXY()
     position = position[0]-1, position[1]-1
-    did_change(args)
+    did_change([False])
     lsp_server().call("complete", handle, cur_file, position)
 
 @vim_register(name="GoToDefinition", command="Def")
@@ -204,7 +204,8 @@ def py_goto_definition(args):
 def did_change(args):
     filepath = vim_utils.CurrentEditFile(True)
     content = vim_utils.GetAllLines()
-    lsp_server().call("did_change", None, filepath, content, True)
+    if args[0] == 1: args[0] = True
+    lsp_server().call("did_change", None, filepath, content, args[0])
 
 @vim_utils.Singleton
 class SignatureWindow(DocPreviewBuffer):
@@ -260,6 +261,7 @@ def signature_help(args):
         SignatureWindow().set_content(function, param, vim.eval("&ft"))
 
     file, pos = lsp_server().text_document_location()
+    did_change([False])
     lsp_server().call("signature_help", handle, file, pos)
 
 @vim_register(name="Py_complete_done")
