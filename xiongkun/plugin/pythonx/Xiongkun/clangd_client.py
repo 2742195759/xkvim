@@ -51,6 +51,45 @@ def StopAutoCompileGuard():# {{{
         yield
     finally:
         _StartAutoCompile()
+    
+@vim_utils.Singleton
+class LSPDiagManager: 
+    def __init__(self):
+        # define sign
+        self.id = 1000
+        vim.command("sign define lsp_warn  text=>> texthl=Search")
+        vim.command("sign define lsp_error text=>> texthl=Error")
+        vim.eval("prop_type_add('lsp_message', {'highlight': 'Error'})")
+
+    def next_id(self):
+        ret = self.id
+        self.id += 1
+        return ret
+
+    def _place(self, sign_name, file, line, message):
+        id = self.next_id()
+        vim.command(f"sign place {id} line={line} name={sign_name} file={file}")
+        config = {
+            'bufnr': file,
+            'id': id,
+            'text': message,
+            'text_align': 'after',
+            'type': 'lsp_message',
+        }
+        print (f"prop_add({line}, 0, {json.dumps(config)})")
+        vim.eval(f"prop_add({line}, 0, {json.dumps(config)})")
+
+    def error(self, file, line, message=""): 
+        self._place("lsp_error", file, line, message)
+
+    def warn(self, file, line, message=""):
+        self._place("lsp_warn", file, line, message)
+    
+    def clear(self, file):
+        vim.command(f"sign unplace * file={file}")
+        config = { 'bufnr': file }
+        last_line = len(vim_utils.GetAllLines(file))
+        vim.eval(f"prop_clear(1, {last_line}, {json.dumps(config)})")
 
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
@@ -71,6 +110,14 @@ class LSPServer(RPCServer):
             markdown_doc = "[LSP Show Message]:" + "\n=================\n" + package['params']['message']
             MessageWindow().set_markdowns([markdown_doc])
             MessageWindow().show()
+        elif package["method"] == "textDocument/publishDiagnostics":
+            file = package['params']['uri'][7:]
+            LSPDiagManager().clear(file)
+            diags = package['params']['diagnostics']
+            for diag in diags:
+                line = diag['range']['start']['line'] + 1
+                LSPDiagManager().error(file, line, diag['message'])
+            # add sign to buffer
 
     def text_document_location(self):
         cur_file = vim_utils.CurrentEditFile(True)
@@ -88,31 +135,6 @@ class LSPClient:# {{{
         for buffer in buffers:
             buffer = FileSystem().abspath(buffer)
             if not buffer.endswith('/'): self.lsp_server.call("add_document", None, buffer)
-
-
-    def get_diagnostics(self, filepath):
-        self.did_open(filepath)
-        json = {
-            "method": "get_diags",
-            "file": "file://" + do_path_map(osp.abspath(filepath), 'vim', 'clangd'),
-        }
-        def get_diags(json):
-            """
-            example of diagnostics: 
-            {'jsonrpc': '2.0', 'method': 'textDocument/publishDiagnostics', 'params': {'diagnostics': [{'code': 'access', 'message': "'bar' is a private member of 'MyClass'\n\nhello_world.cpp:5:8: note: implicitly declared private here", 'range': {'end': {'character': 9, 'line': 19}, 'start': {'character': 6, 'line': 19}}, 'severity': 1, 'source': 'clang'}, {'message': "Implicitly declared private here\n\nhello_world.cpp:20:7: error: 'bar' is a private member of 'MyClass'", 'range': {'end': {'character': 10, 'line': 4}, 'start': {'character': 7, 'line': 4}}, 'severity': 3}, {'code': 'undeclared_var_use', 'message': "Use of undeclared identifier 'dasdfs'", 'range': {'end': {'character': 10, 'line': 21}, 'start': {'character': 4, 'line': 21}}, 'severity': 1, 'source': 'clang'}, {'code': '-Wunused-private-field', 'message': "Private field 'foo' is not used", 'range': {'end': {'character': 9, 'line': 3}, 'start': {'character': 6, 'line': 3}}, 'severity': 1, 'source': 'clang', 'tags': [1]}], 'uri': 'file:///home/data/hello_world.cpp', 'version': 0}}
-            """
-            diags = send_by_python(json, timeout=(10, 10)).json()
-            if diags == {}: return
-            locs = []
-            texts = []
-            for diag in diags['params']['diagnostics']: 
-                texts.append(diag['message'])
-                locs.append(remote_fs.Location(
-                    diags['params']['uri'][7:],
-                    diag['range']['start']['line']+1, 
-                    diag['range']['start']['character']+1))
-            vim_utils.vim_dispatcher.call(vim_utils.SetQuickFixList, [locs, True, False, texts])
-        threading.Thread(target=get_diags, args=(json,), daemon=True).start()
 
 def goto_definition(args):
     cur_file = vim_utils.CurrentEditFile(True)
@@ -193,7 +215,7 @@ def complete(args):
     cur_file = vim_utils.CurrentEditFile(True)
     position = vim_utils.GetCursorXY()
     position = position[0]-1, position[1]-1
-    did_change([False])
+    did_change([True])
     lsp_server().call("complete", handle, cur_file, position)
 
 @vim_register(name="GoToDefinition", command="Def")
@@ -261,7 +283,7 @@ def signature_help(args):
         SignatureWindow().set_content(function, param, vim.eval("&ft"))
 
     file, pos = lsp_server().text_document_location()
-    did_change([False])
+    did_change([True])
     lsp_server().call("signature_help", handle, file, pos)
 
 @vim_register(name="Py_complete_done")

@@ -253,9 +253,9 @@ def GetPwd():
     return vimeval("getcwd()")
 
 def GetAllLines(bufnr=None):
-    if bufnr == None: 
-        bufnr = vimeval("bufnr()")
-    return vimeval(f"getbufline({bufnr}, 1, '$')")
+    if bufnr == None: bufnr = int(vimeval("bufnr()"))
+    if isinstance(bufnr, str): return vimeval(f"getbufline('{bufnr}', 1, '$')")
+    if isinstance(bufnr, int): return vimeval(f"getbufline({bufnr}, 1, '$')")
 
 def GetDisplayLines(bufnr=None):
     lines = GetAllLines(bufnr)
