@@ -337,7 +337,7 @@ class ClangdServer(LanguageServer):
 
     def get_command(self):
         clangd_directory = os.path.join(self.home, "clangd")
-        return [f'cd {clangd_directory} && ./clangd --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
+        return [f'cd {clangd_directory} && ./clangd --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
 
 def handle_input(handle, lsp, req):
     try:
