@@ -15,16 +15,6 @@ import sys
 class DisableException(Exception):
     pass
 
-def Singleton(cls):
-    instance = None
-    def get_instance():
-        nonlocal instance
-        if instance is None: 
-            instance = cls()
-        return instance
-    return get_instance
-
-
 def pack(package):
     bytes = json.dumps(package)
     package = f"Content-Length: {len(bytes)}\r\n\r\n" + bytes
@@ -41,7 +31,6 @@ class Protocal:
             }
         }
         return json
-
 
 class LSPProxy:
     def __init__(self):
@@ -293,7 +282,6 @@ class LanguageServer:
         if not self.is_init: return None
         return self.server.stdout
 
-@Singleton
 class JediServer(LanguageServer): 
     def __init__(self):
         super().__init__()
@@ -315,7 +303,6 @@ class JediServer(LanguageServer):
         cmd = [f'cd {self.rootUri} && jedi-language-server 2>jedi.log']
         return cmd
 
-@Singleton
 class ClangdServer(LanguageServer): 
     def __init__(self):
         super().__init__()

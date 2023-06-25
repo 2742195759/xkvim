@@ -11,7 +11,7 @@ from .log import log
 import threading
 import os.path as osp
 from .rpc import rpc_call, rpc_wait, rpc_server
-from .vim_utils import vimcommand
+from .vim_utils import vimcommand, IsBufferExist
 import os
 
 def is_buf_remote():
@@ -243,7 +243,7 @@ class FileSystem:
             with vim_utils.CurrentBufferGuard():
                 vim.eval(f"setbufvar({bufnr}, '&buftype', 'acwrite')")
                 vim.eval(f"setbufvar({bufnr}, '&buflisted', 1)")
-                vim.command(f"b {bufnr}")
+                vim.command(f"keepjumps b {bufnr}")
                 vim.command(f"keepjumps normal ggdG")
                 vim.command(f"keepjumps read {tmp_file}")
                 vim.command("keepjumps normal ggdd")
@@ -261,6 +261,13 @@ class FileSystem:
             return bufnr
         else: 
             return bufnr
+
+    def bufexist(self, file):
+        if not IsBufferExist(file): return False
+        if vim.eval(f"getbufvar('{file}', 'remote', '')") == '': 
+            return not self._is_remote
+        else: 
+            return self._is_remote
 
     def list_dir(self, dirpath):
         return rpc_wait("remotefs.list_dir", dirpath)

@@ -68,7 +68,7 @@ class LSPDiagManager:
 
     def _place(self, sign_name, file, line, message):
         id = self.next_id()
-        if not vim_utils.IsBufferExist(file): return
+        if not FileSystem().bufexist(file): return
         vim.command(f"sign place {id} line={line} name={sign_name} file={file}")
         config = {
             'bufnr': file,
@@ -78,8 +78,12 @@ class LSPDiagManager:
             'type': 'lsp_message',
             'text_wrap': 'wrap'
         }
-        print (f"prop_add({line}, 0, {json.dumps(config)})")
-        vim.eval(f"prop_add({line}, 0, {json.dumps(config)})")
+        try:
+            vim.eval(f"prop_add({line}, 0, {json.dumps(config)})")
+        except: 
+            # change while diagnostic sending will cause invalid {line} exception.
+            pass
+
 
     def error(self, file, line, message=""): 
         self._place("lsp_error", file, line, message)
@@ -88,7 +92,7 @@ class LSPDiagManager:
         self._place("lsp_warn", file, line, message)
     
     def clear(self, file):
-        if not vim_utils.IsBufferExist(file): return
+        if not FileSystem().bufexist(file): return
         vim.command(f"sign unplace * file={file}")
         config = { 'bufnr': file }
         vim.eval(f"prop_clear(1, 100000, {json.dumps(config)})")
@@ -114,6 +118,7 @@ class LSPServer(RPCServer):
             MessageWindow().show()
         elif package["method"] == "textDocument/publishDiagnostics":
             file = package['params']['uri'][7:]
+            file = FileSystem().abspath(file)
             LSPDiagManager().clear(file)
             diags = package['params']['diagnostics']
             for diag in diags:
@@ -228,7 +233,7 @@ def py_goto_definition(args):
 def did_change(args):
     filepath = vim_utils.CurrentEditFile(True)
     content = vim_utils.GetAllLines()
-    if args[0] == 1: args[0] = True
+    if args[0] == "1": args[0] = True
     lsp_server().call("did_change", None, filepath, content, args[0])
 
 @vim_utils.Singleton
@@ -342,13 +347,6 @@ def complete_select(args):
     lsp_server().call("complete_resolve", handle, filepath, item)
 
 clangd = None
-@vim_register(name="ClangdServerDiags", command="Compile")
-def ClangdGetDiags(args):
-    if not clangd: return
-    clangd.reparse_currentfile(True) # make sure file is the newest.
-    time.sleep(0.5)
-    clangd.get_diagnostics(vim_utils.CurrentEditFile(True))
-
 @vim_register(command="LSPDisableFile", with_args=True)
 def PyDisableFile(args):
     suffix = args[0]
