@@ -314,7 +314,7 @@ class ClangdServer(LanguageServer):
         return package
 
     def match_suffix(self, suf):
-        return suf in ['cc', 'h', 'cpp', 'hpp', 'cu']
+        return suf in ['cc', 'h', 'cpp', 'hpp', 'c']
 
     def getLanguageId(self):
         return "cpp"
