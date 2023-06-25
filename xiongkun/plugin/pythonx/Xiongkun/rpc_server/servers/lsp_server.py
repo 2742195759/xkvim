@@ -86,6 +86,18 @@ class LSPProxy:
         self.disable_filetype.append(suffix)
 
     # @interface
+    def cancel(self, id, filepath, to_cancel):
+        json = {
+            "jsonrpc": "2.0",
+            "method": "$/cancelRequest",
+            "params": {
+                "id": to_cancel
+            }
+        }
+        self.dispatch(filepath, json)
+    
+
+    # @interface
     def complete(self, id, filepath, pos):
         self.check_disable(filepath)
         def lsp_complete(id, filepath, pos=(0,0)):
