@@ -84,7 +84,6 @@ class LSPDiagManager:
             # change while diagnostic sending will cause invalid {line} exception.
             pass
 
-
     def error(self, file, line, message=""): 
         self._place("lsp_error", file, line, message)
 
@@ -97,9 +96,21 @@ class LSPDiagManager:
         config = { 'bufnr': file }
         vim.eval(f"prop_clear(1, 100000, {json.dumps(config)})")
 
+class VersionChecker:
+    def __init__(self):
+        self.id2bufhash = {} # request_id -> buf_hash
+    def save_version(self, id):
+        content = "\n".join(vim_utils.GetAllLines())
+        self.id2bufhash[id] = hash(content)
+    def check_version(self, id):
+        assert id in self.id2bufhash
+        content = "\n".join(vim_utils.GetAllLines())
+        return self.id2bufhash[id] == hash(content)
+
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
         self.channel = RPCChannel("LSP", remote_server, "lsp", "Xiongkun.lsp_server()")
+        self.version_checker = VersionChecker()
         self.call("init", None, FileSystem().getcwd())
 
     def receive(self): # for hooker.
@@ -113,10 +124,12 @@ class LSPServer(RPCServer):
     def handle_method(self, package):
         from .windows import MessageWindow
         if package["method"] == "window/showMessage":
+            # show message by window.
             markdown_doc = "[LSP Show Message]:" + "\n=================\n" + package['params']['message']
             MessageWindow().set_markdowns([markdown_doc])
             MessageWindow().show()
         elif package["method"] == "textDocument/publishDiagnostics":
+            # add sign to buffer
             file = package['params']['uri'][7:]
             file = FileSystem().abspath(file)
             LSPDiagManager().clear(file)
@@ -124,7 +137,20 @@ class LSPServer(RPCServer):
             for diag in diags:
                 line = diag['range']['start']['line'] + 1
                 LSPDiagManager().error(file, line, diag['message'])
-            # add sign to buffer
+
+    def call(self, name, on_return, *args):
+        def lsp_handle_wrapper(rsp):
+            if self.version_checker.check_version(rsp['id']):
+                return on_return(rsp)
+        return_handle = on_return
+        if self.is_version_api(name):
+            return_handle = lsp_handle_wrapper
+        stream = super().call(name, return_handle, *args)
+        if self.is_version_api(name):
+            self.version_checker.save_version(stream.id)
+
+    def is_version_api(self, name):
+        return name in ['complete', 'complete_resolve', 'signature_help']
 
     def text_document_location(self):
         cur_file = vim_utils.CurrentEditFile(True)
@@ -197,7 +223,8 @@ class CompleteResult:
             if item['label'] == label:
                 return item
 
-    def done(self):
+    def reset(self):
+        self.item = None
         pass
 
 @vim_register(name="Py_complete")
@@ -298,7 +325,7 @@ def complete_done(args):
     if len(args[0]) == 0: return
     label = args[0]['user_data']
     item = CompleteResult().find_item_by_label(label)
-    CompleteResult().done()
+    CompleteResult().reset()
     GlobalPreviewWindow.hide()
 
 @vim_register(name="Py_add_document")
@@ -344,7 +371,9 @@ def complete_select(args):
         if not content: 
             GlobalPreviewWindow.hide()
 
-    lsp_server().call("complete_resolve", handle, filepath, item)
+    # if item is None, custom complete is processed.
+    if item is not None: 
+        lsp_server().call("complete_resolve", handle, filepath, item) 
 
 clangd = None
 @vim_register(command="LSPDisableFile", with_args=True)

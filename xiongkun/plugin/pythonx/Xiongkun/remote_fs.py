@@ -243,7 +243,7 @@ class FileSystem:
             with vim_utils.CurrentBufferGuard():
                 vim.eval(f"setbufvar({bufnr}, '&buftype', 'acwrite')")
                 vim.eval(f"setbufvar({bufnr}, '&buflisted', 1)")
-                vim.command(f"keepjumps b {bufnr}")
+                vim.command(f"keepjumps noswap b {bufnr}")
                 vim.command(f"keepjumps normal ggdG")
                 vim.command(f"keepjumps read {tmp_file}")
                 vim.command("keepjumps normal ggdd")

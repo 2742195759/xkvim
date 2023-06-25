@@ -303,10 +303,6 @@ class FixStringBuffer(Buffer):
         for idx, content in enumerate(self.contents):
             self._put_string(content, idx+1)
 
-    def show(self):
-        super()._set_default_options()
-        self.execute("setlocal bufhidden=wipe")
-
 class BufferSmartPoint:
     def __init__(self):
         self.buf = None
