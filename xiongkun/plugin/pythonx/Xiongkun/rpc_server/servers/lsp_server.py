@@ -255,6 +255,8 @@ class LSPProxy:
 class LanguageServer: 
     def __init__(self):
         self.is_init = False
+        assert 'HOME' in os.environ, "Home not in os.environment"
+        self.home = os.environ['HOME']
 
     def set_process(self, server):
         self.server = server
@@ -334,7 +336,8 @@ class ClangdServer(LanguageServer):
         return "clangd"
 
     def get_command(self):
-        return [f'cd {self.rootUri} && clangd 2>clangd.log']
+        clangd_directory = os.path.join(self.home, "clangd")
+        return [f'cd {clangd_directory} && ./clangd --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
 
 def handle_input(handle, lsp, req):
     try:

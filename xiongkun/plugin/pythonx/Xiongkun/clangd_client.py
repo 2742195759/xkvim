@@ -68,13 +68,15 @@ class LSPDiagManager:
 
     def _place(self, sign_name, file, line, message):
         id = self.next_id()
+        if not vim_utils.IsBufferExist(file): return
         vim.command(f"sign place {id} line={line} name={sign_name} file={file}")
         config = {
             'bufnr': file,
             'id': id,
             'text': message,
-            'text_align': 'after',
+            'text_align': 'right',
             'type': 'lsp_message',
+            'text_wrap': 'wrap'
         }
         print (f"prop_add({line}, 0, {json.dumps(config)})")
         vim.eval(f"prop_add({line}, 0, {json.dumps(config)})")
@@ -86,10 +88,10 @@ class LSPDiagManager:
         self._place("lsp_warn", file, line, message)
     
     def clear(self, file):
+        if not vim_utils.IsBufferExist(file): return
         vim.command(f"sign unplace * file={file}")
         config = { 'bufnr': file }
-        last_line = len(vim_utils.GetAllLines(file))
-        vim.eval(f"prop_clear(1, {last_line}, {json.dumps(config)})")
+        vim.eval(f"prop_clear(1, 100000, {json.dumps(config)})")
 
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):

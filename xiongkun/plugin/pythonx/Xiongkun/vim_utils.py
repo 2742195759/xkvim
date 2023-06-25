@@ -576,6 +576,9 @@ def GetFileTypeByName(name):
     }
     return dic.get(suffix, "")
 
+def IsBufferExist(file):
+    return int(vim.command(f"bufexists({file})")) == 1
+
 def GetBufferList(pattern=None):
     """ get name list by pattern
     """
