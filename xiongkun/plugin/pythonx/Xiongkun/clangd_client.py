@@ -150,7 +150,7 @@ class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
         self.channel = RPCChannel("LSP", remote_server, "lsp", "Xiongkun.lsp_server()")
         self.version_checker = VersionChecker()
-        self.cancel_manager = CancelManager(self)
+        #self.cancel_manager = CancelManager(self)
         self.call("init", None, FileSystem().getcwd())
 
     def receive(self): # for hooker.
@@ -181,7 +181,7 @@ class LSPServer(RPCServer):
     def call(self, name, on_return, *args):
         def lsp_handle_wrapper(rsp):
             if self.version_checker.check_version(rsp['id']):
-                self.cancel_manager.remove_request(id, args[0])
+                #self.cancel_manager.remove_request(id, args[0])
                 return on_return(rsp)
         return_handle = on_return
         if self.is_version_api(name):
@@ -189,7 +189,7 @@ class LSPServer(RPCServer):
         stream = super().call(name, return_handle, *args)
         if self.is_version_api(name):
             self.version_checker.save_version(stream.id)
-            self.cancel_manager.add_request(stream.id, args[0])
+            #self.cancel_manager.add_request(stream.id, args[0])
 
     def is_version_api(self, name):
         return name in ['complete', 'complete_resolve', 'signature_help']
@@ -303,7 +303,7 @@ def did_change(args):
     filepath = vim_utils.CurrentEditFile(True)
     content = vim_utils.GetAllLines()
     if args[0] == "1": args[0] = True
-    lsp_server().cancel_manager.cancel(filepath)
+    #lsp_server().cancel_manager.cancel(filepath)
     lsp_server().call("did_change", None, filepath, content, args[0])
 
 @vim_utils.Singleton
