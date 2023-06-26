@@ -149,7 +149,7 @@ def goto_definition(args):
     position = position[0]-1, position[1]-1
 
     def handle(rsp):
-        if rsp['result'] is None: 
+        if 'result' not in rsp or rsp['result'] is None: 
             print ("Definition No Found !")
             return []
         all_locs = lsp_to_location( rsp['result'] )
