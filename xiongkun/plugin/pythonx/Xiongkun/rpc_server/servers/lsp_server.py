@@ -32,29 +32,64 @@ class Protocal:
         }
         return json
 
+    @classmethod
+    def CreateDummyResult(cls, id):
+        json = {
+            "json": "2.0",
+            "id": id,
+            "result": None
+        }
+        return json
+
 class FileRequestQueue:
     def __init__(self):
         self.file2queue = {}
+        self.server = None
+        self.handle = None
+
+    def set_server_and_handle(self,server, handle):
+        self.server = server
+        self.handle = handle
+
+    def optimize(self, filepath, req_array):
+        # optimize version quest.
+        # if version_id != current_version: skip this request.
+        def is_version_valid(req):
+            version = req.get("params", {}).get("textDocument", {}).get("version", None)
+            if version is None: return True
+            return self.server.lastest(filepath) == version
+
+        ret = []
+        for req in req_array: 
+            if is_version_valid(req): ret.append(req)
+            else: 
+                if 'id' in req: 
+                    print("[skip request]", req)
+                    send_to_vim(self.handle, Protocal.CreateDummyResult(req['id']))
+                else: 
+                    print("[skip notification]", req)
+        return ret
 
     def pend_request(self, filepath, req): 
         if filepath not in self.file2queue: 
             self.file2queue[filepath] = []
         self.file2queue[filepath].append(req)
+        self.file2queue[filepath] = self.optimize(filepath, self.file2queue[filepath])
 
-    def do_request(self, lsp):
+    def do_request(self):
         for file, reqs in self.file2queue.items():
             for req in reqs:
-                lsp._dispatch(file, reqs)
+                self.server._dispatch(file, req)
         self.file2queue = {}
 
 class LSPProxy:
-    def __init__(self):
+    def __init__(self, queue):
         self.server_candidate = [JediServer(), ClangdServer()]
         self.version_map = {}
         self.disable_filetype = []
         self.rootUri = ""
         self.is_init = False
-        self.queue = FileRequestQueue()
+        self.queue = queue
 
     def getFds(self):
         ret = []
@@ -90,7 +125,7 @@ class LSPProxy:
             "method": "completionItem/resolve",
             "params": complete_item,
         }
-        self.dealing(filepath, json)
+        self.pending(filepath, json)
 
     # @interface
     def init(self, id, rootUri):
@@ -111,7 +146,6 @@ class LSPProxy:
             }
         }
         self.dealing(filepath, json)
-    
 
     # @interface
     def complete(self, id, filepath, pos):
@@ -137,7 +171,7 @@ class LSPProxy:
             }
             return json
         json = lsp_complete(id, filepath, pos)
-        self.dealing(filepath, json)
+        self.pending(filepath, json)
         
     #@interface
     def goto(self, id, filepath, method="definition", pos=(0,0)):
@@ -158,7 +192,7 @@ class LSPProxy:
                 }
             }
         }
-        self.dealing(filepath, json)
+        self.pending(filepath, json)
 
     #@interface
     def signature_help(self, id, filepath, pos=(0,0)):
@@ -182,7 +216,7 @@ class LSPProxy:
                 },
             }
         }
-        self.dealing(filepath, json)
+        self.pending(filepath, json)
 
     #@interface
     def did_change(self, id, filepath, content, want_diag=True):
@@ -212,7 +246,7 @@ class LSPProxy:
             "method": "textDocument/didChange",
             "params": param,
         }
-        self.dealing(filepath, json)
+        self.pending(filepath, json)
 
     #@interface
     def add_document(self, id, filepath):
@@ -252,9 +286,10 @@ class LSPProxy:
     def pending(self, filepath, json):
         self.queue.pend_request(filepath, json)
 
-    def dealing(self, filepath, json):
-        self.pending(filepath, json)
-        self.queue.do_request(self)
+    def dealing(self, filepath=None, json=None):
+        if filepath is not None and json is not None: 
+            self.pending(filepath, json)
+        self.queue.do_request()
 
     def get_server(self, filepath):
         suff = filepath.split('.')[-1]
@@ -403,14 +438,23 @@ def handle_lsp_output(r, handle):
     package = receive_package(r)
     send_to_vim(handle, package)
 
+def handle_idle(handle, lsp_proxy):
+    lsp_proxy.dealing()
+
 def lsp_server(handle):
-    lsp_proxy = LSPProxy()
+    queue = FileRequestQueue() # for speed up.
+    lsp_proxy = LSPProxy(queue)
+    queue.set_server_and_handle(lsp_proxy, handle)
     stream = SockStream()
     exit = False
     while not exit:
         rfds = lsp_proxy.getFds()
         sys.stdout.flush()
-        rs, ws, es = select.select(rfds + [handle.rfile.fileno()], [], [], 1.0)
+        sys.stderr.flush()
+        rs, ws, es = select.select(rfds + [handle.rfile.fileno()], [], [], 0.3)
+        if len(rs) == 0: 
+            handle_idle(handle, lsp_proxy)
+            continue
         for r in rs:
             if r in [handle.rfile.fileno()]:
                 try:
@@ -443,3 +487,4 @@ def lsp_server(handle):
 
 if __name__ == "__main__":
     pass
+    sdfsdfsdfsdfs

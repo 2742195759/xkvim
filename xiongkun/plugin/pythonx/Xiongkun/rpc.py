@@ -13,6 +13,8 @@ import json
 from .func_register import vim_register
 from .log import debug
 import time
+import subprocess
+import signal
 
 def create_rpc_handle(name, function_name, receive_name):
     vim.command(f"""
@@ -66,13 +68,18 @@ class RPCChannel:
     local_port = find_free_port()
     is_init = False
     rpc_log = f"/tmp/log.{local_port}"
+
+    def delete(self):
+        if hasattr(self, "local_server"): 
+            os.killpg(self.local_server.pid, signal.SIGTERM)
+            
     def __init__(self, name, remote_server, type, function):
         if remote_server is None: 
             port = RPCChannel.local_port
             remote_server = f"127.0.0.1:{port}"
             if not RPCChannel.is_init: 
-                start_server_cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {port} 1>{RPCChannel.rpc_log} 2>{RPCChannel.rpc_log}"
-                os.system(f"{start_server_cmd} &")
+                start_server_cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {port} 1>{RPCChannel.rpc_log} 2>&1"
+                self.local_server = subprocess.Popen([start_server_cmd], shell=True, universal_newlines=False, close_fds=True, preexec_fn=os.setsid)
                 print (f"log path: {RPCChannel.rpc_log}")
                 RPCChannel.is_init = True
 
@@ -204,11 +211,20 @@ class RPCServer:
         self.channel.send([-1, "keeplive", []])
 
         
-local_rpc = RPCServer("Local", None, "vimrpc")
+local_rpc = None
+
 
 def rpc_server():
     global local_rpc
     if remote_project is None: 
+        if local_rpc is None: 
+            commands("""
+            augroup LocalServerDelete
+                autocmd!
+                autocmd VimLeave * py3 Xiongkun.rpc_server().channel.delete()
+            augroup END
+            """)
+            local_rpc = RPCServer("Local", None, "vimrpc")
         return local_rpc
     return remote_project.rpc
 
