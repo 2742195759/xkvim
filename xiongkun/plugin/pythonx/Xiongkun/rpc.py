@@ -73,7 +73,7 @@ class RPCChannel:
         if hasattr(self, "local_server"): 
             os.killpg(self.local_server.pid, signal.SIGTERM)
             
-    def __init__(self, name, remote_server, type, function):
+    def __init__(self, name, remote_server, type, function, noblock=0):
         if remote_server is None: 
             port = RPCChannel.local_port
             remote_server = f"127.0.0.1:{port}"
@@ -92,7 +92,7 @@ class RPCChannel:
             'mode': 'nl',
             'callback': f'{name}Server',
             'drop': 'auto',
-            'noblock': 1,
+            'noblock': noblock,
             'waittime': 3000,
         }
         self.job_name = remote_server

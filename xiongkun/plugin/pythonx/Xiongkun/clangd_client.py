@@ -148,7 +148,7 @@ class CancelManager:
 
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
-        self.channel = RPCChannel("LSP", remote_server, "lsp", "Xiongkun.lsp_server()")
+        self.channel = RPCChannel("LSP", remote_server, "lsp", "Xiongkun.lsp_server()", noblock=1)
         self.version_checker = VersionChecker()
         #self.cancel_manager = CancelManager(self)
         self.call("init", None, FileSystem().getcwd())
@@ -355,7 +355,8 @@ def signature_help(args):
             param_nr = result['activeParameter'] 
             if 'activeParameter' in sig: 
                 param_nr = sig['activeParameter']
-            param = sig["parameters"][param_nr]['label']
+            if param_nr < len(sig["parameters"]): 
+                param = sig["parameters"][param_nr]['label']
         function = sig["label"]
         SignatureWindow().set_content(function, param, vim.eval("&ft"))
 
@@ -387,6 +388,7 @@ def complete_select(args):
     def handle(rsp):
         # set completepopup option to make ui beautiful
         pum_pos = vim.eval("pum_getpos()")
+        if len(pum_pos) == 0: return
         window_options = {
             "line": int(pum_pos['row']),
             "col" : int(pum_pos['col']) + int(pum_pos['width']) + 2,
