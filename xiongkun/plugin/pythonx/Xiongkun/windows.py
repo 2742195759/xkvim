@@ -111,6 +111,9 @@ class PreviewWindow(Window):# {{{
             return {}
         def getLineNumber(self):
             raise NotImplementedError()
+        #def __del__(self):
+            #bufnr = self.getBuffer()
+            #vim.eval("bwipeout")
 
     class LocationItem(ShowableItem):
         def __init__(self, loc):
@@ -172,6 +175,7 @@ class PreviewWindow(Window):# {{{
             opt = VimVariable().assign(self.options)
             self.buf = self.showable.getBuffer()
             self.wid = int(vimeval("popup_create(%s, %s)"% (self.buf, opt)))
+            vimeval(f"setbufvar({self.buf}, 'bufhidden', 'wipe')")
             for setting in ['cursorline', 'number', 'relativenumber']:
                 self._execute('silent setlocal ' + setting)
             self.gotoline(self.showable.getLineNumber())

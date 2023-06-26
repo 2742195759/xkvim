@@ -32,6 +32,21 @@ class Protocal:
         }
         return json
 
+class FileRequestQueue:
+    def __init__(self):
+        self.file2queue = {}
+
+    def pend_request(self, filepath, req): 
+        if filepath not in self.file2queue: 
+            self.file2queue[filepath] = []
+        self.file2queue[filepath].append(req)
+
+    def do_request(self, lsp):
+        for file, reqs in self.file2queue.items():
+            for req in reqs:
+                lsp._dispatch(file, reqs)
+        self.file2queue = {}
+
 class LSPProxy:
     def __init__(self):
         self.server_candidate = [JediServer(), ClangdServer()]
@@ -39,6 +54,7 @@ class LSPProxy:
         self.disable_filetype = []
         self.rootUri = ""
         self.is_init = False
+        self.queue = FileRequestQueue()
 
     def getFds(self):
         ret = []
@@ -74,7 +90,7 @@ class LSPProxy:
             "method": "completionItem/resolve",
             "params": complete_item,
         }
-        self.dispatch(filepath, json)
+        self.dealing(filepath, json)
 
     # @interface
     def init(self, id, rootUri):
@@ -84,6 +100,18 @@ class LSPProxy:
     # @interface
     def disable_file(self, id, suffix): # disable_file cu
         self.disable_filetype.append(suffix)
+
+    # @interface
+    def cancel(self, id, filepath, to_cancel):
+        json = {
+            "jsonrpc": "2.0",
+            "method": "$/cancelRequest",
+            "params": {
+                "id": to_cancel
+            }
+        }
+        self.dealing(filepath, json)
+    
 
     # @interface
     def complete(self, id, filepath, pos):
@@ -109,7 +137,7 @@ class LSPProxy:
             }
             return json
         json = lsp_complete(id, filepath, pos)
-        self.dispatch(filepath, json)
+        self.dealing(filepath, json)
         
     #@interface
     def goto(self, id, filepath, method="definition", pos=(0,0)):
@@ -130,7 +158,7 @@ class LSPProxy:
                 }
             }
         }
-        self.dispatch(filepath, json)
+        self.dealing(filepath, json)
 
     #@interface
     def signature_help(self, id, filepath, pos=(0,0)):
@@ -154,7 +182,7 @@ class LSPProxy:
                 },
             }
         }
-        self.dispatch(filepath, json)
+        self.dealing(filepath, json)
 
     #@interface
     def did_change(self, id, filepath, content, want_diag=True):
@@ -184,7 +212,7 @@ class LSPProxy:
             "method": "textDocument/didChange",
             "params": param,
         }
-        self.dispatch(filepath, json)
+        self.dealing(filepath, json)
 
     #@interface
     def add_document(self, id, filepath):
@@ -211,15 +239,22 @@ class LSPProxy:
         if filepath and not self.file_exist(filepath):
             server = self.get_server(filepath)
             json = _add_document(filepath, server.getLanguageId())
-            self.dispatch(filepath, json)
+            self._dispatch(filepath, json)
         return None
 
     #@interface
-    def dispatch(self, filepath, json):
+    def _dispatch(self, filepath, json):
         print ("[LSP input ] ", json)
         server = self.get_server(filepath)
         server.stdin.write(pack(json))
         server.stdin.flush()
+
+    def pending(self, filepath, json):
+        self.queue.pend_request(filepath, json)
+
+    def dealing(self, filepath, json):
+        self.pending(filepath, json)
+        self.queue.do_request(self)
 
     def get_server(self, filepath):
         suff = filepath.split('.')[-1]

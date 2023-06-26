@@ -85,7 +85,7 @@ class RPCChannel:
             'mode': 'nl',
             'callback': f'{name}Server',
             'drop': 'auto',
-            'noblock': 0,
+            'noblock': 1,
             'waittime': 3000,
         }
         self.job_name = remote_server
