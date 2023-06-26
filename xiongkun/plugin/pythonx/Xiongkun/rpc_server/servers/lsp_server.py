@@ -79,7 +79,10 @@ class FileRequestQueue:
     def do_request(self):
         for file, reqs in self.file2queue.items():
             for req in reqs:
-                self.server._dispatch(file, req)
+                try:
+                    self.server._dispatch(file, req)
+                except:
+                    pass
         self.file2queue = {}
 
 class LSPProxy:
