@@ -92,7 +92,8 @@ class RPCChannel:
             'mode': 'nl',
             'callback': f'{name}Server',
             'drop': 'auto',
-            'noblock': 1,
+            # store will block when noblock=1, but will not stuck when network is not good.
+            'noblock': 0, 
             'waittime': 3000,
         }
         self.job_name = remote_server
