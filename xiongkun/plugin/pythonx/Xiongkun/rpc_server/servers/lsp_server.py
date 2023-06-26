@@ -314,6 +314,10 @@ class LSPProxy:
     def keeplive(self, id): 
         pass
 
+    # @interface
+    def echo(self, id, package): 
+        return send_to_vim(self.queue.handle, {'id': id, 'result': package})
+
 class LanguageServer: 
     def __init__(self):
         self.is_init = False

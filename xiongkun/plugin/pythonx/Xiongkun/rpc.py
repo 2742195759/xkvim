@@ -211,20 +211,17 @@ class RPCServer:
         self.channel.send([-1, "keeplive", []])
 
         
-local_rpc = None
-
+local_rpc = RPCServer("Local", None, "vimrpc")
+commands("""
+augroup LocalServerDelete
+    autocmd!
+    autocmd VimLeave * py3 Xiongkun.rpc_server().channel.delete()
+augroup END
+""")
 
 def rpc_server():
     global local_rpc
     if remote_project is None: 
-        if local_rpc is None: 
-            commands("""
-            augroup LocalServerDelete
-                autocmd!
-                autocmd VimLeave * py3 Xiongkun.rpc_server().channel.delete()
-            augroup END
-            """)
-            local_rpc = RPCServer("Local", None, "vimrpc")
         return local_rpc
     return remote_project.rpc
 

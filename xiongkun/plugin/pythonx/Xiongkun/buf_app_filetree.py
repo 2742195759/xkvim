@@ -270,5 +270,5 @@ def FileTreeCurrentFile(args):
     ff.create()
     ff.show()
     file = CurrentEditFile(abs=True)
-    if not ff.locate(file): 
+    if file and not ff.locate(file): 
         ff.close()

@@ -32,8 +32,13 @@ def RemoteSave(args):
     else:
         vim.command("write")
         
-@vim_register(command="RemoteEdit", with_args=True)
+@vim_register(command="RE", with_args=True)
 def RemoteEdit(args):
+    """ 
+    Remote Edit command: RE
+    RE <abspath>
+    >>> RE + <
+    """
     if len(args) == 0: 
         bufname = vim.eval("bufname()")
         filepath = FileSystem().filepath(bufname)

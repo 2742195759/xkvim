@@ -236,46 +236,45 @@ def goto_definition(args):
     elif args[0] == 'ref': 
         lsp_server().call("goto", handle, cur_file, "implementation", position)
 
-@vim_utils.Singleton
-class CompleteResult:
-    def set(self, items):
-        self.items = items
 
-    def to_locs(self):
-        if not hasattr(self, "items"): 
-            return []
-        kind2type = {
-            7: "class", 2: "method", 1: "text", 4: "constructor", 22: "struct", 6: "variable", 3: "function", 14: "keyword",
-        }
-        results = []
-        for item in self.items:
-            #if '•' in item['label']: continue  # dont contain other library function.
-            r = {}
-            r['word'] = item['insertText']
-            r['abbr'] = item['label']
-            r['info'] = item['document'] if 'document' in item else item['label']
-            r['kind'] = kind2type.get(item['kind'], str(item['kind']))
-            r['dup'] = 1
-            r['user_data'] = item['label']
-            results.append(r)
-        return results
+def ultisnip_complete_items():
+    snippets = vim.eval("UltiSnips#SnippetsInCurrentScope()")
+    results = []
+    for name, descri in snippets.items():
+        r = {}
+        r['word'] = name
+        r['abbr'] = name
+        r['info'] = descri
+        r['kind'] = "UltiS"
+        r['dup'] = 1
+        r['user_data'] = {'type': 'ulti', 'origin': descri}
+        results.append(r)
+    return results
 
-    def find_item_by_label(self, label):
-        for item in self.items:
-            if item['label'] == label:
-                return item
-
-    def reset(self):
-        self.item = None
-        pass
+def lsp_complete_items(rsp):
+    if 'result' not in rsp or rsp['result'] == None: return []
+    items = rsp['result']['items']
+    kind2type = {
+        7: "class", 2: "method", 1: "text", 4: "constructor", 22: "struct", 6: "variable", 3: "function", 14: "keyword",
+    }
+    results = []
+    for item in items:
+        r = {}
+        r['word'] = item['insertText']
+        r['abbr'] = item['label']
+        r['info'] = item['document'] if 'document' in item else item['label']
+        r['kind'] = kind2type.get(item['kind'], str(item['kind']))
+        r['dup'] = 1
+        r['user_data'] = {'type': 'lsp', 'origin': json.dumps(item)}
+        results.append(r)
+    return results
 
 @vim_register(name="Py_complete")
 def complete(args):
     def handle(rsp):
-        if not vim.eval("mode()").startswith('i'): return 
-        if 'result' not in rsp or rsp['result'] == None: return
-        CompleteResult().set(rsp['result']['items'])
-        results = CompleteResult().to_locs()
+        totals = ultisnip_items
+        if not vim.eval("mode()").startswith('i'): return
+        totals = lsp_complete_items(rsp) + totals
         def find_start_pos():
             line = vim_utils.GetCurrentLine()
             col = vim_utils.GetCursorXY()[1] - 2 # 1-base -> 0-base
@@ -283,11 +282,13 @@ def complete(args):
                 col -= 1
             return col + 2  # 1 for offset, 2 for 1-base}}}
         # set complete list.
-        vim_l = vim_utils.VimVariable().assign(results)
-        vim.eval('complete(%d, %s)' % (find_start_pos(), vim_l))
+        obj = vim_utils.VimVariable().assign(totals)
+        vim.eval('complete(%d, %s)' % (find_start_pos(), obj))
         
+    ultisnip_items = ultisnip_complete_items()
+    print ("yes")
     cur_word = vim_utils.CurrentWordBeforeCursor()
-    if len(cur_word) < 3 and '.' not in cur_word: return
+    if len(cur_word) < 1 and '.' not in cur_word: return
     cur_file = vim_utils.CurrentEditFile(True)
     position = vim_utils.GetCursorXY()
     position = position[0]-1, position[1]-1
@@ -366,10 +367,8 @@ def signature_help(args):
 
 @vim_register(name="Py_complete_done")
 def complete_done(args):
+    # do nothing.
     if len(args[0]) == 0: return
-    label = args[0]['user_data']
-    item = CompleteResult().find_item_by_label(label)
-    CompleteResult().reset()
     GlobalPreviewWindow.hide()
 
 @vim_register(name="Py_add_document")
@@ -379,14 +378,7 @@ def add_document(args):
 
 @vim_register(name="Py_complete_select")
 def complete_select(args):
-    filepath = vim_utils.CurrentEditFile(True)
-    if len(args[0]) == 0: 
-        # not selected any.
-        return
-    label = args[0]['user_data']
-    item = CompleteResult().find_item_by_label(label)
-    def handle(rsp):
-        # set completepopup option to make ui beautiful
+    def show_info(title, content):
         pum_pos = vim.eval("pum_getpos()")
         if len(pum_pos) == 0: return
         window_options = {
@@ -396,29 +388,40 @@ def complete_select(args):
             "minwidth": 70,
             "maxheight":15, 
         }
-        def get_content(rsp):
-            if "result" not in rsp or rsp['result'] is None:
-                rsp = {'result': item}
-            content = []
-            rsp = rsp['result']
-            if 'detail' in rsp: 
-                content.extend(rsp['detail'].split("\n"))
-                content.append("")
-            if 'documentation' in rsp: 
-                content.append("===========Documentation=========")
-                content.extend(rsp['documentation']['value'].split("\n"))
-            return content
-
-        content = get_content(rsp)
         GlobalPreviewWindow.set_showable(
-            [PreviewWindow.ContentItem(f" {label}    ", content, vim.eval("&ft"), 1, window_options)])
+            [PreviewWindow.ContentItem(title, content, vim.eval("&ft"), 1, window_options)])
         GlobalPreviewWindow.show()
         if not content: 
             GlobalPreviewWindow.hide()
 
-    # if item is None, custom complete is processed.
-    if item is not None: 
-        lsp_server().call("complete_resolve", handle, filepath, item) 
+    if len(args[0]) == 0: return
+    filepath = vim_utils.CurrentEditFile(True)
+    user_data = args[0]['user_data']
+    if user_data['type'] == "lsp": 
+        def handle_lsp(rsp):
+            # set completepopup option to make ui beautiful
+            def get_content(rsp):
+                if "result" not in rsp or rsp['result'] is None:
+                    rsp = {'result': item}
+                content = []
+                rsp = rsp['result']
+                if 'detail' in rsp: 
+                    content.extend(rsp['detail'].split("\n"))
+                    content.append("")
+                if 'documentation' in rsp: 
+                    content.append("===========Documentation=========")
+                    content.extend(rsp['documentation']['value'].split("\n"))
+                return content
+            content = get_content(rsp)
+            show_info(f"   LSP   ", content)
+        item = json.loads(user_data['origin'])
+        lsp_server().call("complete_resolve", handle_lsp, filepath, item) 
+
+    if user_data['type'] == 'ulti': 
+        def handle_ulti(rsp):
+            show_info("   Ulti   ", rsp['result'])
+        lsp_server().call("echo", handle_ulti, user_data['origin'])
+
 
 clangd = None
 @vim_register(command="LSPDisableFile", with_args=True)
