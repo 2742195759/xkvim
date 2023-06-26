@@ -93,8 +93,8 @@ class LSPDiagManager:
     def clear(self, file):
         if not FileSystem().bufexist(file): return
         vim.command(f"sign unplace * file={file}")
-        config = { 'bufnr': file }
-        vim.eval(f"prop_clear(1, 100000, {json.dumps(config)})")
+        config = { 'bufnr': file, 'type': 'lsp_message' }
+        vim.eval(f"prop_remove({json.dumps(config)})")
 
 class FileDiffManager: 
     def __init__(self):
@@ -388,6 +388,7 @@ def complete_select(args):
             "minwidth": 70,
             "maxheight":15, 
         }
+        GlobalPreviewWindow.tmp_window()
         GlobalPreviewWindow.set_showable(
             [PreviewWindow.ContentItem(title, content, vim.eval("&ft"), 1, window_options)])
         GlobalPreviewWindow.show()
