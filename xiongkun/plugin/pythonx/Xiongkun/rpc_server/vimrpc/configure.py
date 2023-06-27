@@ -22,8 +22,8 @@ def test_main():
     servers = ServerCluster()
     servers.start_queue(printer_process_fn)
     #servers.grepfinder = GrepSearcher(servers.queue)
-    fn = servers.get_server_fn("grepfinder.search")
-    fn (1, "/home/xiongkun/xkvim/", "do_grep_search")
+    fn = servers.get_server_fn("config.get_config_by_key")
+    print (fn (1, "terminal_abbreviate", "/root/xkvim/"))
     time.sleep(3)
     servers.stop()
 

@@ -113,7 +113,7 @@ def TerminalWriteFile(args):
 def get_abbreviate_list(bufnr): 
     from .remote_fs import FileSystem
     from .rpc import rpc_wait
-    project_abbreviate = rpc_wait("config.get_config_by_key", "terminal_abbrev", FileSystem().getcwd())
+    project_abbreviate = rpc_wait("config.get_config_by_key", "terminal_abbreviate", FileSystem().getcwd())
     global_abbreviate = GetConfigByKey("terminal_abbreviate", directory=os.path.join(getHomeDirectory(), "xkvim"))
     terminal_abbreviate = global_abbreviate + project_abbreviate
     results = []

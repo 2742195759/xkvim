@@ -232,9 +232,13 @@ def CurrentWord():
 
 def input_no_throw(prompt="", text="", completion=None):
     try:
-        return vimeval(f"input('{prompt}', '{text}', '{completion}')")
+        if completion: 
+            return vimeval(f"input('{prompt}', '{text}', '{completion}')")
+        else: 
+            return vimeval(f"input('{prompt}', '{text}')")
     except: 
-        return None
+        pass
+    return None
 
 def get_char_no_throw():
     try:
