@@ -286,7 +286,6 @@ def complete(args):
         vim.eval('complete(%d, %s)' % (find_start_pos(), obj))
         
     ultisnip_items = ultisnip_complete_items()
-    print ("yes")
     cur_word = vim_utils.CurrentWordBeforeCursor()
     if len(cur_word) < 1 and '.' not in cur_word: return
     cur_file = vim_utils.CurrentEditFile(True)
