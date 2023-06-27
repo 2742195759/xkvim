@@ -13,7 +13,7 @@ def GetConfigByKey(key, directory='./'):
         # 读取文件内容  
         data = yaml.safe_load(f)  
     # 输出解析结果  
-    if key not in data: return []
+    if (not data) or (key not in data): return []
     return data[key]
 
 
@@ -69,6 +69,7 @@ def GetSearchGrepArgs(excludes):
     for exclude in files: 
         grep_cmd.append(f' --exclude="{exclude}" ')
     return grep_cmd
+
 
 def escape(command, chars="'\\\""):
     l = []
