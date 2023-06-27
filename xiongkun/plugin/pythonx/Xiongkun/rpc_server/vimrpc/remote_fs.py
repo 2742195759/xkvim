@@ -29,7 +29,21 @@ class RemoteFS:
 
     @server_function
     def list_dir(self, dirpath):
-        return os.listdir(dirpath)
+        try:
+            return os.listdir(dirpath)
+        except: 
+            return []
+
+    @server_function
+    def file_complete(self, leading: str):
+        import glob
+        files = glob.glob(f"{leading}*")
+        def add_slash(file):
+            if osp.isdir(file):
+                return file + "/"
+            return file
+        files = list(map(add_slash, files))
+        return files
 
     @server_function
     def exists(self, filepath):

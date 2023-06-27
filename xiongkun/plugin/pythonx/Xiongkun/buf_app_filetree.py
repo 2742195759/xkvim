@@ -56,6 +56,10 @@ class CursorLineBuffer(WidgetBuffer):
             'k': 'k' ,
         }[char]
         self.normal(char)
+        self.post_cursor_move(char)
+
+    def post_cursor_move(self, char): 
+        pass
 
     def on_key(self, key):
         if super().on_key(key):
@@ -74,11 +78,13 @@ class CursorLineBuffer(WidgetBuffer):
             self.last_search = search
             self.execute(f"match Search /{search}/")
             self.normal_no_except(f"/{search}\n")
+            self.post_cursor_move('/')
             return True
         if key in ['n', 'N']: 
             if self.last_search: 
                 search_dir = {'n': '/', 'N': '?'}
                 self.normal_no_except(f"{search_dir[key]}{self.last_search}\n")
+            self.post_cursor_move(key)
             return True
         return False
 
@@ -194,8 +200,7 @@ class FileTreeBuffer(CursorLineBuffer):
         cur_lnum = self.get_lnum()
         self.view_in(cur_lnum)
 
-    def on_cursor_move(self, char):
-        super().on_cursor_move(char)
+    def post_cursor_move(self, char):
         cur_line = self.cur_cursor_line()
         self.select_item = self.views[cur_line][1]
 

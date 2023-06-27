@@ -32,7 +32,7 @@ def RemoteSave(args):
     else:
         vim.command("write")
         
-@vim_register(command="RE", with_args=True)
+@vim_register(command="RE", with_args=True, command_completer="customlist,RemoteFileCommandComplete")
 def RemoteEdit(args):
     """ 
     Remote Edit command: RE
@@ -186,6 +186,13 @@ class DirectoryTree:
             node.father.is_open = True
             node = node.father
 
+vim.command("""
+function! RemoteFileCommandComplete(ArgLead, CmdLine, CursorPos)
+    let leading = a:ArgLead
+    let res = py3eval("Xiongkun.FileSystem().file_complete('" . leading . "')")
+    return res
+endfunction
+""")
 
 @vim_utils.Singleton
 class FileSystem:
@@ -278,6 +285,11 @@ class FileSystem:
 
     def list_dir(self, dirpath):
         return rpc_wait("remotefs.list_dir", dirpath)
+
+    def file_complete(self, leading): 
+        if not leading.startswith("/"):
+            leading = os.path.join(self.getcwd(), leading)
+        return rpc_wait("remotefs.file_complete", leading)
 
     def cd(self, dirpath):
         self.cwd = dirpath
