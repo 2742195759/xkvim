@@ -221,10 +221,11 @@ def RunCurrentFile(args):
     >>> <F9>
     """
     file = vim_utils.CurrentEditFile(True)
-    from .vim_utils import GetConfigByKey
     run_command = []
     if vim.eval("getcwd()").strip() in file: 
-        run_command = GetConfigByKey("default_run", "./")
+        from .remote_fs import FileSystem
+        from .rpc import rpc_wait
+        run_command = rpc_wait("config.get_config_by_key", "default_run", FileSystem().getcwd())
     if len(run_command) == 0: 
         run_file_in_terminal_window(file)
     else:

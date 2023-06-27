@@ -249,8 +249,8 @@ class FileTreeBuffer(CursorLineBuffer):
         ret = get_char_no_throw()
         if ret == "a": 
             MessageWindow().set_markdowns(["创建：\n输入文件名完整路径，目录以 '/' 结尾"])
-            path = input_no_throw("", f"{node.fullpath}")
-            if FileSystem().create_node(path): 
+            path = input_no_throw("", f"{node.fullpath}", "customlist,RemoteFileCommandComplete")
+            if path and FileSystem().create_node(path): 
                 vim.command(f"echow 'success creating {path}'")
         if ret == 'd': 
             if FileSystem().remove_node(node.fullpath): 

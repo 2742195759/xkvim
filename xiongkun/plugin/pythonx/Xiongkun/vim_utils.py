@@ -232,7 +232,7 @@ def CurrentWord():
 
 def input_no_throw(prompt="", text="", completion=None):
     try:
-        return vimeval(f"input('{prompt}', '{text}')")
+        return vimeval(f"input('{prompt}', '{text}', '{completion}')")
     except: 
         return None
 
@@ -950,7 +950,6 @@ def GetSearchFiles(directory):
     find_args = GetSearchFindArgs(excludes)
     find_cmd = base_cmd + find_args
     return GetSearchFilesFromCommand(find_cmd)
-
 
 class PopupList:
     # depends on vim_quick#ui
