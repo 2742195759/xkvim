@@ -73,7 +73,7 @@ class RPCChannel:
         if hasattr(self, "local_server"): 
             os.killpg(self.local_server.pid, signal.SIGTERM)
             
-    def __init__(self, name, remote_server, type, function):
+    def __init__(self, name, remote_server, type, function, noblock=0):
         if remote_server is None: 
             port = RPCChannel.local_port
             remote_server = f"127.0.0.1:{port}"
@@ -92,8 +92,7 @@ class RPCChannel:
             'mode': 'nl',
             'callback': f'{name}Server',
             'drop': 'auto',
-            # store will block when noblock=1, but will not stuck when network is not good.
-            'noblock': 0, 
+            'noblock': noblock,
             'waittime': 3000,
         }
         self.job_name = remote_server
@@ -212,20 +211,17 @@ class RPCServer:
         self.channel.send([-1, "keeplive", []])
 
         
-local_rpc = None
-
+local_rpc = RPCServer("Local", None, "vimrpc")
+commands("""
+augroup LocalServerDelete
+    autocmd!
+    autocmd VimLeave * py3 Xiongkun.rpc_server().channel.delete()
+augroup END
+""")
 
 def rpc_server():
     global local_rpc
     if remote_project is None: 
-        if local_rpc is None: 
-            commands("""
-            augroup LocalServerDelete
-                autocmd!
-                autocmd VimLeave * py3 Xiongkun.rpc_server().channel.delete()
-            augroup END
-            """)
-            local_rpc = RPCServer("Local", None, "vimrpc")
         return local_rpc
     return remote_project.rpc
 

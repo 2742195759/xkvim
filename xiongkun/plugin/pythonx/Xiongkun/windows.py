@@ -541,153 +541,167 @@ class BoxListWindow(Window):# {{{
         return Callback()
 # }}}
 
-class GlobalPreviewWindow:# {{{
-    pwin = None
-    hidden = True
-    candidate_locs = []
-    candidate_idx = 0
-    win_ops = {}
+class LocationPreviewWindows:# {{{
+    def __init__(self):
+        self.pwin = None
+        self.hidden = True
+        self.candidate_locs = []
+        self.candidate_idx = 0
+        self.win_ops = {}
+        self.last_find_cursor = (-1, -1)
 
-    @staticmethod
-    def cur_loc():
-        if GPW.candidate_idx < 0: return 
-        if GPW.candidate_idx >= len(GPW.candidate_locs): return 
-        return GPW.candidate_locs[GPW.candidate_idx]
+    def cur_loc(self):
+        if self.candidate_idx < 0: return 
+        if self.candidate_idx >= len(self.candidate_locs): return 
+        return self.candidate_locs[self.candidate_idx]
     
-    @staticmethod
-    def go():
-        loc = GPW.cur_loc()
-        if GPW.pwin is not None:
-            GPW.pwin.destory()
-            GPW.pwin = None
+    def go(self):
+        loc = self.cur_loc()
+        if self.pwin is not None:
+            self.pwin.destory()
+            self.pwin = None
         if loc is None : return 
-        if len(GPW.candidate_locs) == 1: 
-            GPW.win_ops['title'] = loc.getTitle()
+        if len(self.candidate_locs) == 1: 
+            self.win_ops['title'] = loc.getTitle()
         else: 
-            GPW.win_ops['title'] = f"[{GPW.candidate_idx+1} / {len(GPW.candidate_locs)}] " + loc.getTitle()
-        GPW.pwin = PreviewWindow(loc, **GPW.win_ops)
-        GPW.pwin.create()
-        if GPW.hidden: GPW.pwin.hide()
+            self.win_ops['title'] = f"[{self.candidate_idx+1} / {len(self.candidate_locs)}] " + loc.getTitle()
+        self.pwin = PreviewWindow(loc, **self.win_ops)
+        self.pwin.create()
+        if self.hidden: self.pwin.hide()
 
-    @staticmethod
-    def set_locs(locs, idx=0, **args):
+    def set_locs(self, locs, idx=0, **args):
         shows = [ PreviewWindow.LocationItem(loc) for loc in locs ]
-        GPW.set_showable(shows)
+        self.set_showable(shows, idx)
 
-    @staticmethod
-    def set_showable(showable, idx=0, **args):
-        GPW.candidate_locs = showable
-        GPW.win_ops = args
-        GPW.candidate_idx = idx
-        GPW.go()
+    def set_showable(self, showable, idx=0, **args):
+        self.candidate_locs = showable
+        self.win_ops = args
+        self.candidate_idx = idx
+        self.go()
 
-    @staticmethod
-    def page_down():
-        if GPW.pwin is not None:
-            GPW.pwin._execute_normal("")
-            GPW.pwin._execute_normal("zz")
+    def page_down(self):
+        if self.pwin is not None:
+            self.pwin._execute_normal("")
+            self.pwin._execute_normal("zz")
 
-    @staticmethod
-    def page_up():
-        if GPW.pwin is not None:
-            GPW.pwin._execute_normal("")
-            GPW.pwin._execute_normal("zz")
+    def page_up(self):
+        if self.pwin is not None:
+            self.pwin._execute_normal("")
+            self.pwin._execute_normal("zz")
 
-    @staticmethod
-    def next():
-        if GPW.candidate_idx < len(GPW.candidate_locs) - 1:
-            GPW.candidate_idx += 1
-        GPW.show()
-        GPW.go()
+    def next(self):
+        if self.candidate_idx < len(self.candidate_locs) - 1:
+            self.candidate_idx += 1
+        self.show()
+        self.go()
 
-    @staticmethod
-    def prev():
-        if GPW.candidate_idx > 0:
-            GPW.candidate_idx -= 1
-        GPW.show()
-        GPW.go()
+    def prev(self):
+        if self.candidate_idx > 0:
+            self.candidate_idx -= 1
+        self.show()
+        self.go()
 
-    @staticmethod
-    def show():
-        GPW.hidden = False
-        if GPW.pwin is not None:
-            GPW.pwin.show()
+    def show(self):
+        self.hidden = False
+        if self.pwin is not None:
+            self.pwin.show()
 
-    @staticmethod
-    def hide():
-        GPW.hidden = True
-        if GPW.pwin is not None:
-            GPW.pwin.hide()
+    def hide(self):
+        self.hidden = True
+        if self.pwin is not None:
+            self.pwin.hide()
 
-    @staticmethod
-    def trigger():
-        if GPW.hidden: GPW.show()
-        else: GPW.hide()
+    def trigger(self):
+        if self.hidden: self.show()
+        else: self.hide()
 
-
-    """ normal mode:
-        <M-p> will trigger IFind. 
-        if you move the mouse: <M-p> will refind. 
-        if you don't move the mouse and <M-p> again, you will close preview window.
-    """
-    last_find_cursor = (-1, -1)
-    @staticmethod
-    def find(word=None):
+    def find(self, word=None):
         new_xy = GetCursorXY()
-        if new_xy == GPW.last_find_cursor:
-            GPW.trigger()
+        if new_xy == self.last_find_cursor:
+            self.trigger()
         else: 
-            GPW.last_find_cursor = new_xy
+            self.last_find_cursor = new_xy
             if not word: word = vimeval("expand('<cword>')")
             if not word: return 
             pwd = GetPwd()
             USEngineOpts = {
                 'searchers': [LSPSearcher, CtagSearcher, GrepSearcher], 
                 'async_mask': [0, 0, 1],
-                'window': GPW.GetWindowCallback(),
+                'window': self.GetWindowCallback(),
             }
-            GPW.use = UniverseSearchEngine(USEngineOpts)
-            GPW.use.search(word, pwd)
-            GPW.use.render()
+            self.use = UniverseSearchEngine(USEngineOpts)
+            self.use.search(word, pwd)
+            self.use.render()
     
-    @staticmethod
-    def open_in_preview_window():
-        loc = GPW.cur_loc()
+    def open_in_preview_window(self):
+        loc = self.cur_loc()
         if  loc is not None and isinstance(loc, PreviewWindow.LocationItem):
             loc = loc.loc
             remote_fs.GoToLocation(loc, ".") 
         else: 
             print("Please set locations of preview windows.")
-        GPW.hide()
+        self.hide()
 
-    @classmethod
-    def GetWindowCallback(cls):
+    def GetWindowCallback(this):
         class Callback(USEWindowCallback):
             def on_update(self, items):
                 locs = items2locs(items)
                 self.empty = (len(locs) == 0)
-                GPW.set_locs(locs, idx=0, search=self.inp)
-                
+                this.set_locs(locs, idx=0, search=self.inp)
             def on_create(self, inp, items, **opts):
                 self.inp = inp
                 locs = items2locs(items)
                 self.empty = (len(locs) == 0)
-                GPW.set_locs(locs, idx=0, search=self.inp)
-                GPW.show()
-
+                this.set_locs(locs, idx=0, search=self.inp)
+                this.show()
             def on_done(self):
                 pass
-
             def on_destory(self):
-                GPW.hide()
-
+                this.hide()
             def is_alive(self):
-                return not GPW.hidden
-
+                return not this.hidden
         return Callback()
+
+
+@Singleton
+class GlobalPreviewWindowHandle:
+    """ normal mode:
+        <M-p> will trigger IFind. 
+        if you move the mouse: <M-p> will refind. 
+        if you don't move the mouse and <M-p> again, you will close preview window.
+    """
+    def __init__(self):
+        self.stack = []
+        self.stack.append(({}, LocationPreviewWindows()))
+
+    def __getattr__(self, key):
+        assert len(self.stack) > 0
+        hooker = self.stack[-1][0].get(key, None)
+        target = getattr(self.stack[-1][1], key)
+        if hooker: hooker(self)
+        return target
+
+    def register_hooker(self, key, fn):
+        self.stack[-1][0][key] = fn
+    
+    def push_window(self): 
+        self.hide()
+        self.stack.append(({}, LocationPreviewWindows()))
+    
+    def pop_window(self):
+        self.stack.pop()
+
+    def tmp_window(self):
+        self.push_window()
+        def hide_hook(self):
+            self.stack.pop()
+        self.register_hooker("hide", hide_hook)
+        
+
+GlobalPreviewWindow = GlobalPreviewWindowHandle()
+GPW = GlobalPreviewWindowHandle()
 # }}}
 
-GPW = GlobalPreviewWindow
 # ==============
 
 class Searcher:# {{{

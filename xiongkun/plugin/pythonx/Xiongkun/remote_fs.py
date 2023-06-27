@@ -32,8 +32,13 @@ def RemoteSave(args):
     else:
         vim.command("write")
         
-@vim_register(command="RemoteEdit", with_args=True)
+@vim_register(command="RE", with_args=True)
 def RemoteEdit(args):
+    """ 
+    Remote Edit command: RE
+    RE <abspath>
+    >>> RE + <
+    """
     if len(args) == 0: 
         bufname = vim.eval("bufname()")
         filepath = FileSystem().filepath(bufname)
@@ -234,12 +239,12 @@ class FileSystem:
         return bufname
 
     def bufload_file(self, filepath, force=False):
-        bufname = self.bufname(filepath)
+        filepath = self.abspath(filepath)
         def do_open(content): 
             tmp_file = vim_utils.TmpName()
             with open(tmp_file, "w") as f: 
                 f.write(content)
-            bufnr = vim.eval(f'bufadd("{bufname}")')
+            bufnr = vim.eval(f'bufadd("{filepath}")')
             with vim_utils.CurrentBufferGuard():
                 vim.eval(f"setbufvar({bufnr}, '&buftype', 'acwrite')")
                 vim.eval(f"setbufvar({bufnr}, '&buflisted', 1)")
@@ -250,8 +255,8 @@ class FileSystem:
                 vim.command("set nomodified")
                 vim.eval("setbufvar(bufnr(), 'remote', 'remote')")
             return bufnr
-        bufnr = vim.eval(f"bufnr('{bufname}')")
-        if bufnr == "-1" or force : 
+        exist = self.bufexist(filepath)
+        if not exist or force : 
             if self.is_remote(): 
                 content = FileSystem().fetch(filepath)
                 bufnr = do_open(content)
@@ -260,6 +265,8 @@ class FileSystem:
                 vim.command(f"noswapfile call bufload('{filepath}')")
             return bufnr
         else: 
+            bufnr = vim.eval(f"bufnr('{filepath}')")
+            assert bufnr != "-1"
             return bufnr
 
     def bufexist(self, file):
