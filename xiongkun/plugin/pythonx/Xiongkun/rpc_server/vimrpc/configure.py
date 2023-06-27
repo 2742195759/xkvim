@@ -13,7 +13,7 @@ class ProjectConfigure:
     def __init__(self, queue):
         self.queue = queue
 
-    @process_function
+    @server_function
     def get_config_by_key(self, key, directory):
         return GetConfigByKey(key, directory)
         
