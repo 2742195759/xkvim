@@ -48,6 +48,7 @@ def TracebackOneLine(args):
         f"({file_pattern}):({number_pattern})", 
         f'File "({file_pattern})", line ({number_pattern}), in',
         f"({file_pattern})\\(({number_pattern})\\)",
+        f'file "({file_pattern})", line ({number_pattern})', # pycode error line.
     ]
     log (patterns)
     loc = None
