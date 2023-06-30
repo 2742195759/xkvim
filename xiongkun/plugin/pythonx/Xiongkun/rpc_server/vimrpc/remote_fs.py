@@ -74,12 +74,14 @@ class RemoteFS:
         child.stdin.close()
         outputs = [line[:-1] for line in child.stdout.readlines()]
         errors = [line[:-1] for line in child.stderr.readlines()]
+        code = child.wait()
         ret = {}
         ret['status'] = 'ok'
-        if errors: 
+        ret['code'] = code
+        ret['output'] = outputs
+        if code != 0: 
             ret['status'] = 'error'
             ret['error'] = errors
-        ret['output'] = outputs
         return ret
 
 if __name__ == "__main__":

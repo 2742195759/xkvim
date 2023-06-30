@@ -6,13 +6,14 @@ from .func_register import *
 from .vim_utils import *
 from .buf_app import *
 from .remote_machine import RemoteConfig
+from .remote_fs import FileSystem
 import re
 
 def OpenPR(pr_str):#{{{
     pr_str = str(pr_str)
     url = None
     url_first = None
-    for line in str(os.popen("git remote -v").read()).split("\n"): 
+    for line in FileSystem().eval("git remote -v"):
         line = line.split(' ')[0].strip()
         field = line.split("\t")
         if field[0] == 'upstream': 
@@ -41,8 +42,7 @@ def GetGitComment(filepath, line_nr):#{{{
     others = '('.join(line.split('(')[1:])
     info = others.split(')')[0]
     content = ')'.join(others.split(')')[1:])
-    comment = os.popen("git show %s -q" % commit_id)
-    comment = str(comment.read())
+    comment = FileSystem().eval("git show %s -q" % commit_id)
     return commit_id, info, content, comment#}}}
 
 @vim_register(command="GG", action_tag="git blame")
@@ -55,7 +55,6 @@ def ShowGitComment(args):#{{{
         filepath = CurrentEditFile()
         line_nr = GetCursorXY()[0]
         commit_id, info, content, comment = GetGitComment(filepath, line_nr)
-        comment = comment.split('\n')
         for line in comment:
             vim.command('echom "' + line + '"')
     except:

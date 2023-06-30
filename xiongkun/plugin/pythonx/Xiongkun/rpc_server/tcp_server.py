@@ -51,6 +51,7 @@ def vim_rpc_loop(handle):
     while True:
         rs, ws, es = select.select([handle.rfile.fileno()], [], [], 3.0)
         sys.stdout.flush()
+        sys.stderr.flush()
         if handle.rfile.fileno() in rs:
             try:
                 bytes = handle.request.recv(10240)
