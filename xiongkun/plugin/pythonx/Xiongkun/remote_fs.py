@@ -194,6 +194,7 @@ function! RemoteFileCommandComplete(ArgLead, CmdLine, CursorPos)
 endfunction
 """)
 
+
 @vim_utils.Singleton
 class FileSystem:
     def __init__(self):

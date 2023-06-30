@@ -34,15 +34,15 @@ def _ParsePR(filepath, line_nr):#{{{
 def GetGitComment(filepath, line_nr):#{{{
     """GetGitComment from filepath and line number
     """
-    gitblame = os.popen('git blame ' + filepath)
-    lines = gitblame.readlines()
+    lines = FileSystem().eval('git blame -- ' + filepath)
     line = lines[line_nr-1]
     commit_id = line.split('(')[0].strip()
     if commit_id[0] == '^': commit_id = commit_id[1:]
+    commit_id = commit_id.split(' ')[0].strip()
     others = '('.join(line.split('(')[1:])
     info = others.split(')')[0]
     content = ')'.join(others.split(')')[1:])
-    comment = FileSystem().eval("git show %s -q" % commit_id)
+    comment = FileSystem().eval("git show -q %s " % commit_id)
     return commit_id, info, content, comment#}}}
 
 @vim_register(command="GG", action_tag="git blame")
@@ -56,6 +56,7 @@ def ShowGitComment(args):#{{{
         line_nr = GetCursorXY()[0]
         commit_id, info, content, comment = GetGitComment(filepath, line_nr)
         for line in comment:
+            line = escape(line, "\"")
             vim.command('echom "' + line + '"')
     except:
         vim.command('echoerr ' + '"Not Commit Yet"')#}}}
