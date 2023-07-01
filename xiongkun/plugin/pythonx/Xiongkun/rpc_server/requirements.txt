@@ -1,1 +1,3 @@
 fuzzyfinder
+pyppeteer
+pyppeteer_stealth

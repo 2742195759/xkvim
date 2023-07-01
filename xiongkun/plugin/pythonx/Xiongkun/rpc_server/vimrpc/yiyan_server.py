@@ -45,11 +45,13 @@ class Yiyan:
         return lines
 
 def test_main():
-    yiyan = Yiyan()
-    yiyan.init_yiyan(0)
-    print(yiyan.query(1, "hello?"))
-    print(yiyan.query(2, "你好，你是谁?"))
-    breakpoint() 
+    from server_cluster import ServerCluster, printer_process_fn
+    servers = ServerCluster()
+    servers.start_queue(printer_process_fn)
+    #servers.grepfinder = GrepSearcher(servers.queue)
+    servers.get_server_fn("yiyan.init_yiyan")(1)
+    servers.get_server_fn("yiyan.query")(2, "hello?")
+    servers.stop()
 
 if __name__ == "__main__":
     test_main()
