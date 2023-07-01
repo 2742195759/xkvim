@@ -1,6 +1,7 @@
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, CommandList, BufferHistory
 from .func_register import vim_register, get_all_action
 from .vim_utils import SetVimRegister
+from .remote_fs import FileSystem
 import vim
 import os
 
@@ -76,8 +77,7 @@ def CreateTmpfile(args):
     >>> CreateTmp py # 创建一个临时的python文件
     >>> CreateTmp cc # 创建一个临时的c++文件
     """
-    tmp_name = vim.eval("tempname()")
-    vim.command(f"tabe {tmp_name}.{args[0]}")
+    FileSystem().create_temp_file(args[0])
 
 @vim_register(command="ChangeDirectory", with_args=True, command_completer="file")
 def ChangeDirectoryCommand(args):
@@ -95,7 +95,8 @@ def ChangeDirectoryCommand(args):
 
 @vim_register(command="CleanSwaps")
 def CleanSwapFiles(args):
-    vim.eval('system("find ./ -name \'.*.swp\' | xargs rm ")')
+    cwd = FileSystem().getcwd()
+    FileSystem().eval(f"find {cwd} -name '.*.swp' | xargs rm ")
 
 def send_keys(bufnr, keys):
     vim.eval(f"term_sendkeys({bufnr}, \"{keys}\")")

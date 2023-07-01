@@ -11,7 +11,6 @@ from .log import log
 import threading
 from .vim_utils import VimWindow, Singleton, VimKeyToChar, CursorGuard, get_char_no_throw
 
-
 """ 
 QuickJump is not in a prefect state.
 

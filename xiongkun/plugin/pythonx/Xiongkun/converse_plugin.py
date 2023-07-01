@@ -14,6 +14,8 @@ from .log import log, log_google
 from urllib.parse import quote
 import shlex
 from .remote_machine import RemoteConfig, remote_machine_guard
+from .remote_fs import FileSystem
+from .rpc import rpc_wait
 
 @vim_register(command="SetRemote", with_args=True, action_tag="set remote")
 def SetRemote(args):
@@ -137,15 +139,23 @@ def run_python_file(python_file, **kwargs):
         return ""
     return info
 
+
+def open_terminal_window(name):
+    if not FileSystem().is_remote(): 
+        vim.command("bot terminal")
+    else: 
+        vim.command("Bash")
+    vim.command("wincmd J")
+    vim.command(f"file {name}")
+
 def run_in_terminal_window(cmd):
     if int(vim.eval("bufexists('terminal_run_file')")) == 0: 
         log(f"Start run `{cmd}` in terminal windows.")
         with vim_utils.CurrentWindowGuard():
-            vim.command("bot terminal")
+            open_terminal_window("terminal_run_file")
             vim.command("resize 7")
             vim.command("setlocal bufhidden=hide")
             bufnr = vim.eval("bufnr()")
-            vim.command("file terminal_run_file")
     bufnr = vim.eval("bufnr('terminal_run_file')")
     is_hidden = int(vim.eval(f"getbufinfo({bufnr})")[0]['hidden'])
     if is_hidden == 1: 
@@ -221,10 +231,9 @@ def RunCurrentFile(args):
     >>> <F9>
     """
     file = vim_utils.CurrentEditFile(True)
+    file = FileSystem().abspath(file)
     run_command = []
     if vim.eval("getcwd()").strip() in file: 
-        from .remote_fs import FileSystem
-        from .rpc import rpc_wait
         run_command = rpc_wait("config.get_config_by_key", "default_run", FileSystem().getcwd())
     if len(run_command) == 0: 
         run_file_in_terminal_window(file)

@@ -1175,8 +1175,8 @@ snippet select "select nonblocking function." #{{{
                 break
 
         socket_client.close()
-        socket_server.close()   #}}}
-endsnippet
+        socket_server.close()   
+endsnippet#}}}
 
 snippet execute_time "execute time of function." #{{{
 def execute_time(func):  
@@ -1187,8 +1187,9 @@ def execute_time(func):
         execution_time = end_time - start_time  
         print("Execute time:", execution_time)
         return result  
-    return wrapper #}}}
+    return wrapper 
 endsnippet 
+#}}}
 
 snippet bytecode_ast "execute time of function." #{{{
 import os
@@ -1205,5 +1206,44 @@ def func(a, b):
 
 output = convert_to_bytecode_ast(dis.get_instructions(func))
 pprint.pprint(DumpTransform()(output))
+endsnippet  
+#}}}
+
+snippet py_closure "execute time of function." #{{{
+import dis
+import os
+import types
+import inspect
+
+def func(a, b):
+    print (func.__code__.co_cellvars)
+    print (func.__code__.co_freevars)
+    print ("first: ", inspect.currentframe().f_locals)
+    c = 3
+    breakpoint() 
+    print ("second:", inspect.currentframe().f_locals)
+    def mm ():
+        print (mm.__code__.co_cellvars)
+        print (mm.__code__.co_freevars)
+        print ("")
+        def cc (): 
+            nonlocal a 
+            a = 12
+            a = c + 1
+            print (cc.__code__.co_cellvars)
+            print (cc.__code__.co_freevars)
+            print ("")
+            return a + b
+        return cc()
+    print ("third:", inspect.currentframe().f_locals)
+    return mm()
+
+dis.dis(func)
+print (func(2, 3))
+
+xx = 1
+
+tt = types.CellType()
+breakpoint() 
 endsnippet  
 #}}}

@@ -84,6 +84,14 @@ class RemoteFS:
             ret['error'] = errors
         return ret
 
+    @server_function
+    def create_temp_file(self, suffix):
+        import tempfile
+        tempname = tempfile.mktemp()
+        tempname += '.' + suffix
+        os.system(f"touch {tempname}")
+        return tempname
+
 if __name__ == "__main__":
     from server_cluster import ServerCluster, printer_process_fn
     servers = ServerCluster()

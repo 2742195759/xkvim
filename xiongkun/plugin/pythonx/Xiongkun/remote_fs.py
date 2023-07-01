@@ -357,5 +357,12 @@ class FileSystem:
         if ret['status'] == "error":
             raise RuntimeError(f"Eval Failed: {command_str} with error: {ret['error']}")
 
+    def create_temp_file(self, suffix):
+        """ create a temp file and start to edit it.
+        """
+        filename = rpc_wait("remotefs.create_temp_file", suffix)
+        vim.command('tabe')
+        self.edit(filename, force=True)
+
     def current_filepath(self):
         return self.filepath(vim.eval("bufname()"))

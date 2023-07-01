@@ -60,6 +60,7 @@ class GitCommitter(CursorLineBuffer):
             number = self.cur_cursor_line()
             if number < 1: return True
             self.mult.onselect(number - 1)
+            GPW.hide()
             self.on_enter(number)
             return True
         if key == "p": 
