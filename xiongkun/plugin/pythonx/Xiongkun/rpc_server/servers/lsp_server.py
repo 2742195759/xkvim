@@ -16,6 +16,7 @@ class DisableException(Exception):
     pass
 
 def pack(package):
+    print ("[LSP input ] ", package)
     bytes = json.dumps(package)
     package = f"Content-Length: {len(bytes)}\r\n\r\n" + bytes
     return package.encode("utf-8")
@@ -85,9 +86,13 @@ class FileRequestQueue:
                     pass
         self.file2queue = {}
 
+def uri_file(file):
+    #return file
+    return "file://" + file
+
 class LSPProxy:
     def __init__(self, queue):
-        self.server_candidate = [JediServer(), ClangdServer()]
+        self.server_candidate = [JediServer(), ClangdServer(), HaskellServer()]
         self.version_map = {}
         self.disable_filetype = []
         self.rootUri = ""
@@ -163,7 +168,7 @@ class LSPProxy:
                         "triggerKind": 1, # invoke trigger.
                     },
                     "textDocument": {
-                        "uri": "file://" + filepath,
+                        "uri": uri_file(filepath),
                         "version": self.lastest(filepath),
                     },
                     "position": {
@@ -187,7 +192,7 @@ class LSPProxy:
             "method": "textDocument/%s" % method,
             "params": {
                 "textDocument": {
-                    "uri": "file://" + filepath,
+                    "uri": uri_file(filepath)
                 },
                 "position": {
                     "line": pos[0], 
@@ -210,7 +215,7 @@ class LSPProxy:
                     "isRetrigger": False,
                 },
                 "textDocument": {
-                    "uri": "file://" + filepath,
+                    "uri": uri_file(filepath),
                     "version": self.lastest(filepath),
                 },
                 "position": {
@@ -237,7 +242,7 @@ class LSPProxy:
 
         param = {
             "textDocument": {
-                "uri": "file://" + filepath,
+                "uri": uri_file(filepath),
                 "version": self.updateVersion(filepath, content),
             },
             "contentChanges": [{"text": "\n".join(content)}],
@@ -264,7 +269,7 @@ class LSPProxy:
                 "method": "textDocument/didOpen",
                 "params": {
                     "textDocument": {
-                        "uri": "file://" + filepath,
+                        "uri": uri_file(filepath),
                         "languageId": languageId,
                         "version": self.updateVersion(filepath, content),
                         "text": "".join(content),
@@ -281,7 +286,6 @@ class LSPProxy:
 
     #@interface
     def _dispatch(self, filepath, json):
-        print ("[LSP input ] ", json)
         server = self.get_server(filepath)
         server.stdin.write(pack(json))
         server.stdin.flush()
@@ -365,7 +369,9 @@ class JediServer(LanguageServer):
 
     def initialize(self, rootUri):
         init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":"file:///home/ubuntu/artifacts/","workspaceFolders":null}}'
-        return json.loads(init)
+        init = json.loads(init)
+        init['params']['rootUri'] = uri_file(rootUri)
+        return init
 
     def match_suffix(self, suf):
         return suf == 'py'
@@ -378,6 +384,29 @@ class JediServer(LanguageServer):
 
     def get_command(self):
         cmd = [f'cd {self.rootUri} && jedi-language-server 2>jedi.log']
+        return cmd
+
+class HaskellServer(LanguageServer): 
+    def __init__(self):
+        super().__init__()
+
+    def initialize(self, rootUri):
+        init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":"file:///home/ubuntu/artifacts/","workspaceFolders":null}}'
+        init = json.loads(init)
+        init['params']['rootUri'] = uri_file(rootUri)
+        return init
+
+    def match_suffix(self, suf):
+        return suf in ['haskell', "hs", "lhaskell"]
+
+    def getLanguageId(self):
+        return "haskell"
+
+    def executable(self):
+        return "haskell-language-server-wrapper"
+
+    def get_command(self):
+        cmd = [f'cd {self.rootUri} && haskell-language-server-wrapper --lsp 2>haskell.log']
         return cmd
 
 class ClangdServer(LanguageServer): 
@@ -401,7 +430,9 @@ class ClangdServer(LanguageServer):
 
     def get_command(self):
         clangd_directory = os.path.join(self.home, "clangd")
-        return [f'cd {clangd_directory} && ./clangd --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
+        #if os.path.isfile(f"{self.rootUri}/compile-command.json")
+        #return [f'cd {clangd_directory} && ./clangd --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
+        return [f'cd {clangd_directory} && ./clangd --background-index=0 -j=10 2>clangd.log']
 
 def handle_input(handle, lsp, req):
     try:
@@ -419,6 +450,8 @@ def handle_input(handle, lsp, req):
         send_to_vim(handle, Protocal.CreateShowMessage(1, f"{str(e)}"))
 
 def receive_package(r):
+    output = r.readline()
+    print ("[LSP output leader]", output)
     size = int(r.readline().strip().split(b':')[1])
     while True:
         line = r.readline().strip()

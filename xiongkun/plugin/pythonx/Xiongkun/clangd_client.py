@@ -19,19 +19,31 @@ from .command_doc_popup import DocPreviewBuffer
 
 vim.command("set cot=menuone,noselect")
 
+auto_files = [
+    '*.py',
+    '*.cc',
+    '*.h',
+    '*.cpp',
+    '*.cpp',
+    '*.hs',
+    '*.haskell',
+]
+
 def _StartAutoCompile():# {{{
+    files = ",".join(auto_files)
     cmd = """
 augroup ClangdServer
     autocmd!
-    autocmd BufNew *.py,*.cc,*.h,*.cpp call Py_add_document([expand("<afile>")])
-    autocmd TextChanged *.py,*.cc,*.h,*.cpp call Py_did_change([1]) 
-    autocmd TextChangedI *.py,*.cc,*.h,*.cpp call Py_complete([])
-    autocmd CursorMovedI *.py,*.cc,*.h,*.cpp call Py_signature_help([]) 
-    autocmd CompleteDonePre *.py,*.cc,*.h,*.cpp call Py_complete_done([v:completed_item])
-    autocmd CompleteChanged *.py,*.cc,*.h,*.cpp call Py_complete_select([v:event['completed_item']])
+    autocmd BufNew {auto_files} call Py_add_document([expand("<afile>")])
+    autocmd TextChanged {auto_files} call Py_did_change([1]) 
+    autocmd TextChangedI {auto_files} call Py_complete([])
+    autocmd CursorMovedI {auto_files} call Py_signature_help([]) 
+    autocmd CompleteDonePre {auto_files} call Py_complete_done([v:completed_item])
+    autocmd CompleteChanged {auto_files} call Py_complete_select([v:event['completed_item']])
     autocmd InsertLeave * py3 Xiongkun.SignatureWindow().hide()
 augroup END
 """
+    cmd = cmd.format(auto_files=files)
     vim_utils.commands(cmd)# }}}
 
 def _EndAutoCompile():# {{{
