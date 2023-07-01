@@ -14,8 +14,9 @@ from .remote_fs import FileSystem
 from .rpc import get_address
 from collections import OrderedDict
 
-def send_keys(bufnr, keys):
+def send_keys(bufnr, keys, wait=0.2):
     vim.eval(f"term_sendkeys({bufnr}, \"{keys}\")")
+    time.sleep(wait)
 
 def LoadConfig(config_path="./.vim_clangd.py"): 
     pwd = GetPwd()

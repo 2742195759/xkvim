@@ -146,16 +146,17 @@ def open_terminal_window(name):
     else: 
         vim.command("Bash")
     vim.command("wincmd J")
-    vim.command(f"file {name}")
+    vim.command("resize 7")
+    vim.command("setlocal bufhidden=hide")
+    vim.command(f"silent file {name}")
+    bufnr = vim.eval("bufnr()")
+    return bufnr
 
 def run_in_terminal_window(cmd):
     if int(vim.eval("bufexists('terminal_run_file')")) == 0: 
         log(f"Start run `{cmd}` in terminal windows.")
         with vim_utils.CurrentWindowGuard():
-            open_terminal_window("terminal_run_file")
-            vim.command("resize 7")
-            vim.command("setlocal bufhidden=hide")
-            bufnr = vim.eval("bufnr()")
+            bufnr = open_terminal_window("terminal_run_file")
     bufnr = vim.eval("bufnr('terminal_run_file')")
     is_hidden = int(vim.eval(f"getbufinfo({bufnr})")[0]['hidden'])
     if is_hidden == 1: 
@@ -168,15 +169,14 @@ def run_in_terminal_window(cmd):
     #vim.command(f"call create_popup({bufnr})")
 
 def run_file_in_terminal_window(file, **kwargs):
-    import subprocess
     args_str = []
+    file = FileSystem().abspath(file)
     pre_command = ["source ~/.bashrc"]
-    with open(file, "r") as fp :
-        lines = fp.readlines()
-        for line in lines:
-            if line.startswith("#cmd:"):
-                line = line.replace("#cmd:", "").strip()
-                pre_command.append(line)
+    lines = FileSystem().fetch(file).split("\n")
+    for line in lines:
+        if line.startswith("#cmd:"):
+            line = line.replace("#cmd:", "").strip()
+            pre_command.append(line)
                 
     for key, val in kwargs.items():
         args_str.append(f"--{key} {val}")
