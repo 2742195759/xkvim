@@ -18,6 +18,7 @@ from .remote_fs import FileSystem
 from .command_doc_popup import DocPreviewBuffer
 
 vim.command("set cot=menuone,noselect")
+vim.command("set scl=yes")
 
 auto_files = [
     '*.py',
@@ -100,6 +101,7 @@ class LSPDiagManager:
         self._place("lsp_error", file, line, message)
 
     def warn(self, file, line, message=""):
+        return
         self._place("lsp_warn", file, line, message)
     
     def clear(self, file):
