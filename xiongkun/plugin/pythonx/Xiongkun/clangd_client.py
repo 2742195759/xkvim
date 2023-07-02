@@ -471,5 +471,4 @@ def set_remote_lsp(config_file):
     with open(config_file, 'r') as f:  
         data = yaml.safe_load(f)  
     host = data['host']
-    vim.command("CocDisable")
     clangd = LSPClient(host)
