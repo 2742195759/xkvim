@@ -25,8 +25,8 @@ auto_files = [
     '*.h',
     '*.cpp',
     '*.cpp',
-    #'*.hs',
-    #'*.haskell',
+    '*.hs',
+    '*.haskell',
 ]
 
 def _StartAutoCompile():# {{{
@@ -188,7 +188,10 @@ class LSPServer(RPCServer):
             diags = package['params']['diagnostics']
             for diag in diags:
                 line = diag['range']['start']['line'] + 1
-                LSPDiagManager().error(file, line, diag['message'])
+                if diag['severity'] == 1:
+                    LSPDiagManager().error(file, line, diag['message'])
+                elif diag['severity'] == 2:
+                    LSPDiagManager().warn(file, line, diag['message'])
 
     def notification(self, name, *args):
         stream = self.channel.stream_new(-1)
@@ -274,7 +277,7 @@ def lsp_complete_items(rsp):
     results = []
     for item in items:
         r = {}
-        r['word'] = item['insertText']
+        r['word'] = item.get('insertText', item.get('label'))
         r['abbr'] = item['label']
         r['info'] = item['document'] if 'document' in item else item['label']
         r['kind'] = kind2type.get(item['kind'], str(item['kind']))
@@ -310,10 +313,7 @@ def complete(args):
 
 @vim_register(name="GoToDefinition", command="Def")
 def py_goto_definition(args):
-    if FileSystem().is_remote(): 
-        goto_definition(['def'])
-    else: 
-        vim.command("normal gd")
+    goto_definition(['def'])
 
 @vim_register(name="Py_did_change")
 def did_change(args):

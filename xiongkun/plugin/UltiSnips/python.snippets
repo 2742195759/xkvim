@@ -1247,3 +1247,42 @@ tt = types.CellType()
 breakpoint() 
 endsnippet  
 #}}}
+
+snippet wrapper_application "a wrapper of a specified application, you can get input/output easily." #{{{
+##!/bin/env python3
+import subprocess
+import os
+import sys
+import select
+
+dump_file = "/home/data/project/dump.txt"
+
+fp = open (dump_file, "w")
+
+def main():
+    fp.write(str(sys.argv))
+    child = subprocess.Popen("/root/.ghcup/bin/haskell-language-server-wrapper --lsp", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    _rlist = [sys.stdin, child.stdout, child.stderr]
+    while child.poll() is None:
+        rlist, _, _ = select.select(_rlist, [], [], 2)
+        for tmp_socket in rlist:
+            if tmp_socket == sys.stdin: 
+                bytes = os.read(sys.stdin.fileno(), 10240)
+                os.write(fp.fileno(), "\r\n[Input]:\r\n".encode("utf-8"))
+                os.write(fp.fileno(), bytes)
+                child.stdin.write(bytes)
+                child.stdin.flush()
+            elif tmp_socket == child.stdout: 
+                bytes = os.read(child.stdout.fileno(), 10240).decode("utf-8")
+                os.write(fp.fileno(), "\r\n[Output]:\r\n".encode("utf-8"))
+                os.write(fp.fileno(), bytes.encode("utf-8"))
+                sys.stdout.write(bytes)
+                sys.stdout.flush()
+            elif tmp_socket == child.stderr: 
+                bytes = os.read(tmp_socket.fileno(), 10240).decode("utf-8")
+                sys.stderr.write(bytes)
+                sys.stderr.flush()
+
+main()
+endsnippet  
+#}}}
