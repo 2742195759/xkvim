@@ -16,9 +16,9 @@ class DisableException(Exception):
     pass
 
 def pack(package):
-    print ("[LSP input ] ", package)
     bytes = json.dumps(package)
     package = f"Content-Length: {len(bytes)}\r\n\r\n" + bytes
+    print ("[LSP input ] ", package.encode("utf-8"))
     return package.encode("utf-8")
 
 class Protocal: 
@@ -87,7 +87,6 @@ class FileRequestQueue:
         self.file2queue = {}
 
 def uri_file(file):
-    #return file
     return "file://" + file
 
 class LSPProxy:
@@ -289,6 +288,7 @@ class LSPProxy:
         server = self.get_server(filepath)
         server.stdin.write(pack(json))
         server.stdin.flush()
+        server.stdout.flush()
 
     def pending(self, filepath, json):
         self.queue.pend_request(filepath, json)
@@ -348,6 +348,7 @@ class LanguageServer:
             raise RuntimeError(f"{self.__class__} is not installed")
         self.rootUri = rootUri
         cmd = self.get_command()
+        print("lsp server start cmd: ", cmd)
         server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=False)
         server.stdin.write(pack(self.initialize(rootUri)))
         server.stdin.flush()
@@ -386,18 +387,25 @@ class JediServer(LanguageServer):
         cmd = [f'cd {self.rootUri} && jedi-language-server 2>jedi.log']
         return cmd
 
+# Wrong Implementation
+# Stuch when didchange
 class HaskellServer(LanguageServer): 
     def __init__(self):
         super().__init__()
 
     def initialize(self, rootUri):
         init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":"file:///home/ubuntu/artifacts/","workspaceFolders":null}}'
+        #init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{},"initializationOptions":null,"processId":null,"rootUri":null,"workspaceFolders":null}}'
         init = json.loads(init)
         init['params']['rootUri'] = uri_file(rootUri)
+        init['params']['workspaceFolders'] = [{
+            'uri': uri_file(rootUri),
+            'name': os.path.basename(rootUri),
+        }]
         return init
 
     def match_suffix(self, suf):
-        return suf in ['haskell', "hs", "lhaskell"]
+        return suf in ['hs']
 
     def getLanguageId(self):
         return "haskell"
@@ -406,7 +414,7 @@ class HaskellServer(LanguageServer):
         return "haskell-language-server-wrapper"
 
     def get_command(self):
-        cmd = [f'cd {self.rootUri} && haskell-language-server-wrapper --lsp 2>haskell.log']
+        cmd = [f'cd {self.rootUri} && haskell-language-server-wrapper -j 5 --debug --cwd {self.rootUri} --lsp 2>haskell.log']
         return cmd
 
 class ClangdServer(LanguageServer): 
@@ -416,7 +424,7 @@ class ClangdServer(LanguageServer):
     def initialize(self, rootUri):
         init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":null,"workspaceFolders":null}}'
         package = json.loads(init)
-        package['params']['rootUri'] = rootUri
+        package['params']['rootUri'] = uri_file(rootUri)
         return package
 
     def match_suffix(self, suf):
@@ -430,9 +438,7 @@ class ClangdServer(LanguageServer):
 
     def get_command(self):
         clangd_directory = os.path.join(self.home, "clangd")
-        #if os.path.isfile(f"{self.rootUri}/compile-command.json")
-        #return [f'cd {clangd_directory} && ./clangd --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
-        return [f'cd {clangd_directory} && ./clangd --background-index=0 -j=10 2>clangd.log']
+        return [f'cd {clangd_directory} && ./clangd --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
 
 def handle_input(handle, lsp, req):
     try:
@@ -452,7 +458,7 @@ def handle_input(handle, lsp, req):
 def receive_package(r):
     output = r.readline()
     print ("[LSP output leader]", output)
-    size = int(r.readline().strip().split(b':')[1])
+    size = int(output.strip().split(b':')[1])
     while True:
         line = r.readline().strip()
         if not line: break

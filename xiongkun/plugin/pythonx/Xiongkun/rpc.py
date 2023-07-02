@@ -136,7 +136,7 @@ class RPCChannel:
             assert isinstance(sync, int)
             return vim.eval(f'{self.name}SendMessageSync({sync}, {self.channel_name}, {str_package})')
 
-    def stream_new(self):
+    def stream_new(self, id=None):
         class RPCStream:
             def __init__(self, channel, id):
                 self.id = id
@@ -155,8 +155,10 @@ class RPCChannel:
             def register_hook(self, on_receive): 
                 self.channel.callbacks[self.id] = on_receive
                 
-        self.id += 1
-        return RPCStream(self, self.id)
+        if id is None: 
+            self.id += 1
+            id = self.id
+        return RPCStream(self, id)
 
     def stream_del(self, stream): 
         if stream.id in self.callbacks: 
