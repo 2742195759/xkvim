@@ -25,8 +25,8 @@ auto_files = [
     '*.h',
     '*.cpp',
     '*.cpp',
-    '*.hs',
-    '*.haskell',
+    #'*.hs',
+    #'*.haskell',
 ]
 
 def _StartAutoCompile():# {{{
@@ -310,7 +310,10 @@ def complete(args):
 
 @vim_register(name="GoToDefinition", command="Def")
 def py_goto_definition(args):
-    goto_definition(['def'])
+    if FileSystem().is_remote(): 
+        goto_definition(['def'])
+    else: 
+        vim.command("normal gd")
 
 @vim_register(name="Py_did_change")
 def did_change(args):
@@ -457,8 +460,6 @@ def lsp_server():
         clangd = LSPClient(f"127.0.0.1:{RPCChannel.local_port}")
     return clangd.lsp_server
 
-lsp_server()
-
 def set_remote_lsp(config_file):
     _EndAutoCompile()
     _StartAutoCompile()
@@ -470,4 +471,5 @@ def set_remote_lsp(config_file):
     with open(config_file, 'r') as f:  
         data = yaml.safe_load(f)  
     host = data['host']
+    vim.command("CocDisable")
     clangd = LSPClient(host)
