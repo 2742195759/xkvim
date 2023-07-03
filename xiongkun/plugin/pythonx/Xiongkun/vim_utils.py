@@ -215,7 +215,7 @@ def CurrentWordBeforeCursor():
             return True
         if ord(ch) >= ord('A') and ord(ch) <= ord('Z'):
             return True
-        if ch in "_.'\"->": return True
+        if ch in "_.'\"->/": return True
         return False
     while col >= 0 and (col >= len(text) or pred(text[col])):
         col -= 1
@@ -982,4 +982,3 @@ def find_free_port():
         s.bind(('', 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
-

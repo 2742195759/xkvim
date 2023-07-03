@@ -65,6 +65,7 @@ class FileRequestQueue:
         # optimize version quest.
         # if version_id != current_version: skip this request.
         def is_version_valid(req):
+            if req.get("method", None) == "textDocument/didChange": return True # didChange send delta, should always send to client.
             version = req.get("params", {}).get("textDocument", {}).get("version", None)
             if version is None: return True
             return self.server.lastest(filepath) == version
@@ -119,13 +120,11 @@ class LSPProxy:
             raise DisableException()
 
     def updateVersion(self, filepath, content):
-        strings = "\n".join(content)
         if filepath not in self.version_map:
-            self.version_map[filepath] = (0, hash(strings))
-        else:
+            self.version_map[filepath] = (0, hash(0))
+        else: 
             cnt, hash_id = self.version_map[filepath]
-            if hash(strings) != hash_id: 
-                self.version_map[filepath] = (cnt+1, hash(strings))
+            self.version_map[filepath] = (cnt+1, hash(cnt+1))
         return self.lastest(filepath)
 
     def file_exist(self, filepath):
@@ -236,27 +235,28 @@ class LSPProxy:
 
     #@interface
     def did_change(self, id, filepath, content, want_diag=True):
+        """ 
+        content: string of lines | delta contentChanges
+        """
         self.check_disable(filepath)
         if not os.path.isfile(filepath): 
             return 
         if not self.file_exist(filepath): 
             self.add_document(-1, filepath)
-        def getContentChanges(filepath, content):
-            return {
-                'range': None, 
-                'rangeLength': None,
-                'text': content
-            }
-
         param = {
             "textDocument": {
                 "uri": uri_file(filepath),
                 "version": self.updateVersion(filepath, content),
             },
-            "contentChanges": [{"text": "\n".join(content)}],
+            "contentChanges": None,
             "wantDiagnostics": want_diag,
             "forceRebuild": False,
         }
+        if isinstance(content[0], str): 
+            param['contentChanges'] = [{"text": "\n".join(content)}]
+        elif isinstance(content[0], dict):
+            param['contentChanges'] = content
+
         json = {
             "jsonrpc": "2.0",
             "method": "textDocument/didChange",
