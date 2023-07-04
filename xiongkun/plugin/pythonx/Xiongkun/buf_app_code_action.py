@@ -104,3 +104,6 @@ def send_keys(bufnr, keys):
 vim.command(""" 
 inoremap <silent> <m-a> <cmd>CodeAction<cr>
 """)
+vim.command(""" 
+tnoremap <silent> <m-.> <cmd>CodeActionLast<cr>
+""")
