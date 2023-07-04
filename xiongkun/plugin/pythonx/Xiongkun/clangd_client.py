@@ -16,8 +16,10 @@ from . import remote_fs
 from .rpc import RPCServer, RPCChannel
 from .remote_fs import FileSystem
 from .command_doc_popup import DocPreviewBuffer
+from .clangd_client_utils import get_content_deltas
 
 vim.command("set cot=menuone,noselect")
+vim.command("set scl=yes")
 
 auto_files = [
     '*.py',
@@ -25,8 +27,8 @@ auto_files = [
     '*.h',
     '*.cpp',
     '*.cpp',
-    #'*.hs',
-    #'*.haskell',
+    '*.hs',
+    '*.haskell',
 ]
 
 def _StartAutoCompile():# {{{
@@ -100,6 +102,7 @@ class LSPDiagManager:
         self._place("lsp_error", file, line, message)
 
     def warn(self, file, line, message=""):
+        return
         self._place("lsp_warn", file, line, message)
     
     def clear(self, file):
@@ -108,23 +111,34 @@ class LSPDiagManager:
         config = { 'bufnr': file, 'type': 'lsp_message' }
         vim.eval(f"prop_remove({json.dumps(config)})")
 
-class FileDiffManager: 
-    def __init__(self):
+class FileSyncManager:
+    """
+    0. Sync the file between LSP.
+    1. Compare the diff between last buffer content and current buffer content. 
+    2. Send the diff into lsp.
+    """
+    def __init__(self, lsp):
         self.lastContent = {} # bufname -> Content
-        pass
+        self.lsp = lsp
 
-    def update(self, filepath):
+    def did_change(self, filepath, want_diagnostic=True):
         abspath = FileSystem().abspath(filepath)
         assert FileSystem().bufexist(abspath)
         new_content = vim_utils.GetAllLines(abspath)
         old_content = self.lastContent[abspath]
         diff = self.cal_diff(new_content, old_content)
         self.lastContent[abspath] = new_content
-        return diff
+        if diff:
+            self.lsp.notification("did_change", filepath, diff, want_diagnostic)
+
+    def add_document(self, filepath):
+        abspath = FileSystem().abspath(filepath)
+        assert FileSystem().bufexist(abspath)
+        self.lastContent[abspath] = vim_utils.GetAllLines(abspath)
+        self.lsp.notification("add_document", filepath)
 
     def cal_diff(self, new_content, old_content):
-        # hard to implement. change other way.
-        pass
+        return get_content_deltas(old_content, new_content)
 
 class VersionChecker:
     def __init__(self):
@@ -162,6 +176,7 @@ class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
         self.channel = RPCChannel("LSP", remote_server, "lsp", "Xiongkun.lsp_server()", noblock=1)
         self.version_checker = VersionChecker()
+        self.file_manager = FileSyncManager(self)
         self.id = 0
         self.notification("init", FileSystem().getcwd())
 
@@ -188,7 +203,10 @@ class LSPServer(RPCServer):
             diags = package['params']['diagnostics']
             for diag in diags:
                 line = diag['range']['start']['line'] + 1
-                LSPDiagManager().error(file, line, diag['message'])
+                if diag['severity'] == 1:
+                    LSPDiagManager().error(file, line, diag['message'])
+                elif diag['severity'] == 2:
+                    LSPDiagManager().warn(file, line, diag['message'])
 
     def notification(self, name, *args):
         stream = self.channel.stream_new(-1)
@@ -224,7 +242,8 @@ class LSPClient:# {{{
         buffers = vim_utils.GetBufferList()
         for buffer in buffers:
             buffer = FileSystem().abspath(buffer)
-            if not buffer.endswith('/'): self.lsp_server.call("add_document", None, buffer)
+            if FileSystem().exists(buffer): 
+                self.lsp_server.file_manager.add_document(buffer)
 
 def goto_definition(args):
     cur_file = vim_utils.CurrentEditFile(True)
@@ -275,7 +294,7 @@ def lsp_complete_items(rsp):
     results = []
     for item in items:
         r = {}
-        r['word'] = item['insertText']
+        r['word'] = item.get('insertText', item.get('label'))
         r['abbr'] = item['label']
         r['info'] = item['document'] if 'document' in item else item['label']
         r['kind'] = kind2type.get(item['kind'], str(item['kind']))
@@ -311,18 +330,13 @@ def complete(args):
 
 @vim_register(name="GoToDefinition", command="Def")
 def py_goto_definition(args):
-    if FileSystem().is_remote(): 
-        goto_definition(['def'])
-    else: 
-        vim.command("normal gd")
+    goto_definition(['def'])
 
 @vim_register(name="Py_did_change")
 def did_change(args):
-    filepath = vim_utils.CurrentEditFile(True)
-    content = vim_utils.GetAllLines()
+    filepath = FileSystem().abspath(vim_utils.CurrentEditFile(True))
     if args[0] == "1": args[0] = True
-    #lsp_server().cancel_manager.cancel(filepath)
-    lsp_server().notification("did_change", filepath, content, args[0])
+    lsp_server().file_manager.did_change(filepath, args[0])
 
 @vim_utils.Singleton
 class SignatureWindow(DocPreviewBuffer):
@@ -391,7 +405,7 @@ def complete_done(args):
 @vim_register(name="Py_add_document")
 def add_document(args):
     filepath = FileSystem().abspath(args[0])
-    lsp_server().notification("add_document", filepath)
+    lsp_server().file_manager.add_document(filepath)
 
 @vim_register(name="Py_complete_select")
 def complete_select(args):
@@ -475,6 +489,10 @@ def lsp_server():
         clangd = LSPClient(f"127.0.0.1:{RPCChannel.local_port}")
     return clangd.lsp_server
 
+@vim_register(command="LSPDisable")
+def lsp_disable(args):
+    _EndAutoCompile()
+
 def set_remote_lsp(config_file):
     _EndAutoCompile()
     _StartAutoCompile()
@@ -486,5 +504,4 @@ def set_remote_lsp(config_file):
     with open(config_file, 'r') as f:  
         data = yaml.safe_load(f)  
     host = data['host']
-    vim.command("CocDisable")
     clangd = LSPClient(host)

@@ -36,9 +36,18 @@ class Protocal:
     @classmethod
     def CreateDummyResult(cls, id):
         json = {
-            "json": "2.0",
+            "jsonrpc": "2.0",
             "id": id,
             "result": None
+        }
+        return json
+
+    @classmethod
+    def InitializedNotification(cls):
+        json = {
+            "jsonrpc": "2.0",
+            "method": "initialized",
+            "params": {}
         }
         return json
 
@@ -56,6 +65,7 @@ class FileRequestQueue:
         # optimize version quest.
         # if version_id != current_version: skip this request.
         def is_version_valid(req):
+            if req.get("method", None) == "textDocument/didChange": return True # didChange send delta, should always send to client.
             version = req.get("params", {}).get("textDocument", {}).get("version", None)
             if version is None: return True
             return self.server.lastest(filepath) == version
@@ -110,13 +120,11 @@ class LSPProxy:
             raise DisableException()
 
     def updateVersion(self, filepath, content):
-        strings = "\n".join(content)
         if filepath not in self.version_map:
-            self.version_map[filepath] = (1, hash(strings))
-        else:
+            self.version_map[filepath] = (0, hash(0))
+        else: 
             cnt, hash_id = self.version_map[filepath]
-            if hash(strings) != hash_id: 
-                self.version_map[filepath] = (cnt+1, hash(strings))
+            self.version_map[filepath] = (cnt+1, hash(cnt+1))
         return self.lastest(filepath)
 
     def file_exist(self, filepath):
@@ -227,27 +235,28 @@ class LSPProxy:
 
     #@interface
     def did_change(self, id, filepath, content, want_diag=True):
+        """ 
+        content: string of lines | delta contentChanges
+        """
         self.check_disable(filepath)
         if not os.path.isfile(filepath): 
             return 
         if not self.file_exist(filepath): 
             self.add_document(-1, filepath)
-        def getContentChanges(filepath, content):
-            return {
-                'range': None, 
-                'rangeLength': None,
-                'text': content
-            }
-
         param = {
             "textDocument": {
                 "uri": uri_file(filepath),
                 "version": self.updateVersion(filepath, content),
             },
-            "contentChanges": [{"text": "\n".join(content)}],
+            "contentChanges": None,
             "wantDiagnostics": want_diag,
             "forceRebuild": False,
         }
+        if isinstance(content[0], str): 
+            param['contentChanges'] = [{"text": "\n".join(content)}]
+        elif isinstance(content[0], dict):
+            param['contentChanges'] = content
+
         json = {
             "jsonrpc": "2.0",
             "method": "textDocument/didChange",
@@ -352,6 +361,9 @@ class LanguageServer:
         server = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=False)
         server.stdin.write(pack(self.initialize(rootUri)))
         server.stdin.flush()
+        init_result = receive_package(server.stdout)
+        server.stdin.write(pack(Protocal.InitializedNotification()))
+        server.stdin.flush()
         self.set_process(server)
         self.is_init = True
         return self
@@ -395,9 +407,9 @@ class HaskellServer(LanguageServer):
 
     def initialize(self, rootUri):
         init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":"file:///home/ubuntu/artifacts/","workspaceFolders":null}}'
-        #init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{},"initializationOptions":null,"processId":null,"rootUri":null,"workspaceFolders":null}}'
         init = json.loads(init)
         init['params']['rootUri'] = uri_file(rootUri)
+        init['params']['rootPath'] = rootUri
         init['params']['workspaceFolders'] = [{
             'uri': uri_file(rootUri),
             'name': os.path.basename(rootUri),
