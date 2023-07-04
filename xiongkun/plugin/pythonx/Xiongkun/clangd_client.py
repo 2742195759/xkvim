@@ -36,7 +36,6 @@ def _StartAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
-    autocmd BufNew {auto_files} call Py_add_document([expand("<afile>")])
     autocmd TextChanged {auto_files} call Py_did_change([1]) 
     autocmd TextChangedI {auto_files} call Py_complete([])
     autocmd CursorMovedI {auto_files} call Py_signature_help([]) 
@@ -125,17 +124,16 @@ class FileSyncManager:
         abspath = FileSystem().abspath(filepath)
         assert FileSystem().bufexist(abspath)
         new_content = vim_utils.GetAllLines(abspath)
+        if abspath not in self.lastContent: 
+            self.lastContent[abspath] = new_content
+            self.lsp.notification("did_change", filepath, new_content, True)
+            return 
+            
         old_content = self.lastContent[abspath]
         diff = self.cal_diff(new_content, old_content)
         self.lastContent[abspath] = new_content
         if diff:
             self.lsp.notification("did_change", filepath, diff, want_diagnostic)
-
-    def add_document(self, filepath):
-        abspath = FileSystem().abspath(filepath)
-        assert FileSystem().bufexist(abspath)
-        self.lastContent[abspath] = vim_utils.GetAllLines(abspath)
-        self.lsp.notification("add_document", filepath)
 
     def cal_diff(self, new_content, old_content):
         return get_content_deltas(old_content, new_content)
@@ -236,14 +234,6 @@ class LSPClient:# {{{
     def __init__(self, host):
         self.host = host
         self.lsp_server = LSPServer(host)
-        self.add_document_for_buffer()
-
-    def add_document_for_buffer(self): 
-        buffers = vim_utils.GetBufferList()
-        for buffer in buffers:
-            buffer = FileSystem().abspath(buffer)
-            if FileSystem().exists(buffer): 
-                self.lsp_server.file_manager.add_document(buffer)
 
 def goto_definition(args):
     cur_file = vim_utils.CurrentEditFile(True)
@@ -402,11 +392,6 @@ def complete_done(args):
     if len(args[0]) == 0: return
     GlobalPreviewWindow.hide()
 
-@vim_register(name="Py_add_document")
-def add_document(args):
-    filepath = FileSystem().abspath(args[0])
-    lsp_server().file_manager.add_document(filepath)
-
 @vim_register(name="Py_complete_select")
 def complete_select(args):
     def show_info(title, content):
@@ -473,7 +458,7 @@ def LSPRestart(args):
         return 
     _EndAutoCompile()
     _StartAutoCompile()
-    clangd = LSPClient(host)
+    clangd = LSPClient(clangd.host)
 
 def lsp_to_location(result):# {{{
     loc = []
