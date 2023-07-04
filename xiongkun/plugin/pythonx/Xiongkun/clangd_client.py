@@ -216,6 +216,7 @@ class LSPServer(RPCServer):
 
 class LSPClient:# {{{
     def __init__(self, host):
+        self.host = host
         self.lsp_server = LSPServer(host)
         self.add_document_for_buffer()
 
@@ -445,6 +446,20 @@ clangd = None
 def PyDisableFile(args):
     suffix = args[0]
     lsp_server().call("disable_file", None, suffix)
+
+@vim_register(command="LSPDisable")
+def LSPDisable(args):
+    _EndAutoCompile()
+
+@vim_register(command="LSPRestart")
+def LSPRestart(args):
+    global clangd
+    if clangd is None: 
+        print ("lsp is not start yet. run SetRPCProject to open it.")
+        return 
+    _EndAutoCompile()
+    _StartAutoCompile()
+    clangd = LSPClient(host)
 
 def lsp_to_location(result):# {{{
     loc = []
