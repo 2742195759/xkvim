@@ -18,17 +18,27 @@ def is_buf_remote():
     remote = vim.eval("getbufvar(bufnr(), 'remote')")
     return remote == "remote"
 
+def update_buffer_timestamp(filepath):
+    # set timestamp
+    timestamp = str(FileSystem().timestamp(filepath))
+    assert timestamp != "-1"
+    bufnr = vim.eval(f"bufnr('{filepath}')")
+    vim.eval(f"setbufvar({bufnr}, 'timestamp', '{timestamp}')")
+
 @vim_register(command="RemoteSave")
 def RemoteSave(args):
     if is_buf_remote():
         bufname = vim.eval("bufname()")
+        if FileSystem().is_buffer_lastest(bufname) is False:
+            vim.command("echow 'buffer is not the latest version, RE to update.'")
+            return
         filepath = FileSystem().filepath(bufname)
         bufnr = vim.eval(f"bufnr('{bufname}')")
         lines = vim.eval(f"getbufline({bufnr}, 1, '$')")
-        vim.command("set nomodified")
         if FileSystem().store(filepath, "\n".join(lines)) is not True: 
             vim.command(f"echom '{FileSystem().last_error()}'")
-            vim.command("set modified")
+        update_buffer_timestamp(filepath)
+        vim.command("set nomodified")
     else:
         vim.command("write")
         
@@ -223,13 +233,10 @@ class FileSystem:
         assert isinstance(content, (list, str))
         if isinstance(content, list):
             content = "\n".join(content)
-        timestamp = str(rpc_wait("remotefs.store", filepath, content))
-        if timestamp == "-1": 
+        msg= rpc_wait("remotefs.store", filepath, content)
+        if msg != "success": 
             self._last_error = msg
             return False
-        # set timestamp
-        bufnr = vim.eval(f"bufnr('{filepath}')")
-        vim.eval(f"setbufvar({bufnr}, 'timestamp', '{timestamp}')")
         return True
 
     def fetch(self, filepath):
@@ -265,7 +272,6 @@ class FileSystem:
                 vim.command("keepjumps normal ggdd")
                 vim.command("set nomodified")
                 timestamp = str(rpc_wait("remotefs.timestamp", filepath))
-                assert timestamp != "-1"
                 vim.eval("setbufvar(bufnr(), 'remote', 'remote')")
                 vim.eval(f"setbufvar(bufnr(), 'timestamp', '{timestamp}')")
             return bufnr
@@ -375,14 +381,21 @@ class FileSystem:
         """
         if not bufname: bufname = vim.eval("bufname()")
         filepath = self.abspath(bufname)
-        current_timestamp = vim.eval("getbufvar(bufname, 'timestamp', -1)")
-        if current_timestamp == -1: 
-            # this buffer is not loaded from remote file.
-            return True
+        current_timestamp = vim.eval(f"getbufvar('{bufname}', 'timestamp', '-1')")
+        assert current_timestamp != -1
         stamp = str(rpc_wait("remotefs.timestamp", filepath))
+        #print (stamp, 'vs', current_timestamp)
         if stamp == current_timestamp: 
             return True
         return False
+
+    def timestamp(self, filepath):
+        if self.is_remote(): 
+            stamp = str(rpc_wait("remotefs.timestamp", filepath))
+            assert stamp != "-1"
+            return stamp
+        else:
+            vim.command("echom 'timestamp is not supported in local mode.'")
 
     def current_filepath(self):
         return self.filepath(vim.eval("bufname()"))

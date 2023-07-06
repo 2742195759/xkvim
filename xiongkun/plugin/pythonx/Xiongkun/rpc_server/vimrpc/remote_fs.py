@@ -23,10 +23,9 @@ class RemoteFS:
         try:
             with open(path, "w") as fp: 
                 fp.write(content)
-            timestamp = self.timestamp(path)
         except: 
-            return -1
-        return timestamp
+            return "failed"
+        return "success"
 
     @server_function
     def timestamp(self, path):
