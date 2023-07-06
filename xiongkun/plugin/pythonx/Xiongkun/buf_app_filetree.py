@@ -30,7 +30,8 @@ class CursorLineBuffer(WidgetBuffer):
         pass
 
     def on_enter(self):
-        raise NotImplementedError()
+        #raise NotImplementedError()
+        pass
 
     def normal(self, str):
         self.execute(f'normal! {str}')

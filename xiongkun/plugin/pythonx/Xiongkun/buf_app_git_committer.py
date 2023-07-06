@@ -33,6 +33,7 @@ class GitCommitter(CursorLineBuffer):
             if type[1] == " ":
                 selected[file] = True
             files.append(file)
+        files.sort(key=lambda x: x[0][0:7])
         return files, selected
 
     def git_add(self, item):
@@ -41,7 +42,7 @@ class GitCommitter(CursorLineBuffer):
     def git_unstage(self, item):
         FileSystem().command(f"git reset HEAD -- {item}")
 
-    def on_enter(self, current):
+    def on_space(self, current):
         for item in self.mult.get_selected(): 
             self.git_add(item[10:])
         for item in self.mult.get_not_selected(): 
@@ -52,6 +53,12 @@ class GitCommitter(CursorLineBuffer):
     def on_jump_label(self):
         print ("not implement.")
 
+    @property
+    def select_item(self):
+        number = self.cur_cursor_line()
+        if number < 1: return True
+        return self.mult.items[number-1]
+
     def on_key(self, key):
         if key in ['j', 'k'] and not GPW.hidden:
             { 'j': GPW.page_down, 'k': GPW.page_up }[key]()
@@ -61,7 +68,7 @@ class GitCommitter(CursorLineBuffer):
             if number < 1: return True
             self.mult.onselect(number - 1)
             GPW.hide()
-            self.on_enter(number)
+            self.on_space(number)
             return True
         if key == "p": 
             """preview the changes"""
@@ -72,6 +79,8 @@ class GitCommitter(CursorLineBuffer):
         if key == "c": 
             self.commit()
             return True
+        if key == 'D': 
+            self.remove(self.select_item)
         if key == "e": 
             self.start_edit()
             return True
@@ -87,6 +96,25 @@ class GitCommitter(CursorLineBuffer):
         message = escape(message, "\"'\\")
         if FileSystem().command(f'git commit -m "{message}"'):
             print ("Success.")
+
+    def remove(self, item):
+        prompt = ""
+        command = ""
+        filename = item[10:]
+        if "untrace" in item:
+            prompt = f"You will remove untrace file `{filename}`, press `yes` to confirm: "
+            command = f"rm -rf {filename}"
+        elif "unstage" in item:
+            prompt = f"You will remote all changes in `{filename}`, press `yes` to confirm: "
+            command = f"git checkout -- {filename}"
+        elif "stage" in item:
+            prompt = f"You will remote all changes in `{filename}`, press `yes` to confirm: "
+            self.git_unstage(filename)
+            command = f"git checkout -- {filename}"
+        if input_no_throw(prompt) == "yes": 
+            FileSystem().command(command)
+            self.mult.reset(*self.git_stage_files())
+            self.redraw()
 
     def start_edit(self):
         number = self.cur_cursor_line()
