@@ -23,9 +23,16 @@ class RemoteFS:
         try:
             with open(path, "w") as fp: 
                 fp.write(content)
+            timestamp = self.timestamp(path)
         except: 
-            return "failed."
-        return "success."
+            return -1
+        return timestamp
+
+    @server_function
+    def timestamp(self, path):
+        if not osp.isfile(path):
+            return -1
+        return osp.getmtime(path)
 
     @server_function
     def list_dir(self, dirpath):

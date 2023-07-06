@@ -223,10 +223,13 @@ class FileSystem:
         assert isinstance(content, (list, str))
         if isinstance(content, list):
             content = "\n".join(content)
-        msg = rpc_wait("remotefs.store", filepath, content)
-        if msg != "success.": 
+        timestamp = str(rpc_wait("remotefs.store", filepath, content))
+        if timestamp == "-1": 
             self._last_error = msg
             return False
+        # set timestamp
+        bufnr = vim.eval(f"bufnr('{filepath}')")
+        vim.eval(f"setbufvar({bufnr}, 'timestamp', '{timestamp}')")
         return True
 
     def fetch(self, filepath):
@@ -261,7 +264,10 @@ class FileSystem:
                 vim.command(f"keepjumps read {tmp_file}")
                 vim.command("keepjumps normal ggdd")
                 vim.command("set nomodified")
+                timestamp = str(rpc_wait("remotefs.timestamp", filepath))
+                assert timestamp != "-1"
                 vim.eval("setbufvar(bufnr(), 'remote', 'remote')")
+                vim.eval(f"setbufvar(bufnr(), 'timestamp', '{timestamp}')")
             return bufnr
         exist = self.bufexist(filepath)
         if not exist or force : 
@@ -342,7 +348,6 @@ class FileSystem:
         except Exception as e: 
             print (f"Error while execute: {command_str}, {e}")
             return False
-            
 
     def getcwd(self):
         return self.cwd
@@ -363,6 +368,21 @@ class FileSystem:
         filename = rpc_wait("remotefs.create_temp_file", suffix)
         vim.command('tabe')
         self.edit(filename, force=True)
+
+    def is_buffer_lastest(self, bufname=None):
+        """ compare the timestamp of current buffer and remote file.
+            return True if current buffer is the latest.
+        """
+        if not bufname: bufname = vim.eval("bufname()")
+        filepath = self.abspath(bufname)
+        current_timestamp = vim.eval("getbufvar(bufname, 'timestamp', -1)")
+        if current_timestamp == -1: 
+            # this buffer is not loaded from remote file.
+            return True
+        stamp = str(rpc_wait("remotefs.timestamp", filepath))
+        if stamp == current_timestamp: 
+            return True
+        return False
 
     def current_filepath(self):
         return self.filepath(vim.eval("bufname()"))
