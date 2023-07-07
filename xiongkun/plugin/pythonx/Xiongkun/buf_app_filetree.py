@@ -253,6 +253,7 @@ class FileTreeBuffer(CursorLineBuffer):
             path = input_no_throw("", f"{node.fullpath}", "customlist,RemoteFileCommandComplete")
             if path and FileSystem().create_node(path): 
                 vim.command(f"echow 'success creating {path}'")
+                FileSystem().edit(path, True)
         if ret == 'd': 
             if FileSystem().remove_node(node.fullpath): 
                 vim.command(f"echow 'success remove {node.fullpath}'")
