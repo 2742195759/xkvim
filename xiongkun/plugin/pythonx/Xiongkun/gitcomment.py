@@ -71,7 +71,7 @@ def GitOpenInBrowser(args):#{{{
     except:
         vim.command('echoerr ' + '"Not Commit Yet"')#}}}
 
-def GitDiffFiles(commit_id=None, filename=None):#{{{
+def GitDiffFiles(commit_id=None, filename=None):
     """ if args is None: diff current file with HEAD
         else if: len(args) == 1:
             diff currentfile with args[0](COMMIT_ID)
@@ -80,14 +80,22 @@ def GitDiffFiles(commit_id=None, filename=None):#{{{
     """
     if filename is None: filename = CurrentEditFile(abs=True)
     if commit_id is None: commit_id = "HEAD"
-    filename = get_git_related_path(filename)
-    suffix = os.path.splitext(filename)[-1]
-    tmp = TmpName() + suffix
-    os.system("git show %s:%s > %s" % (commit_id, filename, tmp))
+    filename = FileSystem().git_based_path(filename)
+    if not filename: 
+        print (f"File {filename} not in a git project. Ensure you are in a git project.")
+        return 
+    filetype = vim.eval("&ft")
+    tmpfile = FileSystem().create_temp_file()
+    if FileSystem().command("git show %s:%s > %s" % (commit_id, filename, tmpfile)) is False:
+        return
     vim.command("wincmd T")
-    vim.command("vertical diffs %s" % tmp)
-    vim.command("wincmd R")
-    vim.command("wincmd w")#}}}
+    vim.command("diffthis")
+    vim.command("vertical split")
+    vim.command("wincmd w")
+    FileSystem().edit(tmpfile, True)
+    vim.command("diffthis")
+    vim.command(f"setlocal filetype={filetype}")
+    vim.command("wincmd w")
 
 def GitDiffRecentChangesGivenWindows(commit_ids, window_ids, filename):#{{{
     """ Diff commit_ids[0]:filename and commit_ids[1]:filename in windows.

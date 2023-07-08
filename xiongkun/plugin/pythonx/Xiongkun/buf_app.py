@@ -207,8 +207,10 @@ class Buffer:
             self.onwipeout()
             #log(f"[BufferDelete] start delete `bwipeout! {self.bufnr}`")
             self.execute(f"setlocal bufhidden=wipe") # can't wipeout in popup_windows, so we set bufhidden=wipe to force wipe. it works
-            vim.command(f"bwipeout! {self.bufnr}") # can't wipeout in popup_windows
-            del Buffer.instances[self.name]
+            if vim.eval(f"bufexists({self.bufnr})") == "1":
+                vim.command(f"bwipeout! {self.bufnr}") # can't wipeout in popup_windows
+            if self.name in Buffer.instances:
+                del Buffer.instances[self.name]
             self.state = "saving"
             if self.history is not None:
                 self.history.set_value(self.save())

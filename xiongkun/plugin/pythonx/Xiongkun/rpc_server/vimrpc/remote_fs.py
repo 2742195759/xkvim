@@ -7,6 +7,24 @@ from .functions import KillablePool
 import os.path as osp
 import glob
 
+def get_git_prefix(abspath):
+    origin = abspath
+    def is_git_director(current):
+        return osp.isdir(current) and osp.isdir(osp.join(current, ".git"))
+    abspath = osp.abspath(abspath)
+    def is_root(path):
+        return path in ['/', '~']
+    ans = []
+    while not is_root(abspath) :
+        if is_git_director(abspath): 
+            ans.append(abspath)
+        abspath = osp.dirname(abspath)
+    if len(ans) == 0: 
+        #print ("Can't find git in father directory.")
+        #can't find a git path, so we return "" to represent no directory.
+        return ""
+    return ans[-1]
+
 class RemoteFS:
     @server_function
     def fetch(self, path):
@@ -94,9 +112,18 @@ class RemoteFS:
     def create_temp_file(self, suffix):
         import tempfile
         tempname = tempfile.mktemp()
-        tempname += '.' + suffix
+        if suffix:
+            tempname += '.' + suffix
         os.system(f"touch {tempname}")
         return tempname
+
+    @server_function
+    def git_based_path(self, abspath):
+        origin = abspath
+        abspath = get_git_prefix(abspath)
+        if abspath: 
+            return origin[len(abspath):].strip("/")
+        return origin
 
 if __name__ == "__main__":
     from server_cluster import ServerCluster, printer_process_fn

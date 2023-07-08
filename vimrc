@@ -255,6 +255,7 @@ hi CursorLine term=bold ctermbg=240
 "hi CursorLine term=bold ctermbg=24 guibg=#13354A
 
 function! MyPlugin(...)
+    let branch=""
     if !(&diff) " add branch information. 2022/5/19
         let branch = trim(system("git symbolic-ref --short HEAD 2>/dev/null"))
     endif

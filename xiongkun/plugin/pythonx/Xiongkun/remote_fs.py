@@ -368,10 +368,16 @@ class FileSystem:
         if ret['status'] == "error":
             raise RuntimeError(f"Eval Failed: {command_str} with error: {ret['error']}")
 
-    def create_temp_file(self, suffix):
+    def create_temp_file(self, suffix=""):
         """ create a temp file and start to edit it.
         """
         filename = rpc_wait("remotefs.create_temp_file", suffix)
+        return filename
+
+    def edit_temp_file(self, suffix=""):
+        """ create a temp file and start to edit it.
+        """
+        filename = self.create_temp_file(suffix)
         vim.command('tabe')
         self.edit(filename, force=True)
 
@@ -396,6 +402,11 @@ class FileSystem:
             return stamp
         else:
             vim.command("echom 'timestamp is not supported in local mode.'")
+
+    def git_based_path(self, filepath):
+        abs_path = self.abspath(filepath)
+        rel_path = str(rpc_wait("remotefs.git_based_path", abs_path))
+        return rel_path
 
     def current_filepath(self):
         return self.filepath(vim.eval("bufname()"))

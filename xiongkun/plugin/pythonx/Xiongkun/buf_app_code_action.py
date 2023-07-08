@@ -77,7 +77,7 @@ def CreateTmpfile(args):
     >>> CreateTmp py # 创建一个临时的python文件
     >>> CreateTmp cc # 创建一个临时的c++文件
     """
-    FileSystem().create_temp_file(args[0])
+    FileSystem().edit_temp_file(args[0])
 
 @vim_register(command="ChangeDirectory", with_args=True, command_completer="file")
 def ChangeDirectoryCommand(args):
