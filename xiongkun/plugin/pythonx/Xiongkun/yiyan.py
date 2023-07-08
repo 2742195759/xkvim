@@ -63,7 +63,9 @@ class YiyanSession:
     def _create_buffer(self):
         self.bufnr = vim.eval(f"bufadd('{self.buf_name}')")
         with vim_utils.CurrentBufferGuard(self.bufnr):
+            vim.command("setlocal noswapfile")
             vim.command("set filetype=")
+            vim.command("setlocal buftype=nofile")
             vim.command("set syntax=yiyan")
             vim.command("setlocal bufhidden=hide")
             vim.command("setlocal buftype=prompt")
