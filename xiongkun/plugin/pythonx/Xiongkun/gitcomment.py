@@ -114,8 +114,15 @@ def GitDiffRecentChangesGivenWindows(commit_ids, window_ids, filename):#{{{
             memory_buffer()
             vim.command('diffthis')#}}}
 
-@vim_register(command="Diff", with_args=True)
+@vim_register(command="Diff", with_args=True, action_tag="git diff")
 def DiffCurrentFile(args):#{{{
+    """
+    `Diff`: show git diff of current file vs HEAD.
+    Usage : Diff [COMMITID] [FILENAME]
+    >>> Diff                # current file and HEAD
+    >>> Diff a9ty6          # current file and commit a9ty6
+    >>> Diff a9ty6 vimrc    # vimrc file vs commit a9ty6
+    """
     commit_id = None
     filename = None
     if len(args) == 1 : 
