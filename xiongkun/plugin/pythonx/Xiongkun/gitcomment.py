@@ -91,10 +91,12 @@ def GitDiffFiles(commit_id=None, filename=None):
     vim.command("wincmd T")
     vim.command("diffthis")
     vim.command("vertical split")
+    vim.command("set nofoldenable")
     vim.command("wincmd w")
     FileSystem().edit(tmpfile, True)
     vim.command("diffthis")
     vim.command(f"setlocal filetype={filetype}")
+    vim.command("set nofoldenable")
     vim.command("wincmd w")
 
 def GitDiffRecentChangesGivenWindows(commit_ids, window_ids, filename):#{{{
@@ -215,7 +217,7 @@ class GitFileCommitLogBuffer(BashCommandResultBuffer): #{{{
     def _diff(self):
         commit = GetCurrentLine().split(' ')[1]
         cur_pr, prev_commit = self._parse_info()
-        prev_commit = vim.eval("system(\"git log {commit}^ -1 | head -n1 | cut -d' ' -f2\")".format(commit=commit)).strip()
+        prev_commit = FileSystem().eval("git log {commit}^ -1 | head -n1 | cut -d' ' -f2".format(commit=commit))[0].strip()
         if prev_commit is None: return 
         self.ondiff(commit, prev_commit)
 #}}}
@@ -299,11 +301,20 @@ class GitPreviewApp(Application):#{{{
 #}}}
 
 @vim_register(command="GF", with_args=True, action_tag="git history")
-def GitFileHistory(args):#{{{
+def GitFileHistory(args):
     """ 
     ## Overview
-    GF [<author>]
+    1. 打开一个新的窗口，显示当前文件的git历史
+    2. 支持再里面进行展示文件显示：
+      ------------------------
+      |       files          |
+      ------------------------
+      | first     |  second  |
+      ------------------------
+
     ## Usage
+    GF [<author>]
+
     >>> GF xiongkun03
     >>> GF
     ## Description
@@ -333,15 +344,3 @@ def GitFileHistory(args):#{{{
 
     app = GitPreviewApp(command_getter, init_file)
     app.start()
-#}}}
-
-@vim_register(command="Git", with_args=True)
-def GitCommand(args):#{{{
-    assert len(args) > 0, "Git push | commit"
-    assert args[0] in ['push', 'commit']
-    if args[0] == 'push':
-        system("~/xkvim/bash_scripts/git_push.sh")
-#}}}
-
-
-

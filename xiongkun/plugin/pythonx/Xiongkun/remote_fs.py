@@ -359,7 +359,9 @@ class FileSystem:
         return self.cwd
 
     def eval(self, command_str): 
-        """ call bash command and get output """
+        """ call bash command and get output 
+            outputs is a list of string without '\n'
+        """
         cwd = self.getcwd()
         command_str = f"cd {cwd} && " + command_str
         ret = rpc_wait("remotefs.eval", command_str)

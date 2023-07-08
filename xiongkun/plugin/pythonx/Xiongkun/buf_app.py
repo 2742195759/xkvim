@@ -367,8 +367,11 @@ class Layout:
     def windiff(self, names, on=True):
         for name in names: 
             with CurrentWindowGuard(self.windows[name]): 
-                if on: vim.command("diffthis")
-                else: vim.command("diffoff")
+                if on: 
+                    vim.command("diffthis")
+                else: 
+                    vim.command("diffoff")
+                vim.command("set nofoldenable")
 
 class CreateWindowLayout(Layout):
     """
@@ -404,7 +407,9 @@ class BashCommandResultBuffer(Buffer):
     def onredraw(self):
         self._clear()
         if self.bash_cmd: 
-            self.execute(f"silent! 0read! {self.bash_cmd}")
+            lines =FileSystem().eval(f"{self.bash_cmd}") 
+            self._put_strings(lines)
+            #self.execute(f"silent! 0read! {self.bash_cmd}")
         self.execute(f"normal! gg")
 
 class WidgetOption:
