@@ -26,7 +26,6 @@ class YiyanSession:
         self.bufnr = None
         self._create_buffer()
         self._inited = True
-        rpc_call("yiyan.init_yiyan", on_return=lambda x: None)
 
     def previous_input(self):
         last_input = self.history[-1][0]
