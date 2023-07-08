@@ -12,7 +12,7 @@ class Yiyan:
         self.queue = queue
         pass
 
-    @server_function
+    # don't need explictly call this function
     def init_yiyan(self): 
         import subprocess
         # create subprocess
@@ -32,8 +32,17 @@ class Yiyan:
 
     @server_function
     def query(self, query): 
+        repeat = 5
+        lines = []
+        while len(lines) == 0 and repeat > 0:
+            lines = self._do_query(query)
+            if not lines: print ("[Yiyan] repeat query.")
+            repeat -= 1
+        return lines
+
+    def _do_query(self, query):
         if self.check_alive() is False: 
-            self.init_yiyan(0)
+            self.init_yiyan()
         query = query.strip("\n\r")
         self.child.stdin.write(query + "\n")
         self.child.stdin.flush()
@@ -49,7 +58,7 @@ def test_main():
     servers = ServerCluster()
     servers.start_queue(printer_process_fn)
     #servers.grepfinder = GrepSearcher(servers.queue)
-    servers.get_server_fn("yiyan.init_yiyan")(1)
+    servers.get_server_fn("yiyan.init_yiyan")()
     servers.get_server_fn("yiyan.query")(2, "hello?")
     servers.stop()
 
