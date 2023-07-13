@@ -97,11 +97,14 @@ def ChangeDirectoryCommand(args):
     vim.command(f"FR {directory_path}")
     vim.command(f"ChangeSearchDirectory {args[0]}")
 
+last_searched_directory = ""
 @vim_register(command="UniverseSearchWithPath")
 def UniverserSearchWithPath(args):
-    cwd = input_no_throw("SearchCwd: ", "/home/ssd2/", "customlist,RemoteFileCommandComplete")
+    global last_searched_directory 
+    cwd = input_no_throw("SearchCwd: ", f"{last_searched_directory}", "customlist,RemoteFileCommandComplete")
     if cwd is None: return
     if cwd == "": cwd = FileSystem().getcwd() 
+    last_searched_directory = cwd
     MessageWindow().set_markdowns([f'Search path : {cwd}'])
     MessageWindow().show()
     try:
