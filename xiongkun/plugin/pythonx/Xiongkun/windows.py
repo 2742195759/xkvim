@@ -731,7 +731,7 @@ class Searcher:# {{{
 @Singleton
 class MessageWindow:
     def __init__(self):
-        self.doc_buffer = DocPreviewBuffer()
+        self.doc_buffer = DocPreviewBuffer(options={'title': ' MessageWindow '})
         self.markdowns = []
         self.cur = 0
         self.is_show = False
