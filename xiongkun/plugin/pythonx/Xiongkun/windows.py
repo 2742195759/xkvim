@@ -927,9 +927,7 @@ class UniverseSearchEngine(Searcher):# {{{
             worker.on_process = update_wrapper
             worker(qid)
 
-    def search(self, inp, directory, mask=None):
-        if remote_fs.FileSystem().is_remote():
-            directory = remote_fs.FileSystem().cwd
+    def search(self, inp, directory=None, mask=None):
         if inp is None or inp == "" :
             return self.last_results
         with NotChangeQuickfixGuard():

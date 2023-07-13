@@ -1,7 +1,8 @@
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, CommandList, BufferHistory
 from .func_register import vim_register, get_all_action
-from .vim_utils import SetVimRegister
+from .vim_utils import SetVimRegister, input_no_throw
 from .remote_fs import FileSystem
+from .windows import MessageWindow
 import vim
 import os
 
@@ -9,7 +10,7 @@ code_action_dict = {
     "git committer     |  开始git提交   |": "GitCommit",
     "file tree         |  远程的文件树  |": "FileTree",
     "file finder       |  文件模糊查找  |": "FF",
-    "universe find     |   关键字查找   |": "call UniverseSearch()",
+    "search keyword    |   关键字查找   |": "UniverseSearchWithPath",
     "google            |    谷歌查找    |": "GoogleUI",
     "paddle doc        |   Paddle文档   |": "PdocUI",
     "baidu_fanyi       |    百度翻译    |": "Fanyi",
@@ -93,6 +94,22 @@ def ChangeDirectoryCommand(args):
     vim.command(f"FR {directory_path}")
     vim.command(f"ChangeSearchDirectory {args[0]}")
 
+@vim_register(command="UniverseSearchWithPath")
+def UniverserSearchWithPath(args):
+    cwd = input_no_throw("SearchCwd: ", "/home/ssd2/", "customlist,RemoteFileCommandComplete")
+    if cwd is None: return
+    if cwd == "": cwd = FileSystem().getcwd() 
+    MessageWindow().set_markdowns([f'Search path : {cwd}'])
+    MessageWindow().show()
+    try:
+        input_text = input_no_throw(f"US>>>")
+        if input_text is None: return 
+        from Xiongkun import UniverseSearchEngine
+        UniverseSearchEngine.singleton().search(input_text, cwd, [0,0,0,1])
+        UniverseSearchEngine.singleton().render()
+    finally:
+        MessageWindow().hide()
+    
 @vim_register(command="CleanSwaps")
 def CleanSwapFiles(args):
     cwd = FileSystem().getcwd()
@@ -107,3 +124,5 @@ inoremap <silent> <m-a> <cmd>CodeAction<cr>
 vim.command(""" 
 tnoremap <silent> <m-.> <cmd>CodeActionLast<cr>
 """)
+
+

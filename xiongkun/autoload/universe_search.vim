@@ -538,11 +538,12 @@ endfunction
 
 function! UniverseSearch()
     echoh Question
-    echom "Search path : " . g:nerd_search_path . "    use `S` in nerdtree to change path"
+    let search_path = pyxeval("Xiongkun.FileSystem().getcwd()")
+    echom "Search path : " . search_path . "    use `S` in nerdtree to change path"
     echoh None
     let input_text = trim(input("US>>>"))
     " bacause ycm can only search a tag in current cursor, so disable it.
-    execute printf("py3 Xiongkun.UniverseSearchEngine.singleton().search(\"%s\", \"%s\", [0,0,0,1])", escape(input_text, "\\\"'"), g:nerd_search_path)
+    execute printf("py3 Xiongkun.UniverseSearchEngine.singleton().search(\"%s\", \"%s\", [0,0,0,1])", escape(input_text, "\\\"'"), search_path)
     execute "py3 Xiongkun.UniverseSearchEngine.singleton().render()"
 endfunction
 "
