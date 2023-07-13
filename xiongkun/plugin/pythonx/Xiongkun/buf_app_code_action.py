@@ -6,7 +6,10 @@ from .windows import MessageWindow
 import vim
 import os
 
+#"tnoremap <M-a> <Cmd>TerminalAbbre<cr>
+
 code_action_dict = {
+    "abbre             |  缩写插入模式  |": "TerminalAbbre",
     "git committer     |  开始git提交   |": "GitCommit",
     "file tree         |  远程的文件树  |": "FileTree",
     "file finder       |  文件模糊查找  |": "FF",
@@ -122,7 +125,14 @@ vim.command("""
 inoremap <silent> <m-a> <cmd>CodeAction<cr>
 """)
 vim.command(""" 
+tnoremap <silent> <m-a> <cmd>CodeAction<cr>
+""")
+vim.command(""" 
 tnoremap <silent> <m-.> <cmd>CodeActionLast<cr>
 """)
+vim.command(""" 
+inoremap <silent> <m-.> <cmd>CodeActionLast<cr>
+""")
+
 
 

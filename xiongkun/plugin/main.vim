@@ -181,7 +181,7 @@ tnoremap <M-1> <C-w>gT
 tnoremap <M-2> <C-w>gt
 " insert command
 tnoremap <F1> <C-w>:BashHelp<cr>
-tnoremap <M-a> <Cmd>TerminalAbbre<cr>
+"tnoremap <M-a> <Cmd>TerminalAbbre<cr>
 " abbre in terminal mode
 tnoremap <M-o> <Cmd>JumpPrevFile<cr>
 tnoremap <M-i> <Cmd>JumpNextFile<cr>
