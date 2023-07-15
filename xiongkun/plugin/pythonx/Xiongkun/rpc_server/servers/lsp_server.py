@@ -191,6 +191,8 @@ class LSPProxy:
     #@interface
     def goto(self, id, filepath, method="definition", pos=(0,0)):
         self.check_disable(filepath)
+        if not self.file_exist(filepath): 
+            self.add_document(-1, filepath)
         """ definition | implementation
         """
         json = {
@@ -449,8 +451,7 @@ class ClangdServer(LanguageServer):
         return "clangd"
 
     def get_command(self):
-        clangd_directory = os.path.join(self.home, "clangd")
-        return [f'cd {clangd_directory} && ./clangd --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
+        return [f'clangd --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
 
 def handle_input(handle, lsp, req):
     try:
