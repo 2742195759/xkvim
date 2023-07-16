@@ -12,6 +12,7 @@ code_action_dict = {
     "abbre             |  缩写插入模式  |": "TerminalAbbre",
     "git committer     |  开始git提交   |": "GitCommit",
     "file tree         |  远程的文件树  |": "FileTree",
+    "tag list          |  展示代码结构  |": "TagList",
     "file finder       |  文件模糊查找  |": "FF",
     "search keyword    |   关键字查找   |": "UniverseSearchWithPath",
     "google            |    谷歌查找    |": "GoogleUI",

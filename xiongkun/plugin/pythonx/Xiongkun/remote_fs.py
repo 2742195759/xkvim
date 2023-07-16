@@ -151,12 +151,13 @@ def GotoFile(args):
     FileSystem().edit(filepath)
 
 class DirectoryTree:
-    def __init__(self, type, fullpath):
+    def __init__(self, type, fullpath, extra_data=None):
         self.child = []
         self.father = None
         self.type = type
         self.fullpath = fullpath
         self.is_open = False
+        self.extra_data = extra_data
 
     def add_child(self, tree):
         self.child.append(tree)
