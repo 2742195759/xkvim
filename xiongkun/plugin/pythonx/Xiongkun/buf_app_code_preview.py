@@ -3,7 +3,7 @@ import os
 import os
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer, BufferHistory
 from .func_register import vim_register
-from .vim_utils import SetVimRegister, Normal_GI, Singleton, CurrentEditFile, input_no_throw, get_char_no_throw, GetAllLines
+from .vim_utils import SetVimRegister, Normal_GI, Singleton, CurrentEditFile, input_no_throw, get_char_no_throw, GetAllLines, HOME_PREFIX
 import vim
 from functools import partial
 from .log import debug
@@ -14,14 +14,21 @@ from .remote_fs import DirectoryTree
 
 @Singleton
 class TreeSitterManager: 
+    def _install_(self):
+        for item in self.to_install: 
+            if not os.path.isdir(os.path.join(HOME_PREFIX, item)): 
+                os.system(f"cd {HOME_PREFIX} && git clone https://github.com/tree-sitter/{item}")
+
     def __init__(self):
+        self.to_install = [
+            'tree-sitter-python',
+        ]
+        self._install_()
         Language.build_library(
           # Store the library in the `build` directory
           'build/my-languages.so',
           # Include one or more languages
-          [
-            '/home/xiongkun/tree-sitter-python'
-          ]
+          [ os.path.join(HOME_PREFIX, item) for item in self.to_install ]
         )
 
         self.PY_LANGUAGE = Language('build/my-languages.so', 'python')
@@ -46,6 +53,7 @@ class TreeSitterManager:
 
     def class_layout(self, contents):
         query_str = """
+        (module ((function_definition) @function))
         (class_definition) @class
         """
         #(function definition) @function
@@ -57,12 +65,15 @@ class TreeSitterManager:
             node = self.trees[contents].root_node
         root = DirectoryTree("dir", "root")
         for node in query.captures(node): 
-            this = DirectoryTree("dir", "class: " + node[0].child_by_field_name('name').text.decode('utf-8'), node[0].start_point)
-            for field in node[0].children_by_field_name('body')[0].named_children: 
-                if field.type == 'function_definition':
-                    this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('name').text.decode('utf-8'), field.start_point))
-            this.is_open = True
-            root.add_child(this)
+            if node[1] == "class":
+                this = DirectoryTree("dir", "class: " + node[0].child_by_field_name('name').text.decode('utf-8'), node[0].start_point)
+                for field in node[0].children_by_field_name('body')[0].named_children: 
+                    if field.type == 'function_definition':
+                        this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('name').text.decode('utf-8'), field.start_point))
+                this.is_open = True
+                root.add_child(this)
+            elif node[1] == "function":
+                root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('name').text.decode('utf-8'), node[0].start_point))
         return root
 
     def query(self, filepath, query_str):

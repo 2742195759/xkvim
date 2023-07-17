@@ -66,3 +66,29 @@ def TracebackOneLine(args):
         return 
     remote_fs.GoToLocation(loc, ".")
 
+
+@vim_register(keymap="<space>gl", command="TracebackLine")
+def JumptoFunction(args):
+    """ 
+    `TracebackLine`: goto the error line and quick fix bugs, auto parse the filename
+    >>> TracebackLine
+    --------------------
+    + remote
+    + key = n: <space> gf
+    """
+    function_name = r"[a-zA-Z0-9/\._\-@]+"
+    hash_name = r"[0-9a-f]+"
+    line = vim_utils.GetCurrentLine().strip()
+    patterns = [
+        f'(#{function_name}_{hash_name})', # pycode error line.
+    ]
+    loc = None
+    for patt in patterns:
+        result = re.search(patt, line)
+        if result is None: 
+            continue
+        function = result.groups()[0]
+        vim.command(f"let @/ = '{function}'")
+        vim.command("normal n")
+        return 
+    return
