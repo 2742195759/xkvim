@@ -73,6 +73,7 @@ class TreeSitterManager:
 
     def is_definition_cpp(self, name, contents):
         query_str = """
+        ((function_declarator) @function_decl)
         ((function_definition) @function)
         ((field_declaration) @field)
         ((template_declaration) @template)
@@ -85,7 +86,10 @@ class TreeSitterManager:
         else:
             raise NotImplementedError()
         for node in query.captures(node): 
+            if name is None: return True
             if node[1] == 'function' and self.get_field(node[0], 'declarator.declarator') == name: 
+                return True
+            if node[1] == 'function_decl' and self.get_field(node[0], 'declarator') == name: 
                 return True
             if node[1] == 'field' and self.get_field(node[0], 'declarator') == name: 
                 return True
@@ -97,3 +101,4 @@ class TreeSitterManager:
                         return True
                 return False
         return False
+
