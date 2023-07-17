@@ -4,7 +4,7 @@ from os import path as osp
 import random
 import threading
 import json
-from .sema_base import Sema
+from .sema_base import Sema, TreeSitterManager
 #from .log import log
 
 def _ExpandCppDefinition(filename, start):# {{{
@@ -229,9 +229,13 @@ def IsCppDefinition(loc, id_name=None):# {{{
 
 class CppSema(Sema):
     def __init__(self):
-        pass
+        self.ts = TreeSitterManager()
+        
     def is_function_definition(self, loc, id_name=None):
-        return IsCppDefinition(loc, id_name)
+        code = _ExpandCppDefinition(osp.abspath(loc.file), loc.line-1)
+        print (code)
+        return self.ts.is_definition_cpp(id_name, code.split("\n"))
+        #return IsCppDefinition(loc, id_name)
 
 if __name__ == "__main__":
     test()

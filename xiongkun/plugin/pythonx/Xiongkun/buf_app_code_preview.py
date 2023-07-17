@@ -22,6 +22,7 @@ class TreeSitterManager:
     def __init__(self):
         self.to_install = [
             'tree-sitter-python',
+            'tree-sitter-cpp',
         ]
         self._install_()
         Language.build_library(
@@ -31,38 +32,77 @@ class TreeSitterManager:
           [ os.path.join(HOME_PREFIX, item) for item in self.to_install ]
         )
 
-        self.PY_LANGUAGE = Language('build/my-languages.so', 'python')
+    def get_parser(self, language):
+        LANGUAGE = Language('build/my-languages.so', language)
         parser = Parser()
-        parser.set_language(self.PY_LANGUAGE)
-        self.parser = parser
-        self.trees = {}
+        parser.set_language(LANGUAGE)
+        return parser
 
-    def _add_tree(self, filepath, tree): 
-        self.trees[filepath] = tree
-    
-    def add_document(self, filepath): 
-        source_code = None
-        if not os.path.isfile(filepath): 
-            return False
+    def get_query(self, query_str, language):
+        LANGUAGE = Language('build/my-languages.so', language)
+        query = LANGUAGE.query(query_str)
+        return query
 
-        with open(filepath, "rb") as f:
-            source_code = b"".join(f.readlines())
-        tree = self.parser.parse(source_code)
-        self._add_tree(filepath, tree)
-        return True
+    def is_definition(self, name, contents, language): 
+        try:
+            func = getattr(self, "class_layout_" + language)
+        except: 
+            raise NotImplementedError()
+        return func(contents)
 
-    def class_layout(self, contents):
+    def is_definition_python(self, name, contents):
+        pass
+
+    def get_field(self, node, name):
+        fields = name.split('.')
+        current_node = node
+        for f in fields: 
+            current_node = current_node.children_by_field_name(f)
+            if len(current_node) == 0: return None
+            current_node = current_node[0]
+        return current_node.text.decode("utf-8")
+
+    def is_definition_cpp(self, name, contents):
+        query_str = """
+        ((function_definition) @function)
+        ((field_declaration) @field)
+        """
+        parser = self.get_parser("cpp")
+        query = self.get_query(query_str, "cpp")
+        if isinstance(contents, list):
+            source_code = bytes("\n".join(contents), "utf-8")
+            node = parser.parse(source_code).root_node
+        else:
+            raise NotImplementedError()
+        for node in query.captures(node): 
+            if node[1] == 'function' and self.get_field(node[0], 'declarator.declarator') == name: 
+                return True
+            if node[1] == 'field' and self.get_field(node[0], 'declarator') == name: 
+                return True
+            if node[1] == 'assignment' and self.get_field(node[0], 'left') == name: 
+                return True
+        return False
+
+    def class_layout(self, contents, language): 
+        try:
+            func = getattr(self, "class_layout_" + language)
+        except: 
+            raise NotImplementedError()
+        return func(contents)
+
+    def class_layout_python(self, contents):
         query_str = """
         (module ((function_definition) @function))
         (class_definition) @class
         """
-        #(function definition) @function
-        query = self.PY_LANGUAGE.query(query_str)
+        parser = self.get_parser("python")
+        query = self.get_query(query_str, "python")
         if isinstance(contents, list):
             source_code = bytes("\n".join(contents), "utf-8")
-            node = self.parser.parse(source_code).root_node
+            node = parser.parse(source_code).root_node
         else:
-            node = self.trees[contents].root_node
+            raise NotImplementedError()
+
         root = DirectoryTree("dir", "root")
         for node in query.captures(node): 
             if node[1] == "class":
@@ -76,26 +116,46 @@ class TreeSitterManager:
                 root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('name').text.decode('utf-8'), node[0].start_point))
         return root
 
-    def query(self, filepath, query_str):
-        query = self.PY_LANGUAGE.query(query_str)
-        node = self.trees[filepath].root_node
-        results = query.captures(node)
-        outputs = []
-        for result in results: 
-            outputs.append(result[0].text)
-        return outputs
+    def class_layout_cpp(self, contents):
+        query_str = """
+        (translation_unit ((function_definition) @function))
+        (class_specifier) @class
+        """
+        parser = self.get_parser("cpp")
+        query = self.get_query(query_str, "cpp")
+        if isinstance(contents, list):
+            source_code = bytes("\n".join(contents), "utf-8")
+            node = parser.parse(source_code).root_node
+        else:
+            raise NotImplementedError()
+
+        root = DirectoryTree("dir", "root")
+        for node in query.captures(node): 
+            if node[1] == "class":
+                this = DirectoryTree("dir", "class: " + node[0].child_by_field_name('name').text.decode('utf-8'), node[0].start_point)
+                for field in node[0].children_by_field_name('body')[0].named_children: 
+                    if field.type == 'function_definition':
+                        this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('declarator').text.decode('utf-8'), field.start_point))
+                for field in node[0].children_by_field_name('body')[0].named_children: 
+                    if field.type == 'field_declaration':
+                        this.add_child(DirectoryTree("file", "member: " + field.text.decode('utf-8'), field.start_point))
+                this.is_open = True
+                root.add_child(this)
+            elif node[1] == "function":
+                root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('declarator').text.decode('utf-8'), node[0].start_point))
+        return root
 
 class CodeTreeBuffer(CursorLineBuffer):
-    def __init__(self, name, lines):
+    def __init__(self, name, lines, language):
         widgets = [
             TextWidget("", name=""),
         ]
         self.root_path = ""
-        self.tree = TreeSitterManager().class_layout(lines)
+        self.tree = TreeSitterManager().class_layout(lines, language)
         self.views = []
         self.render_tree()
         self.select_item = self.tree
-        self.syntax = "filetree"
+        self.syntax = "code_preview"
         super().__init__(self.root, name, "code preview", None)
 
     def on_key(self, key):
@@ -238,7 +298,8 @@ class CodeTreeBuffer(CursorLineBuffer):
 @vim_register(command="TagList", keymap="<leader>c")
 def CodePreviewCurrentFile(args):
     lines = GetAllLines()
-    ff = CodeTreeBuffer("code preview", lines)
+    language = vim.eval("&ft")
+    ff = CodeTreeBuffer("code preview", lines, language)
     ff.create()
     ff.show()
 
