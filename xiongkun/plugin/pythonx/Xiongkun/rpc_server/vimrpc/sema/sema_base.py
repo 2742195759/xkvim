@@ -61,7 +61,7 @@ class TreeSitterManager:
         for (node_type, def_node, name_node) in func(contents): 
             #print ("Found first: ", node_type, name_node.start_point[0], name_node.text)
             #sys.stdout.flush()
-            if name_node.start_point[0] == linenr and name_node.text.decode("utf-8") == name:
+            if name_node.start_point[0] == linenr and name_node.text.decode("utf-8").endswith(name):
                 return True
             if name_node.start_point[0] == linenr and name is None:
                 return True
@@ -78,6 +78,10 @@ class TreeSitterManager:
                 for n in current_node.children:
                     if n.type == f[1:]: 
                         current_node = n
+            elif f.startswith('?'):  # get children with type: 
+                maybe_node = current_node.children_by_field_name(f)
+                if len(maybe_node) == 0: continue
+                current_node = maybe_node[0]
             else: 
                 current_node = current_node.children_by_field_name(f)
                 if len(current_node) == 0: return None
