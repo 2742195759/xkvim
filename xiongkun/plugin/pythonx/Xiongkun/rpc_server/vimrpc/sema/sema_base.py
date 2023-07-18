@@ -61,7 +61,8 @@ class TreeSitterManager:
         for (node_type, def_node, name_node) in func(contents): 
             #print ("Found first: ", node_type, name_node.start_point[0], name_node.text)
             #sys.stdout.flush()
-            if name_node.start_point[0] == linenr and name_node.text.decode("utf-8").endswith(name):
+            def_text = name_node.text.decode("utf-8")
+            if name_node.start_point[0] == linenr and def_text.split("::")[-1] == name: 
                 return True
             if name_node.start_point[0] == linenr and name is None:
                 return True
