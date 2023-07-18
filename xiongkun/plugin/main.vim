@@ -51,7 +51,7 @@ function! s:OpenHeaderOrCpp(filepath)"{{{
     if doit == 0
         echom "filepath don't seem to be a .cc or .h, do nothing"
     else
-        execute 'e' newpath
+        execute 'py3 Xiongkun.FileSystem().edit("' . newpath . '")'
     en 
 endf"}}}
 
