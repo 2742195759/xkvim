@@ -13,6 +13,7 @@ def _ExpandCppDefinition(filename, start):# {{{
     return None, if it is not definition. may be a mistake.
     """
     try:
+        start = max(start, 0)
         with open(filename, "r") as fp :
             lines = fp.readlines()
         if start >= len(lines): return ""
@@ -233,7 +234,7 @@ class CppSema(Sema):
         
     def is_function_definition(self, loc, id_name=None):
         code = _ExpandCppDefinition(osp.abspath(loc.file), loc.line-1)
-        return self.ts.is_definition_cpp(id_name, code.split("\n"))
+        return self.ts.is_definition(id_name, 1, code.split("\n"), "cpp")
 
 if __name__ == "__main__":
     test()

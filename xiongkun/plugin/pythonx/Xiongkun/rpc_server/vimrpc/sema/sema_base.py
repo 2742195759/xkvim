@@ -1,6 +1,7 @@
 from tree_sitter import Language, Parser
 from os.path import expanduser
 import os
+import sys
 
 HOME_PREFIX = expanduser("~")
 
@@ -52,31 +53,44 @@ class TreeSitterManager:
         query = LANGUAGE.query(query_str)
         return query
 
-    def is_definition(self, name, contents, language): 
+    def is_definition(self, name, linenr, contents, language): 
         try:
-            func = getattr(self, "is_definition_" + language)
+            func = getattr(self, "for_each_definition_" + language + "_do")
         except: 
             raise NotImplementedError()
-        return func(name, contents)
+        for (node_type, def_node, name_node) in func(contents): 
+            #print ("Found first: ", node_type, name_node.start_point[0], name_node.text)
+            #sys.stdout.flush()
+            if name_node.start_point[0] == linenr and name_node.text.decode("utf-8") == name:
+                return True
+            if name_node.start_point[0] == linenr and name is None:
+                return True
+        return False
 
-    def is_definition_python(self, name, contents):
+    def for_each_definition_python_do(self, contents):
         pass
 
     def get_field(self, node, name):
         fields = name.split('.')
         current_node = node
         for f in fields: 
-            current_node = current_node.children_by_field_name(f)
-            if len(current_node) == 0: return None
-            current_node = current_node[0]
-        return current_node.text.decode("utf-8")
+            if f.startswith('@'):  # get children with type: 
+                for n in current_node.children:
+                    if n.type == f[1:]: 
+                        current_node = n
+            else: 
+                current_node = current_node.children_by_field_name(f)
+                if len(current_node) == 0: return None
+                current_node = current_node[0]
+        return current_node
 
-    def is_definition_cpp(self, name, contents):
+    def for_each_definition_cpp_do(self, contents):
         query_str = """
         ((function_declarator) @function_decl)
         ((function_definition) @function)
         ((field_declaration) @field)
         ((template_declaration) @template)
+        ((class_specifier) @class_def)
         """
         parser = self.get_parser("cpp")
         query = self.get_query(query_str, "cpp")
@@ -85,20 +99,14 @@ class TreeSitterManager:
             node = parser.parse(source_code).root_node
         else:
             raise NotImplementedError()
+        type2field = {
+            'function': 'declarator.declarator',
+            'function_decl': 'declarator',
+            'field': 'declarator',
+            'template': '@declaration.declarator.declarator.declarator',
+            'class_def': 'name',
+        }
         for node in query.captures(node): 
-            if name is None: return True
-            if node[1] == 'function' and self.get_field(node[0], 'declarator.declarator') == name: 
-                return True
-            if node[1] == 'function_decl' and self.get_field(node[0], 'declarator') == name: 
-                return True
-            if node[1] == 'field' and self.get_field(node[0], 'declarator') == name: 
-                return True
-            if node[1] == 'assignment' and self.get_field(node[0], 'left') == name: 
-                return True
-            if node[1] == 'template':
-                for n in node[0].children:
-                    if n.type == "declaration" and self.get_field(n, "declarator.declarator.declarator") == name: 
-                        return True
-                return False
-        return False
-
+            n = self.get_field(node[0], type2field[node[1]])
+            if n is None: continue
+            yield node[1], node[0], n
