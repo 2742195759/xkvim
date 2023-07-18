@@ -532,7 +532,8 @@ endfunction
 
 function! UniverseCtrl()
     let pattern = '\<'.expand("<cword>").'\>'
-    execute printf("py3 Xiongkun.UniverseSearchEngine.singleton().search(\"%s\", \"%s\")", escape(pattern, "\\\"'"), g:nerd_search_path)
+    let search_path = pyxeval("Xiongkun.FileSystem().getcwd()")
+    execute printf("py3 Xiongkun.UniverseSearchEngine.singleton().search(\"%s\", \"%s\")", escape(pattern, "\\\"'"), search_path)
     execute "py3 Xiongkun.UniverseSearchEngine.singleton().render()"
 endfunction
 
