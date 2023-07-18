@@ -107,7 +107,7 @@ class LSPDiagManager:
     def clear(self, file):
         if not FileSystem().bufexist(file): return
         vim.command(f"sign unplace * file={file}")
-        config = { 'bufnr': file, 'type': 'lsp_message' }
+        config = { 'bufnr': file, 'type': 'lsp_message', 'all': 1 }
         vim.eval(f"prop_remove({json.dumps(config)})")
 
 class FileSyncManager:

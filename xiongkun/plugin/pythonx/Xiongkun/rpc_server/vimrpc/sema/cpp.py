@@ -234,7 +234,6 @@ class CppSema(Sema):
     def is_function_definition(self, loc, id_name=None):
         code = _ExpandCppDefinition(osp.abspath(loc.file), loc.line-1)
         return self.ts.is_definition_cpp(id_name, code.split("\n"))
-        #return IsCppDefinition(loc, id_name)
 
 if __name__ == "__main__":
     test()
