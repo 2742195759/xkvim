@@ -18,7 +18,7 @@ def MarkdownPreviewStart(args):
     commands(""" 
 augroup MarkdownPreviewGroup
     autocmd!
-    autocmd BufWritePost *.md,*.markdown MarkdownPreviewUpdate
+    autocmd BufWriteCmd *.md,*.markdown MarkdownPreviewUpdate
     autocmd CursorHold *.md,*.markdown MarkdownSetCursor
 augroup END
     """)

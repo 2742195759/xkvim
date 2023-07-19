@@ -40,7 +40,8 @@ def RemoteSave(args):
         update_buffer_timestamp(filepath)
         vim.command("set nomodified")
     else:
-        vim.command("write")
+        vim.command("noautocmd write")
+        vim.command("set nomodified")
         
 @vim_register(command="RE", with_args=True, command_completer="customlist,RemoteFileCommandComplete")
 def RemoteEdit(args):
