@@ -139,3 +139,4 @@ def TerminalAbbre(args):
     abbres = get_abbreviate_list(bufnr)
     from .buf_app import CommandList
     CommandList("terminal_abbreviates", [n[0] for n in abbres], [n[1] for n in abbres]).start()
+
