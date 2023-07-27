@@ -13,6 +13,7 @@ import os
 from .rpc import rpc_wait, rpc_call
 from .buf_app import FixStringBuffer
 from .command_doc_popup import DocPreviewBuffer
+from .remote_fs import FileSystem
 
 class USEWindowCallback:# {{{
     def on_update(self):
@@ -573,6 +574,10 @@ class LocationPreviewWindows:# {{{
         shows = [ PreviewWindow.LocationItem(loc) for loc in locs ]
         self.set_showable(shows, idx)
 
+    def get_locs(self):
+        # [ PreviewWindow.LocationItem(loc) for loc in locs ]
+        return self.candidate_locs
+
     def set_showable(self, showable, idx=0, **args):
         self.candidate_locs = showable
         self.win_ops = args
@@ -623,7 +628,7 @@ class LocationPreviewWindows:# {{{
             self.last_find_cursor = new_xy
             if not word: word = vimeval("expand('<cword>')")
             if not word: return 
-            pwd = GetPwd()
+            pwd = FileSystem().getcwd()
             USEngineOpts = {
                 'searchers': [LSPSearcher, CtagSearcher, GrepSearcher], 
                 'async_mask': [0, 0, 1],

@@ -280,7 +280,7 @@ def lsp_complete_items(rsp):
     if 'result' not in rsp or rsp['result'] == None: return []
     items = rsp['result']['items']
     kind2type = {
-        7: "class", 2: "method", 1: "text", 4: "constructor", 22: "struct", 6: "variable", 3: "function", 14: "keyword",
+        7: "class", 2: "method", 1: "text", 4: "constructor", 22: "struct", 6: "variable", 3: "function", 14: "keyword", 9: "module",
     }
     results = []
     for item in items:

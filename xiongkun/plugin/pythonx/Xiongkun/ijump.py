@@ -98,6 +98,8 @@ class DFAContext:
         except StopIteration:
             return "end"
         except Exception as e: 
+            import traceback
+            traceback.print_exception(type(e), e, e.__traceback__)
             print(f"InteractDo: `Error happens`: {e}")
             return "end"
 
@@ -126,6 +128,23 @@ def interactive_cdo(command):
             except:
                 print("Error happens, skip this line.")
 
+# loop for each location in preview list
+def interactive_previewdo(command): 
+    from .windows import GPW
+    preview_items = GPW.get_locs()
+    for idx, item in enumerate(preview_items):
+        bufnr = item.getBuffer()
+        linenr = item.getLineNumber()
+        vim.command(f"b {bufnr}")
+        vim.command(f"normal {linenr}zz")
+        yield "redraw"
+        if confirm(f"[{idx+1}/{len(preview_items)}] Preform `{command}` onto this line and save? (y/n)"): 
+            try:
+                vim.command(f"{command}")
+                vim.command(f"update")
+            except:
+                print("Error happens, skip this line.")
+
 @vim_register(command="Replay", with_args=True, interactive=True)
 def Replay(args):
     if len(args) == 0: 
@@ -138,16 +157,21 @@ def Replay(args):
 
 @vim_register(command="Rename", with_args=True, interactive=True)
 def IdentifierRename(args):
+    """ Rename old_name new_name
+    """
     if len(args) != 2: 
         print("Rename old_name new_name")
         print("Example: 对老的名字重命名，改为新的名字")
         return 
     old, new = args
-    qflist = vim.eval("getqflist()")
-    if len(qflist) == 0: 
-        print("Please run UniverseSearch first and fill the quickfix list.")
+    from .windows import GPW
+    preview_items = GPW.get_locs()
+    GPW.hide()
+    vim.command(f"let @/='{old}'")
+    if len(preview_items) == 0: 
+        print("Please run UniverseSearch first and press `q` to fill the preview window list.")
     command = "s/{old}/{new}/g".format(old=old, new=new)
-    DFAContext().set_dfa(interactive_cdo(command))
+    DFAContext().set_dfa(interactive_previewdo(command))
 
 @vim_register(keymap="<M-o>", command="JumpPrevFile")
 def JumpPrevFile(args):
