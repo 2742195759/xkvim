@@ -526,7 +526,10 @@ def CurrentBufferGuard(bufnr=None):
         saved_view = vim.eval("winsaveview()")
         if bufnr: vim.command(f'silent keepjumps b {bufnr}')
         yield
-        vim.command(f'silent keepjumps b {saved_buf}')
+        try:
+            vim.command(f'silent keepjumps b {saved_buf}')
+        except KeyboardInterrupt as e:
+            pass
         vim.eval(f"winrestview({dict2str(saved_view)})")
 
 @contextmanager

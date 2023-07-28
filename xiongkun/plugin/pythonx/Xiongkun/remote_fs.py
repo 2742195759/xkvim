@@ -328,11 +328,11 @@ class FileSystem:
     def create_node(self, filepath):
         if filepath[-1] == '/': command = "mkdir"
         else: command = "touch"
-        del self.cached_tree
+        if hasattr(self, "cached_tree"): del self.cached_tree
         return self.command(f"{command} {filepath}")
 
     def remove_node(self, filepath):
-        del self.cached_tree
+        if hasattr(self, "cached_tree"): del self.cached_tree
         return self.command(f"rm -r {filepath}")
         
 

@@ -315,6 +315,7 @@ class LSPProxy:
             if s.match_suffix(suff): 
                 s.try_start(self.rootUri)
                 return s
+        self.disable_file(-1, suff)
         raise RuntimeError("no server for suffix %s" % suff)
 
     def iter_servers(self):
@@ -461,8 +462,7 @@ def handle_input(handle, lsp, req):
             raise RuntimeError("Please call lsp init first.")
         func(id, *req[2])
     except DisableException as e: 
-        print ("[LSP] disabled file")
-        send_to_vim(handle, {'result': None})
+        send_to_vim(handle, {'id': id, 'result': None})
     except Exception as e:
         print ("[LSP] error: ", e)
         traceback.print_exc()

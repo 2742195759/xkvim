@@ -29,6 +29,7 @@ auto_files = [
     '*.cpp',
     '*.hs',
     '*.haskell',
+    '*.md',
 ]
 
 def _StartAutoCompile():# {{{
