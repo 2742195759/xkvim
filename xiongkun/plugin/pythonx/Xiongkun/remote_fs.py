@@ -269,6 +269,9 @@ class FileSystem:
                 vim.eval(f"setbufvar({bufnr}, '&buftype', 'acwrite')")
                 vim.eval(f"setbufvar({bufnr}, '&buflisted', 1)")
                 vim.command(f"keepjumps noswap b {bufnr}")
+                if len(content) > 1024*1024*10: 
+                    vim.command("Large!")
+                    vim.command("setlocal bufhidden=hide")
                 vim.command(f"keepjumps normal ggdG")
                 vim.command(f"keepjumps read {tmp_file}")
                 vim.command("keepjumps normal ggdd")

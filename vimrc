@@ -19,10 +19,10 @@ Bundle 'https://github.com/skywind3000/vim-quickui'
 Bundle 'https://github.com/tomasiser/vim-code-dark'
 Bundle 'The-NERD-Commenter'
 Bundle 'https://github.com/frazrepo/vim-rainbow'
-"Bundle 'https://github.com/neoclide/coc.nvim'
 Bundle 'https://github.com/Yggdroot/indentLine'
 Bundle 'https://github.com/github/copilot.vim'
 Bundle 'https://github.com/godlygeek/tabular'
+Bundle 'https://github.com/vim-scripts/LargeFile'
 
 if has("cscope")
   set cscopeprg=/usr/bin/cscope
