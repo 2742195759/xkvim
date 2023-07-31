@@ -1,11 +1,5 @@
 cd $HOME
-wget http://10.255.125.22:8082/software/clangd.tar
-tar -xf clangd.tar
-apt update
-apt install -y patchelf
-cd ./clangd
-bash ./init.sh
-cat "export PATH=$PATH:$PATH:$HOME/clangd/" >> ~/.bashrc
-source ~/.bashrc
-
-
+wget https://github.com/clangd/clangd/releases/download/16.0.2/clangd-linux-16.0.2.zip
+unzip clangd-linux-16.0.2.zip
+rm clangd-linux-16.0.2.zip
+echo "export PATH=$PATH:$PATH:$HOME/clangd_16.0.2/bin/" >> $HOME/.bashrc
