@@ -40,7 +40,8 @@ def RemoteSave(args):
         update_buffer_timestamp(filepath)
         vim.command("set nomodified")
     else:
-        vim.command("write")
+        vim.command("noautocmd write")
+        vim.command("set nomodified")
         
 @vim_register(command="RE", with_args=True, command_completer="customlist,RemoteFileCommandComplete")
 def RemoteEdit(args):
@@ -268,6 +269,9 @@ class FileSystem:
                 vim.eval(f"setbufvar({bufnr}, '&buftype', 'acwrite')")
                 vim.eval(f"setbufvar({bufnr}, '&buflisted', 1)")
                 vim.command(f"keepjumps noswap b {bufnr}")
+                if len(content) > 1024*1024*10: 
+                    vim.command("Large!")
+                    vim.command("setlocal bufhidden=hide")
                 vim.command(f"keepjumps normal ggdG")
                 vim.command(f"keepjumps read {tmp_file}")
                 vim.command("keepjumps normal ggdd")
@@ -324,11 +328,11 @@ class FileSystem:
     def create_node(self, filepath):
         if filepath[-1] == '/': command = "mkdir"
         else: command = "touch"
-        del self.cached_tree
+        if hasattr(self, "cached_tree"): del self.cached_tree
         return self.command(f"{command} {filepath}")
 
     def remove_node(self, filepath):
-        del self.cached_tree
+        if hasattr(self, "cached_tree"): del self.cached_tree
         return self.command(f"rm -r {filepath}")
         
 

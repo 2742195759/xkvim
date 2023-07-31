@@ -4,8 +4,10 @@ import json
 import time
 from .decorator import *
 from .functions import KillablePool
+from .utils import GetSearchConfig, ConvertToRePattern
 import os.path as osp
 import glob
+import re
 
 def get_git_prefix(abspath):
     origin = abspath
@@ -75,14 +77,28 @@ class RemoteFS:
     
     @server_function
     def tree(self, dirpath):
+        ex_dirs, ex_files = GetSearchConfig(dirpath)
+        ex_dirs = list(map (ConvertToRePattern, ex_dirs))
+        ex_files = list (map (ConvertToRePattern, ex_files))
+        def _ignore(path):
+            is_dir = osp.isdir(path)
+            if is_dir: 
+                path = path + "/"
+                for ex_dir in ex_dirs:
+                    if re.search(ex_dir, path):  return True
+            else: 
+                for ex_file in ex_files:
+                    if re.search(ex_file, path):  return True
+            return False
+
         def _tree(root):
             ret = {'files': [], 'dirs': []}
             names = os.listdir(root)
             for name in names: 
                 path = os.path.join(root, name)
-                if os.path.isdir(path):
+                if os.path.isdir(path) and not _ignore(path):
                     ret['dirs'].append((name, _tree(path)))
-                elif os.path.isfile(path):
+                elif os.path.isfile(path) and not _ignore(path):
                     ret['files'].append(name)
             return ret
         return _tree(dirpath)
@@ -129,13 +145,8 @@ if __name__ == "__main__":
     from server_cluster import ServerCluster, printer_process_fn
     servers = ServerCluster()
     servers.start_queue(printer_process_fn)
-    #servers.grepfinder = GrepSearcher(servers.queue)
     fn = servers.get_server_fn("remotefs.tree")
-    print (fn (1, "/home/data/test/"))
-    fn = servers.get_server_fn("remotefs.exists")
-    print (fn (1, "/home/data/xxxx"))
-    fn = servers.get_server_fn("remotefs.command")
-    print (fn (1, "ls /home/data"))
+    print (fn (1, "/home/xiongkun/test/"))
     time.sleep(3)
     servers.stop()
 

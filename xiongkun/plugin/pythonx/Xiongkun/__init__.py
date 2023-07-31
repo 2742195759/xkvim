@@ -138,7 +138,10 @@ def CopyFileName(args):
 
 @vim_register(command="VimConfig")
 def EditSearchConfig(args):
-    vim.command("tabe .vim_config.yaml")
+    path = ".vim_config.yaml"
+    if not FileSystem().exists(path): 
+        FileSystem().create_node(path)
+    FileSystem().edit(path, True)
     if EmptyBuffer(): 
         vim.command("read ~/xkvim/vim_config.yaml")
 
