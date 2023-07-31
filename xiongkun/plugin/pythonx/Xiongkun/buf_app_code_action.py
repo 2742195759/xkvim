@@ -26,6 +26,7 @@ code_action_dict = {
     "change directory  |    更换目录    |": "@ChangeDirectory",
     "set remote        |  更换远程机器  |": "@SetRemote",
     "clean swp         | 删除掉swap文件 |": "CleanSwaps",
+    "restart           | 重新启动服务   |": "RestartAll",
 }
 
 vim.command(""" 
@@ -138,5 +139,6 @@ vim.command("""
 inoremap <silent> <m-.> <cmd>CodeActionLast<cr>
 """)
 
-
-
+@vim_register(command="RestartAll")
+def RestartAllServer(args):
+    vim.command("call UltiSnips#RefreshSnippets()")

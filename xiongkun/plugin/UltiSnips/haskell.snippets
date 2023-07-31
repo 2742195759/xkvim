@@ -1,0 +1,90 @@
+snippet exp_re "example of regex.base and regex.posix"
+-- add package.yaml: 
+-- regex-base
+-- regex-posix
+
+import Text.Regex.Base
+import Text.Regex.Posix ((=~),(=~~)) -- or TDFA or PCRE or ...
+
+main = do
+    print b
+    print c
+    print d
+  where
+    b :: Bool
+    b = ("abaca" =~ "(.)a")
+    c :: [MatchArray]
+    c = ("abaca" =~ "(.)a")
+    d :: Maybe (String,String,String,[String])
+    d = ("abaca" =~~ "(.)a")
+
+endsnippet
+
+
+snippet exp_register "example of register system for RPC."
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ExistentialQuantification #-}
+
+module Main (main) where
+
+import Lib
+
+-- Registration system...
+-- type class is very powerful.
+
+class Package a where
+    data Input a
+    data Output a
+    process :: Input a -> Output a
+    parse   :: a -> String -> Input a
+    preproc :: Output a -> String
+
+
+data Succ = Succ
+instance Package Succ where
+    data Input Succ = SuccInput Int
+    data Output Succ = SuccOutput Int
+    process (SuccInput x) = SuccOutput (x + 1)
+    parse _ y  = (SuccInput . read) y
+    preproc (SuccOutput x) = show x
+
+data Concat = Concat
+instance Package Concat where
+    data Input Concat = ConcatInput String
+    data Output Concat = ConcatOutput String
+    process (ConcatInput x) = ConcatOutput (x ++ "\n")
+    parse _ y  = ConcatInput y
+    preproc (ConcatOutput x) = show x
+
+data RegItem = forall a. (Package a) => RegItem a
+data RegEnv = RegEnv [(String, RegItem)]
+
+-- register machnisam
+-- 1. monad env
+-- 2. map from :: ByteString -> read
+
+-- ('concat', 'sdf')
+-- ('succ', 1)
+
+-- env + id + input -> output
+--
+run :: RegEnv -> String -> String -> IO ()
+run (RegEnv env) method input_str = do 
+    let res = lookup method env
+    case res of
+        Nothing -> putStrLn "not found"
+        Just (RegItem p) -> do
+            let inp = parse p input_str
+            let out = process inp
+            putStrLn $ preproc out
+
+runall :: RegEnv -> [(String, String)] -> IO ()
+runall env [] = return ()
+runall env (x:xs) = do
+    run env (fst x) (snd x)
+    runall env xs
+
+main :: IO () 
+{-main = run (RegEnv [("succ", (RegItem Succ)), ("concat", (RegItem Concat))]) "concat" "1"-}
+main = runall (RegEnv [("succ", (RegItem Succ)), ("concat", (RegItem Concat))]) [("concat", "1"), ("succ", "2")]
+endsnippet
