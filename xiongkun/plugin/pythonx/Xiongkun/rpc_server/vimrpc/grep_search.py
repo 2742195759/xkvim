@@ -51,18 +51,46 @@ class GrepSearcher:
             if len(res): gather.extend(res)
         return []
 
-    @process_function
-    def sema_filter(self, items, search_text):
+    def start_filter(self, items, search_text, func):
         num_worker=20
         with KillablePool(num_worker) as p:
             inputs = [(search_text, [item]) for item in items]
-            outputs = p.map(filter_by_definition, inputs)
+            outputs = p.map(func, inputs)
         gather = []
         for output in outputs: 
             res = output
             if len(res): gather.extend(res)
         return gather
-        
+
+    @process_function
+    def sema_filter(self, items, search_text):
+        return self.start_filter(items, search_text, filter_by_definition)
+
+    @process_function
+    def context_filter(self, items, search_text):
+        return self.start_filter(items, search_text, filter_by_context)
+
+def peek_line(filename, start, end):
+    """
+    read line from [start, end)
+    """
+    import linecache
+    ret = []
+    for i in range(start, end): 
+        ret.append(linecache.getline(filename, i).strip())
+    return ret
+
+def filter_by_context(args):
+    actual_text, items = args
+    print (actual_text, items)
+    result = []
+    for item in items:
+        context = "".join(peek_line(item['filename'], int(item['lnum']), int(item['lnum'])+5))
+        item['text'] = context
+        if actual_text in context:
+            result.append(item)
+    return result
+
 def filter_by_definition(args):
     search_text, items = args
     def definition_filter(item):

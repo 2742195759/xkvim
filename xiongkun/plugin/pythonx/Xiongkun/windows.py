@@ -415,6 +415,8 @@ class BoxListWindow(Window):# {{{
             return true: if processed.
             return false: to call default process function. (VimScript)
         """
+        def on_return(items):
+            self.update(items)
         if key == '<m-1>': 
             return True
 
@@ -454,6 +456,13 @@ class BoxListWindow(Window):# {{{
         if key in ['n', 'N']:
             self._search_jump(key)# {{{
             return True# }}}
+        if key in ['+']: 
+            text = self._getinput("context>+")# {{{
+            if text in ["", ""]: 
+                return True
+            rpc_call("grepfinder.context_filter", on_return, self.items, text[1:])
+            return True
+            
         if key in ['f', 'F']: 
             text = self._getinput("filter>%s>" % key)# {{{
             if text not in ["", ""]: 
@@ -463,20 +472,8 @@ class BoxListWindow(Window):# {{{
                 def inv_name_filter(item):
                     if text in item['filename']: return False
                     return True
-                def context_filter(item):
-                    assert text.startswith("+")
-                    actual_text = text[1:]
-                    context = "".join(peek_line(item['filename'], int(item['lnum']), int(item['lnum'])+5))
-                    item['text'] = context
-                    if actual_text  in context: return True
-                    return False
                 m = {'f': name_filter, 'F': inv_name_filter}
-                if text.startswith('+'): 
-                    if remote_fs.FileSystem().is_remote(): 
-                        print ("In remote mode, search context is not unsupported now.")
-                        return True
-                    filter_fn = context_filter
-                else: filter_fn = m[key]
+                filter_fn = m[key]
                 self.items = list(filter(filter_fn, self.items))
                 self.update(self.items)
             return True# }}}
@@ -484,9 +481,7 @@ class BoxListWindow(Window):# {{{
             search_text = remove_angle_bracket(self.last_search)
             if key == 'd': 
                 search_text = None
-            def on_return(items):
-                self.update(items)
-            items = rpc_call("grepfinder.sema_filter", on_return, self.items, search_text)
+            rpc_call("grepfinder.sema_filter", on_return, self.items, search_text)
             return True# }}}
         if key in ['I']: 
             if remote_fs.FileSystem().is_remote(): 
