@@ -28,6 +28,7 @@ terminal_abbreviate: [
     ["FLAGS_cudnn_deterministic", "FLAGS_cudnn_deterministic=True"],
     ["upload file", "python ~/xkvim/cmd_script/upload.py --file "],
     ["reinstall paddle", "wget http://10.255.125.22:8082/paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl -O paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl && pip uninstall -y paddlepaddle_gpu && pip install paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl\n"],
+    ["nsys", "/opt/nvidia/nsight-systems/2022.4.1/bin/nsys profile -t cuda,nvtx --cpuctxsw=process-tree -o my_report --capture-range=cudaProfilerApi --force-overwrite true python /tmp/xxxx.py"],
 ]
 
 # mac | pc is supported
