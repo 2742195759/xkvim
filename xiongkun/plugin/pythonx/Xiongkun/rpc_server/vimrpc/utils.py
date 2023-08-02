@@ -28,6 +28,12 @@ def GetSearchConfig(directory):
             excludes_file.append(line.split("=")[1].strip()[1:-1])
     return excludes_dir, excludes_file
 
+def ConvertToRePattern(pattern):
+    pattern = pattern.replace(".", "\\.")
+    pattern = pattern.replace("*", ".*")
+    pattern = pattern.replace("?", ".")
+    return pattern
+
 
 def GetSearchFindArgs(excludes):
     dirs, files = excludes
