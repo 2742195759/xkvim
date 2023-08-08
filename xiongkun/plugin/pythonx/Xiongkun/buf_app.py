@@ -777,12 +777,15 @@ class WidgetBuffer(Buffer):
                 method(self)
 
 class WidgetBufferWithInputs(WidgetBuffer):
+    def _char_range(self, start_chr, end_chr):
+        return list(map(chr, range(ord(start_chr), ord(end_chr)+1)))
+
     def on_key(self, key):
         #log("on keys: ", key)
         if super().on_key(key):
             return True
-        base_key = list(range(ord('a'), ord('z'))) + list(range(ord('A'), ord('Z')))
-        base_key = list(map(chr, base_key))
+        base_key =  self._char_range('a', 'z') + self._char_range('A', 'Z')
+        base_key = base_key + self._char_range('0', '9')
         special_keys = [
             '<bs>', '<tab>', '<space>', '<c-w>', '<c-u>', '_', '-', '+', '=', '.', '/', '<cr>', '<left>', '<right>', "<c-a>", "<c-e>",
         ]

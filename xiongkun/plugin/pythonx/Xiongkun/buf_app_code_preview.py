@@ -3,7 +3,7 @@ import os
 import os
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer, BufferHistory
 from .func_register import vim_register
-from .vim_utils import SetVimRegister, Normal_GI, Singleton, CurrentEditFile, input_no_throw, get_char_no_throw, GetAllLines, HOME_PREFIX
+from .vim_utils import SetVimRegister, Normal_GI, Singleton, CurrentEditFile, input_no_throw, get_char_no_throw, GetAllLines, HOME_PREFIX, GetCursorXY
 import vim
 from functools import partial
 from .log import debug
@@ -106,14 +106,14 @@ class TreeSitterManager:
         root = DirectoryTree("dir", "root")
         for node in query.captures(node): 
             if node[1] == "class":
-                this = DirectoryTree("dir", "class: " + node[0].child_by_field_name('name').text.decode('utf-8'), node[0].start_point)
+                this = DirectoryTree("dir", "class: " + node[0].child_by_field_name('name').text.decode('utf-8'), (node[0].start_point, node[0].end_point))
                 for field in node[0].children_by_field_name('body')[0].named_children: 
                     if field.type == 'function_definition':
-                        this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('name').text.decode('utf-8'), field.start_point))
+                        this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('name').text.decode('utf-8'), (field.start_point, field.end_point)))
                 this.is_open = True
                 root.add_child(this)
             elif node[1] == "function":
-                root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('name').text.decode('utf-8'), node[0].start_point))
+                root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('name').text.decode('utf-8'), (node[0].start_point, node[0].end_point)))
         return root
 
     def class_layout_cpp(self, contents):
@@ -132,17 +132,17 @@ class TreeSitterManager:
         root = DirectoryTree("dir", "root")
         for node in query.captures(node): 
             if node[1] == "class":
-                this = DirectoryTree("dir", "class: " + node[0].child_by_field_name('name').text.decode('utf-8'), node[0].start_point)
+                this = DirectoryTree("dir", "class: " + node[0].child_by_field_name('name').text.decode('utf-8'), (node[0].start_point, node[0].end_point))
                 for field in node[0].children_by_field_name('body')[0].named_children: 
                     if field.type == 'function_definition':
-                        this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('declarator').text.decode('utf-8'), field.start_point))
+                        this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('declarator').text.decode('utf-8'), (field.start_point, field.end_point)))
                 for field in node[0].children_by_field_name('body')[0].named_children: 
                     if field.type == 'field_declaration':
-                        this.add_child(DirectoryTree("file", "member: " + field.text.decode('utf-8'), field.start_point))
+                        this.add_child(DirectoryTree("file", "member: " + field.text.decode('utf-8'), (field.start_point, field.end_point)))
                 this.is_open = True
                 root.add_child(this)
             elif node[1] == "function":
-                root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('declarator').text.decode('utf-8'), node[0].start_point))
+                root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('declarator').text.decode('utf-8'), (node[0].start_point, node[0].end_point)))
         return root
 
 class CodeTreeBuffer(CursorLineBuffer):
@@ -151,12 +151,23 @@ class CodeTreeBuffer(CursorLineBuffer):
             TextWidget("", name=""),
         ]
         self.root_path = ""
-        self.tree = TreeSitterManager().class_layout(lines, language)
+        self.tree:DirectoryTree = TreeSitterManager().class_layout(lines, language)
         self.views = []
         self.render_tree()
         self.select_item = self.tree
         self.syntax = "code_preview"
         super().__init__(self.root, name, "code preview", None)
+
+    def locate_by_pos(self, line, col):
+        self.select_item = self.tree
+        line -= 1 # 0-based
+        for item in self.tree.visit_bfs():
+            start, end = item.extra_data
+            start_line, _ = start
+            end_line, _ = end
+            if line >= start_line and line <= end_line: 
+                self.select_item = item
+        self.redraw()
 
     def on_key(self, key):
         if key in ['x']:
@@ -217,7 +228,7 @@ class CodeTreeBuffer(CursorLineBuffer):
 
     def render_tree(self):
         def file_clicked(item):
-            line_nr = item.extra_data[0]
+            line_nr = item.extra_data[0][0]
             vim.command(f"{line_nr + 1}")
             return True
 
@@ -251,7 +262,8 @@ class CodeTreeBuffer(CursorLineBuffer):
 
     def post_cursor_move(self, char):
         cur_line = self.cur_cursor_line()
-        self.select_item = self.views[cur_line][1]
+        if cur_line < len(self.views):
+            self.select_item = self.views[cur_line][1]
 
     def get_lnum(self):
         cur_lnum = 0
@@ -260,48 +272,19 @@ class CodeTreeBuffer(CursorLineBuffer):
                 cur_lnum = idx
         return cur_lnum
 
-    def locate(self, fullpath):
-        cur = self.tree.find_by_fullpath(fullpath)
-        if cur is None: 
-            print (f"Not find {fullpath} in current directory: {FileSystem().getcwd()}")
-            return False
-        self.tree.open_path(cur)
-        self.select_item = cur
-        self.redraw()
-        return True
-
-    def call_custom_function(self, node):
-        # TODO:
-        self.close()
-        message = """ 
-        You are calling custom method: "
-        (a) for add a new file.
-        (m) for move a file.
-        (c) for copy a file.
-        (d) for delete a file.
-        """
-        self.close()
-        MessageWindow().set_markdowns([message])
-        MessageWindow().show()
-        ret = get_char_no_throw()
-        if ret == "a": 
-            MessageWindow().set_markdowns(["创建：\n输入文件名完整路径，目录以 '/' 结尾"])
-            path = input_no_throw("", f"{node.fullpath}", "customlist,RemoteFileCommandComplete")
-            if path and FileSystem().create_node(path): 
-                vim.command(f"echow 'success creating {path}'")
-                FileSystem().edit(path, True)
-        if ret == 'd': 
-            if FileSystem().remove_node(node.fullpath): 
-                vim.command(f"echow 'success remove {node.fullpath}'")
-        MessageWindow().hide()
-
-@vim_register(command="TagList", keymap="<leader>c")
+@vim_register(command="TagList", keymap="<leader>T")
 def CodePreviewCurrentFile(args):
     lines = GetAllLines()
+    x, y = GetCursorXY()
     language = vim.eval("&ft")
-    ff = CodeTreeBuffer("code preview", lines, language)
+    try:
+        ff = CodeTreeBuffer("code preview", lines, language)
+    except NotImplementedError: 
+        print (f"Don't Implement taglist for {language}.")
+        return
     ff.create()
     ff.show()
+    ff.locate_by_pos(x, y)
 
 if __name__ == "__main__":
     with open("/home/xiongkun/tmp.py") as f:

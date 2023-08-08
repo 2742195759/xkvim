@@ -518,18 +518,23 @@ def BufferOptionGuard(option_dict):
     for key, val in saved_value.items():
         vim.command(f"let &{key} = '{val}'")
 
+def command_retry(command, max_retry=10):
+    if max_retry == 0: 
+        raise Exception("Command failed: %s" % command)
+    try:
+        vim.command(command)
+    except:
+        command_retry(command, max_retry-1)
+
 @contextmanager
 def CurrentBufferGuard(bufnr=None):
     # NOTE: add options guard to avoid buffer deleted by hidden.
     with BufferOptionGuard({"bufhidden": "hide"}):  
         saved_buf = vim.eval("bufnr()")
         saved_view = vim.eval("winsaveview()")
-        if bufnr: vim.command(f'silent keepjumps b {bufnr}')
+        if bufnr: command_retry(f'silent keepjumps b {bufnr}')
         yield
-        try:
-            vim.command(f'silent keepjumps b {saved_buf}')
-        except KeyboardInterrupt as e:
-            pass
+        command_retry(f'silent keepjumps b {saved_buf}')
         vim.eval(f"winrestview({dict2str(saved_view)})")
 
 @contextmanager

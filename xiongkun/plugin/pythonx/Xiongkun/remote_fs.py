@@ -160,6 +160,13 @@ class DirectoryTree:
         self.is_open = False
         self.extra_data = extra_data
 
+    def visit_bfs(self):
+        for file in self.files(): 
+            yield file
+        for d in self.dirs():
+            yield from d.visit_bfs()
+            yield d
+
     def add_child(self, tree):
         self.child.append(tree)
         tree.father = self
