@@ -116,10 +116,13 @@ class TreeSitterManager:
                 root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('name').text.decode('utf-8'), (node[0].start_point, node[0].end_point)))
         return root
 
-    def class_layout_cpp(self, contents):
+    def for_each_definition_cpp_do(self, contents):
         query_str = """
-        (translation_unit ((function_definition) @function))
-        (class_specifier) @class
+        ((function_declarator) @function_decl)
+        ((function_definition) @function)
+        ((field_declaration) @field)
+        ((template_declaration) @template)
+        ((class_specifier) @class_def)
         """
         parser = self.get_parser("cpp")
         query = self.get_query(query_str, "cpp")
@@ -128,21 +131,41 @@ class TreeSitterManager:
             node = parser.parse(source_code).root_node
         else:
             raise NotImplementedError()
-
-        root = DirectoryTree("dir", "root")
+        type2field = {
+            'function': 'declarator.declarator',
+            'function_decl': 'declarator',
+            'field': 'declarator',
+            'template': '@declaration.declarator.declarator.declarator',
+            'class_def': 'name',
+        }
         for node in query.captures(node): 
-            if node[1] == "class":
-                this = DirectoryTree("dir", "class: " + node[0].child_by_field_name('name').text.decode('utf-8'), (node[0].start_point, node[0].end_point))
-                for field in node[0].children_by_field_name('body')[0].named_children: 
+            n = self.get_field(node[0], type2field[node[1]])
+            if n is None: continue
+            yield node[1], node[0], n
+
+    def class_layout_cpp(self, contents):
+        root = DirectoryTree("dir", "root")
+        unique_set = set()
+        for (node_type, def_node, name_node) in self.for_each_definition_cpp_do(contents): 
+            def_text = name_node
+            if def_node.start_point in unique_set:
+                continue
+            unique_set.add(def_node.start_point)
+            if node_type == "class_def":
+                this = DirectoryTree("dir", "class: " + def_text, (def_node.start_point, def_node.end_point))
+                for field in def_node.children_by_field_name('body')[0].named_children: 
                     if field.type == 'function_definition':
+                        print ("Insert:", id(field), field)
+                        unique_set.add(field.start_point)
                         this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('declarator').text.decode('utf-8'), (field.start_point, field.end_point)))
-                for field in node[0].children_by_field_name('body')[0].named_children: 
+                for field in def_node.children_by_field_name('body')[0].named_children: 
                     if field.type == 'field_declaration':
+                        unique_set.add(field.start_point)
                         this.add_child(DirectoryTree("file", "member: " + field.text.decode('utf-8'), (field.start_point, field.end_point)))
                 this.is_open = True
                 root.add_child(this)
-            elif node[1] == "function":
-                root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('declarator').text.decode('utf-8'), (node[0].start_point, node[0].end_point)))
+            elif node_type in ["function", "template"]:
+                root.add_child(DirectoryTree("file", "function: " + def_node.child_by_field_name('declarator').text.decode('utf-8'), (def_node.start_point, def_node.end_point)))
         return root
 
 class CodeTreeBuffer(CursorLineBuffer):
@@ -167,6 +190,7 @@ class CodeTreeBuffer(CursorLineBuffer):
             end_line, _ = end
             if line >= start_line and line <= end_line: 
                 self.select_item = item
+                break
         self.redraw()
 
     def on_key(self, key):
