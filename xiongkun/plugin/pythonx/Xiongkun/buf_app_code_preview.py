@@ -155,7 +155,6 @@ class TreeSitterManager:
                 this = DirectoryTree("dir", "class: " + def_text, (def_node.start_point, def_node.end_point))
                 for field in def_node.children_by_field_name('body')[0].named_children: 
                     if field.type == 'function_definition':
-                        print ("Insert:", id(field), field)
                         unique_set.add(field.start_point)
                         this.add_child(DirectoryTree("file", "method: " + field.child_by_field_name('declarator').text.decode('utf-8'), (field.start_point, field.end_point)))
                 for field in def_node.children_by_field_name('body')[0].named_children: 
