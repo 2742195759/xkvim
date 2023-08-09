@@ -1139,6 +1139,27 @@ class CommandList(FuzzyList):
         super().oninit()
         vim.command("set syntax=commandlist")
 
+
+class BufferFinderBuffer(FuzzyList):
+    def __init__(self, name="BufferFinder", history=None, options={}):
+        self.buffers = GetBufferList()
+        super().__init__("vim_buffer", self.buffers, name, history, options)
+        self.last_window_id = vim.eval("win_getid()")
+        self.saved_cursor = GetCursorXY()
+
+    def on_enter(self, cmd):
+        item = self.widgets['result'].cur_item()
+        log(f"[BufferFinder] start goto. item {item} with cmd: {cmd}")
+        self.goto(item, cmd)
+
+    def goto(self, buffer, cmd=None):
+        self.close()
+        bufnr = int(vim.eval(f'bufnr("{buffer}")'))
+        if bufnr != -1:
+            remote_fs.GoToBuffer(bufnr, cmd)
+        else:
+            print (f"Not found buffer for name: {buffer}")
+
 class FileFinderBuffer(FuzzyList):
     def __init__(self, directory=None, name="FileFinder", history=None, options={}):
         if directory is None:
@@ -1149,6 +1170,9 @@ class FileFinderBuffer(FuzzyList):
         self.last_window_id = vim.eval("win_getid()")
         self.saved_cursor = GetCursorXY()
 
+    def on_exit(self):
+        SetCursorXY(*self.saved_cursor)
+
     def set_root(self, directory):
         files = rpc_wait("filefinder.set_root", directory)
         return files
@@ -1156,7 +1180,7 @@ class FileFinderBuffer(FuzzyList):
     def on_search(self):
         search_text = self.widgets['input'].text.strip().lower()
         rpc_call("filefinder.search", self.update_ui, self.type, search_text)
-        
+
     def set_items(self, name, items):
         pass
 
@@ -1202,7 +1226,7 @@ def FileFinderReflesh(args):
         directory = args[0]
     rpc_call("filefinder.set_root", None, directory, True)
 
-@vim_register(command="FF", with_args=True, command_completer="file")
+@vim_register(command="FF", with_args=True, command_completer="file", keymap="<space>f")
 def FileFinder(args):
     """ Find a file / buffer by regular expression.
 
@@ -1218,16 +1242,11 @@ def FileFinder(args):
     ff = FileFinderBuffer(directory=directory)
     ff.start()
 
-@vim_register(command="B", with_args=True, command_completer="buffer")
+@vim_register(command="B", with_args=True, command_completer="buffer", keymap="<space>b")
 def BufferFinder(args):
-    ff.start()
-    ff.mainbuf.files = GetBufferList()
-    input = "" if len(args)==0 else " ".join(args)
-    ff.mainbuf.widgets['input'].text = input
-    ff.mainbuf.redraw()
-    ff.mainbuf.on_search()
-    if len(ff.mainbuf.widgets['result']) == 1: 
-        ff.mainbuf.on_enter("b")
+    ff = BufferFinderBuffer()
+    ff.create()
+    ff.show()
         
 @vim_register(command="SB", with_args=True, command_completer="buffer")
 def SplitBufferFinder(args):

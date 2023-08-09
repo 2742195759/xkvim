@@ -14,6 +14,7 @@ code_action_dict = {
     "file tree         |  远程的文件树  |": "FileTree",
     "tag list          |  展示代码结构  |": "TagList",
     "file finder       |  文件模糊查找  |": "FF",
+    "buffer finder     | Buffer模糊查找 |": "B",
     "search keyword    |   关键字查找   |": "UniverseSearchWithPath",
     "google            |    谷歌查找    |": "GoogleUI",
     "paddle doc        |   Paddle文档   |": "PdocUI",
