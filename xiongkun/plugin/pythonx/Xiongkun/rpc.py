@@ -27,6 +27,7 @@ def create_rpc_handle(name, function_name, receive_name):
 
     vim.command(f"""function! {name}SendMessageSync(id, channel, package)
         call ch_sendraw(a:channel, a:package)
+        let receive_jsons = []
         while 1
             let out = ch_read(a:channel)
             if out == ""
@@ -37,11 +38,17 @@ def create_rpc_handle(name, function_name, receive_name):
                 continue
             endif
             let json = json_decode(out)
-            call {name}Server(a:channel, out)
             if json[0] == a:id
+                call {name}Server(a:channel, out)
                 break
+            else
+                call add(receive_jsons, json)
             endif
         endwhile
+
+        for json in receive_jsons
+            call {name}Server(a:channel, out)
+        endfor
         return out
     endfunction""")
     

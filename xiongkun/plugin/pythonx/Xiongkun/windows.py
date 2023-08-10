@@ -553,8 +553,7 @@ class LocationPreviewWindows:# {{{
     
     def go(self):
         loc = self.cur_loc()
-        if self.pwin is not None and loc is not self.pwin.showable:
-            # (hacky logic) go -> remote_fs -> MessageSync -> go -> error!!
+        if self.pwin is not None:
             self.pwin.destory()
             self.pwin = None
         if loc is None : return 
