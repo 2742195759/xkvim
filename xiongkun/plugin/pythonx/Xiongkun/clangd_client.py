@@ -21,6 +21,8 @@ from .clangd_client_utils import get_content_deltas
 vim.command("set cot=menuone,noselect")
 vim.command("set scl=yes")
 
+is_disabled = False
+
 auto_files = [
     '*.py',
     '*.cc',
@@ -195,6 +197,8 @@ class LSPServer(RPCServer):
             MessageWindow().set_markdowns([markdown_doc])
             MessageWindow().show()
         elif package["method"] == "textDocument/publishDiagnostics":
+            if is_disabled: 
+                return
             # add sign to buffer
             file = package['params']['uri'][7:]
             file = FileSystem().abspath(file)
@@ -477,6 +481,8 @@ def lsp_server():
 
 @vim_register(command="LSPDisable")
 def lsp_disable(args):
+    global is_disabled
+    is_disabled=True
     _EndAutoCompile()
 
 def set_remote_lsp(config_file):
