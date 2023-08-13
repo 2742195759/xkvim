@@ -299,6 +299,10 @@ def lsp_complete_items(rsp):
         results.append(r)
     return results
 
+vim.command("""
+inoremap <m-n> <cmd>call Py_complete ([])<cr>
+"""
+)
 @vim_register(name="Py_complete")
 def complete(args):
     def handle(rsp):
