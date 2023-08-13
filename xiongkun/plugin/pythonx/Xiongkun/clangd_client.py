@@ -66,7 +66,8 @@ def StopAutoCompileGuard():# {{{
         _EndAutoCompile()
         yield
     finally:
-        _StartAutoCompile()
+        if not is_disabled:
+            _StartAutoCompile()
     
 @vim_utils.Singleton
 class LSPDiagManager: 
