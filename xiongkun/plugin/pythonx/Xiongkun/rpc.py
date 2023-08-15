@@ -224,7 +224,7 @@ local_rpc = RPCServer("Local", None, "vimrpc")
 commands("""
 augroup LocalServerDelete
     autocmd!
-    autocmd VimLeave * py3 Xiongkun.rpc_server().channel.delete()
+    autocmd VimLeave * py3 Xiongkun.local_rpc.channel.delete()
 augroup END
 """)
 
