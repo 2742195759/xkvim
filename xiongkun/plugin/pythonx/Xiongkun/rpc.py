@@ -78,7 +78,7 @@ class RPCChannel:
 
     def delete(self):
         if hasattr(self, "local_server"): 
-            os.killpg(self.local_server.pid, signal.SIGTERM)
+            os.killpg(self.local_server.pid, signal.SIGKILL)
             
     def __init__(self, name, remote_server, type, function, noblock=0):
         if remote_server is None: 
