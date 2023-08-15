@@ -16,8 +16,8 @@ import multiprocessing as mp
 from log import log
 
 class ServerCluster: 
-    def __init__(self):
-        self.queue = mp.Manager().Queue()
+    def __init__(self, mp_manager):
+        self.queue = mp_manager.Queue()
         self.filefinder = FileFinder(self.queue)
         self.remotefs = RemoteFS()
         self.fuzzyfinder = FuzzyList(self.queue)

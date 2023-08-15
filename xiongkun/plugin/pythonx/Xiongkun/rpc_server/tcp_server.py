@@ -30,6 +30,9 @@ from servers.lsp_server import lsp_server
 import select
 from socket_stream import SockStream
 from log import log
+import multiprocessing as mp
+
+mp_manager = mp.Manager()
 
 try:
     # Python 3
@@ -44,7 +47,7 @@ def vim_rpc_loop(handle):
         encoded = json.dumps(obj) + "\n"
         handle.wfile.write(encoded.encode('utf-8'))
 
-    servers = ServerCluster()
+    servers = ServerCluster(mp_manager)
     servers.start_queue(send)
     stream = SockStream()
 
@@ -109,6 +112,7 @@ class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
         else: 
             print (f"Unknow command. {mode}")
         sys.stdout.flush()
+        print ("===== stop a vim rpc server ======")
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
