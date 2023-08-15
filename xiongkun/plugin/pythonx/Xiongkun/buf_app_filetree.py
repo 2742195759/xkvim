@@ -111,6 +111,7 @@ class FileTreeBuffer(CursorLineBuffer):
         self.syntax = "filetree"
         super().__init__(self.root, name, "filetree", file_tree_history)
 
+
     def on_key(self, key):
         if key in ['x']:
             self.on_close_dir()
@@ -119,8 +120,12 @@ class FileTreeBuffer(CursorLineBuffer):
             node = self.select_item
             self.call_custom_function(node)
             return True
-        if key in ['u']: 
+        if key in ['p']: 
             self.goto_father()
+            return True
+        if key in ['s']: 
+            node = self.select_item
+            self.search_keyword(node)
             return True
         if super().on_key(key):
             return True
@@ -149,6 +154,10 @@ class FileTreeBuffer(CursorLineBuffer):
         if father is None: return
         father.is_open = False
         self.goto_father()
+
+    def search_keyword(self, node):
+        from .buf_app_code_action import UniverserSearchWithPath
+        UniverserSearchWithPath([node.full_path])
 
     def on_move_brother(self, key):
         offset = {'J': 1, 'K': -1}[key]

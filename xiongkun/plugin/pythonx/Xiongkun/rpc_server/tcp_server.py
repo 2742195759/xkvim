@@ -31,8 +31,19 @@ import select
 from socket_stream import SockStream
 from log import log
 import multiprocessing as mp
+import signal
+import os
 
 mp_manager = mp.Manager()
+
+# send the signal to the child process.
+#def handler(sig, frame):
+    #pgid = os.getpgid(0)
+    #with open("/tmp/local_vimcode.log", "w") as fp:
+        #fp.write(f"Start killing all pgid process: pgid={pgid}")
+    #signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    #os.killpg(pgid, signal.SIGTERM)
+#signal.signal(signal.SIGTERM, handler)
 
 try:
     # Python 3
@@ -95,6 +106,7 @@ def vim_rpc_loop(handle):
 
 class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
     def handle(self):
+        # override the main process signal handler.
         print("=== socket opened ===")
         mode = b""
         c = self.request.recv(1)

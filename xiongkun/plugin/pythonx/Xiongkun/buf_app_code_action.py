@@ -103,8 +103,11 @@ def ChangeDirectoryCommand(args):
 last_searched_directory = ""
 @vim_register(command="UniverseSearchWithPath")
 def UniverserSearchWithPath(args):
-    global last_searched_directory 
-    cwd = input_no_throw("SearchCwd: ", f"{last_searched_directory}", "customlist,RemoteFileCommandComplete")
+    if len(args) == 0: 
+        global last_searched_directory 
+        cwd = input_no_throw("SearchCwd: ", f"{last_searched_directory}", "customlist,RemoteFileCommandComplete")
+    else:
+        cwd = str(args[0])
     if cwd is None: return
     if cwd == "": cwd = FileSystem().getcwd() 
     last_searched_directory = cwd
