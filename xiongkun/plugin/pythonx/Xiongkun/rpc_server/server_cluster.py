@@ -15,14 +15,36 @@ from vimrpc.configure import ProjectConfigure
 import multiprocessing as mp
 from log import log
 
+class ProcessManager:
+    def __init__(self):
+        self.pools = {}
+
+    def terminal_all(self): 
+        for p in self.pools.values():
+            p.terminal()
+        self.pools.clear()
+
+    def terminal(self, server):
+        self.pools[id(server)].terminal()
+        del self.pools[id(server)]
+
+    def start_process(self, server, target, args):
+        server_id = id(server)
+        p = mp.Process(target=worker, args=args)
+        p.start()
+        server_process = self.pools.get(server_id, [])
+        server_process.append(p)
+        return p
+
 class ServerCluster: 
     def __init__(self, mp_manager):
+        self.process_manager = ProcessManager()
         self.queue = mp_manager.Queue()
-        self.filefinder = FileFinder(self.queue)
+        self.filefinder = FileFinder(self.queue, self.process_manager)
         self.remotefs = RemoteFS()
-        self.fuzzyfinder = FuzzyList(self.queue)
+        self.fuzzyfinder = FuzzyList(self.queue, self.process_manager)
         self.yiyan = Yiyan(self.queue)
-        self.grepfinder = GrepSearcher(self.queue)
+        self.grepfinder = GrepSearcher(self.queue, self.process_manager)
         self.hoogle = HoogleSearcher(self.queue)
         self.config = ProjectConfigure(self.queue)
         def keeplive(*a, **kw): 

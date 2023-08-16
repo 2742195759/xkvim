@@ -9,11 +9,12 @@ import os.path as osp
 import subprocess
 from .sema.sema import SemaPool, LinePos
 
-class GrepSearcher:
+class GrepSearcher():
     def __init__(self, queue):
         """ 
         Save a mapping from: name:String -> items:List(String)
         """
+        super().__init__(Server)
         self.queue = queue
 
     def split_work(self, d):
@@ -34,7 +35,6 @@ class GrepSearcher:
             works.append(abspath)
         works.append("FILE:" + d)
         return works
-
 
     @stream_function 
     def search(self, id, directory, search_text): 

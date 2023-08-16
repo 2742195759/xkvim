@@ -8,10 +8,11 @@ from .fuzzy_list import FuzzyList
 from .utils import GetSearchFiles
 
 class FileFinder:
-    def __init__(self, queue):
+    def __init__(self, queue, ppool):
         self.queue = queue
+        self.ppool = ppool
         self.root = None
-        self.fuzzy = FuzzyList(self.queue)
+        self.fuzzy = FuzzyList(self.queue, ppool)
         pass
 
     @server_function

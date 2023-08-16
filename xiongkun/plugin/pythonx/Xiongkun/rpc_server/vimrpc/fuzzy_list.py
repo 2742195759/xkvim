@@ -6,14 +6,13 @@ from .decorator import *
 from .functions import KillablePool
 
 class FuzzyList:
-    def __init__(self, queue):
+    def __init__(self, queue, ppool):
         """ 
         Save a mapping from: name:String -> items:List(String)
         """
         self.queue = queue
+        self.ppool = ppool
         self.lists_dict = {}
-        # type is "DIRECTOTYR@TYPE"
-        # for example: "/home/data/Paddle/@file|mru"
 
     @server_function
     def set_items(self, name, items): 

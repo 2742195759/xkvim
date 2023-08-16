@@ -13,7 +13,11 @@ from log import log
 class InQueue:
     pass
 
-def process_function(func):
+def async_function(func):
+    def wrapper(*args):
+        func(*args)
+
+def process_function(process, func):
     """ process function is a decorator:
         @process_function(func) will make func a non-block callable
     """
