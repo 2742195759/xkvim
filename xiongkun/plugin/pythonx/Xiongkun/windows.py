@@ -346,7 +346,8 @@ class BoxListWindow(Window):# {{{
     def on_close(self, code):
         """ when user close this win.
         """
-        if 'on_close' in self.callback: self.callback['on_close'](self)
+        if 'on_close' in self.callback: 
+            self.callback['on_close'](self)
         BoxListWindowManager.singleton().delete(self)
         self.destory()
 
@@ -794,13 +795,9 @@ class GrepSearcher(Searcher):# {{{
                 )
 
             def cancel(self):
-                self.force_cancel()
-                self.child = None
+                from .rpc import rpc_call
+                rpc_call("grepfinder.cancel_search", None)
                 self.stream.delete()
-
-            def force_cancel(self):
-                if self.child.poll() is None: 
-                    self.child.terminate()
 
             def set_callback(self, finish, process):
                 self.finish = finish
@@ -898,11 +895,12 @@ class UniverseSearchEngine(Searcher):# {{{
         self.query_id += 1
 
     def kill_async(self):
+        for s in self.workers: 
+            s.cancel()
+        self.workers = None
+
         if self.pcm is not None:
             self.pcm.destory()
-            for s in self.workers: 
-                s.cancel()
-            self.workers = None
             self.pcm = None
 
     def start_async(self, workers):

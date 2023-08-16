@@ -27,7 +27,7 @@ def get_git_prefix(abspath):
         return ""
     return ans[-1]
 
-class RemoteFS:
+class RemoteFS(Service):
     @server_function
     def fetch(self, path):
         if not osp.isfile(path):

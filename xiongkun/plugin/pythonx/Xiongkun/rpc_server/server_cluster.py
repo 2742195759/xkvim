@@ -6,7 +6,7 @@ import threading
 from threading import Thread
 from vimrpc.fuzzy_list import FuzzyList
 from vimrpc.file_finder import FileFinder
-from vimrpc.decorator import InQueue
+from vimrpc.decorator import InQueue, Service, AsyncServer
 from vimrpc.remote_fs import RemoteFS
 from vimrpc.yiyan_server import Yiyan
 from vimrpc.grep_search import GrepSearcher
@@ -15,14 +15,39 @@ from vimrpc.configure import ProjectConfigure
 import multiprocessing as mp
 from log import log
 
+class ProcessManager:
+    def __init__(self):
+        self.pools = {}
+
+    def terminal_all(self): 
+        for p in self.pools.values():
+            p.terminate()
+            p.join()
+        self.pools.clear()
+
+    def terminal(self, server, func_name):
+        hashid = hash((id(server), func_name))
+        if hashid in self.pools:
+            self.pools[hashid].terminate()
+            self.pools[hashid].join()
+            del self.pools[hashid]
+
+    def start_process(self, server, func_name, target, args):
+        hashid = hash((id(server), func_name))
+        p = mp.Process(target=target, args=args)
+        p.start()
+        self.pools[hashid] = p
+        return p
+
 class ServerCluster: 
     def __init__(self, mp_manager):
+        self.process_manager = ProcessManager()
         self.queue = mp_manager.Queue()
-        self.filefinder = FileFinder(self.queue)
+        self.filefinder = FileFinder(self.queue, self.process_manager)
         self.remotefs = RemoteFS()
-        self.fuzzyfinder = FuzzyList(self.queue)
+        self.fuzzyfinder = FuzzyList(self.queue, self.process_manager)
         self.yiyan = Yiyan(self.queue)
-        self.grepfinder = GrepSearcher(self.queue)
+        self.grepfinder = GrepSearcher(self.queue, self.process_manager)
         self.hoogle = HoogleSearcher(self.queue)
         self.config = ProjectConfigure(self.queue)
         def keeplive(*a, **kw): 
@@ -45,7 +70,10 @@ class ServerCluster:
         obj = self
         for f in name.split('.'): 
             if hasattr(obj, f): 
-                obj = getattr(obj, f)
+                if isinstance(obj, (Service, AsyncServer)):
+                    obj = obj.get_service(f)
+                else:
+                    obj = getattr(obj, f)
             elif isinstance(obj, dict) and f in obj:
                 obj = obj.get(f, None)
             else:
@@ -60,7 +88,9 @@ class ServerCluster:
         self.queue_thread.start()
 
     def stop(self):
+        print ("[ServerCluster] Stop All Processes and Queue.")
         self._stop = True
+        self.process_manager.terminal_all()
         self.queue_thread.join()
 
 def printer_process_fn(output):
