@@ -34,7 +34,7 @@ import multiprocessing as mp
 import signal
 import os
 
-mp_manager = mp.Manager()
+mp_manager = None
 
 # send the signal to the child process.
 #def handler(sig, frame):
@@ -142,5 +142,7 @@ def parameter_parser():
     parser.add_argument("--port",                      type=str,   help="8080")
     return parser.parse_args()
 
-args = parameter_parser()
-server_tcp_main(args.host, int(args.port))
+if __name__ == "__main__":
+    mp_manager = mp.Manager()
+    args = parameter_parser()
+    server_tcp_main(args.host, int(args.port))

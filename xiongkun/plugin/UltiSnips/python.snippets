@@ -1366,3 +1366,33 @@ snippet run_file_header "a header for run single file." #{{{
 #cmd: export ENABLE_FALL_BACK=False
 endsnippet  
 #}}}
+
+snippet pandas "a example for pandas deal with xlsx" #{{{
+import pandas as pd
+path = "./sot_speed.xlsx"
+
+# sheet name is the table number.
+table_dy = pd.read_excel(path, sheet_name=4, header=0, names=None, index_col=None, 
+              usecols=None, dtype=None, engine=None, 
+              converters=None, true_values=None, false_values=None, 
+              skiprows=None, nrows=None, na_values=None, parse_dates=False, 
+              date_parser=None, thousands=None, comment=None, skipfooter=0)
+
+table_sot = pd.read_excel(path, sheet_name=5, header=0, names=None, index_col=None, 
+              usecols=None, dtype=None, engine=None, 
+              converters=None, true_values=None, false_values=None, 
+              skiprows=None, nrows=None, na_values=None, parse_dates=False, 
+              date_parser=None, thousands=None, comment=None, skipfooter=0)
+
+breakpoint() 
+
+print (table_dy)
+
+print (table_sot)
+
+output = pd.merge(table_dy, table_sot, on=["模型库", "模型", "运行环境"], suffixes=("_dy", "_sot"))
+
+output.to_excel('output.xlsx')
+
+breakpoint() 
+endsnippet  
