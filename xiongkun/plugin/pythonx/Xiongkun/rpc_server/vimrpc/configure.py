@@ -9,7 +9,7 @@ import os.path as osp
 import subprocess
 from .sema.sema import SemaPool, LinePos
 
-class ProjectConfigure:
+class ProjectConfigure(Service):
     def __init__(self, queue):
         self.queue = queue
 

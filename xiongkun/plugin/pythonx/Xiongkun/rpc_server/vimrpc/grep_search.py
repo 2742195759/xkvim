@@ -9,12 +9,12 @@ import os.path as osp
 import subprocess
 from .sema.sema import SemaPool, LinePos
 
-class GrepSearcher():
-    def __init__(self, queue):
+class GrepSearcher(AsyncServer):
+    def __init__(self, queue, ppool):
         """ 
         Save a mapping from: name:String -> items:List(String)
         """
-        super().__init__(Server)
+        self.ppool = ppool
         self.queue = queue
 
     def split_work(self, d):
@@ -51,6 +51,10 @@ class GrepSearcher():
             if len(res): gather.extend(res)
         return []
 
+    @server_function
+    def cancel_search(self): 
+        self.ppool.terminal(self, "search") # close the last search process.
+
     def start_filter(self, items, search_text, func):
         num_worker=20
         with KillablePool(num_worker) as p:
@@ -62,11 +66,11 @@ class GrepSearcher():
             if len(res): gather.extend(res)
         return gather
 
-    @process_function
+    @async_function
     def sema_filter(self, items, search_text):
         return self.start_filter(items, search_text, filter_by_definition)
 
-    @process_function
+    @async_function
     def context_filter(self, items, search_text):
         return self.start_filter(items, search_text, filter_by_context)
 
@@ -129,7 +133,9 @@ def do_grep_search(args):
 
 def test_main():
     from server_cluster import ServerCluster, printer_process_fn
-    servers = ServerCluster()
+    import multiprocessing as mp
+    mp_manager = mp.Manager()
+    servers = ServerCluster(mp_manager)
     servers.start_queue(printer_process_fn)
     #servers.grepfinder = GrepSearcher(servers.queue)
     fn = servers.get_server_fn("grepfinder.search")

@@ -10,71 +10,60 @@ import multiprocessing as mp
 from functools import partial
 from log import log
 
+class Service:
+    def get_service(self, key):
+        attr = getattr(self, key)
+        return attr
+
+class AsyncServer:
+    #def __init__(self, queue, ppool):
+        #self.queue = queue
+        #self.ppool = ppool
+    def get_service(self, key):
+        attr = getattr(self, key)
+        if hasattr(attr, "__async__") and attr.__async__ is True: 
+            new_attr = process_function(self, key, attr)
+            setattr(self, key, new_attr)
+        elif hasattr(attr, "__stream__") and attr.__stream__ is True: 
+            new_attr = stream_decorator(self, key, attr)
+            setattr(self, key, new_attr)
+        attr = getattr(self, key)
+        return attr
+
 class InQueue:
     pass
 
 def async_function(func):
-    def wrapper(*args):
-        func(*args)
-
-def process_function(process, func):
-    """ process function is a decorator:
-        @process_function(func) will make func a non-block callable
-    """
-    p = None
-    def wrapper(*args):
-        self = args[0]
-        id = args[1]
-        args = args[2:]
-        def worker(*args):
-            #print("process function with args:", *args)
-            output = func(*args)
-            self.queue.put((id, True, output))
-        nonlocal p
-        if p is not None: 
-            p.terminate()
-        args = tuple([self] + list(args))
-        p = mp.Process(target=worker, args=args)
-        p.start()
-        return InQueue()
-    return wrapper
+    setattr(func, "__async__", True)
+    return func
 
 def stream_function(func):
-    p = None
-    def wrapper(*args):
-        self = args[0]
-        id = args[1]
-        args = args[2:]
-        def worker(*args):
-            #print("process function with args:", *args)
-            output = func(*args)
-            self.queue.put((id, True, output))
-        nonlocal p
-        if p is not None: 
-            p.terminate()
-        args = tuple([self, id] + list(args))
-        p = mp.Process(target=worker, args=args)
-        p.start()
-        return InQueue()
-    return wrapper
+    setattr(func, "__stream__", True)
+    return func
 
-def single_pool(func):
+def process_function(this, funcname, func):
     """ process function is a decorator:
         @process_function(func) will make func a non-block callable
     """
-    p = None
     def wrapper(*args):
-        self = args[0]
-        id = args[1]
-        args = args[2:]
+        id = args[0]
+        args = args[1:]
         def worker(*args):
             output = func(*args)
-            self.queue.put((id, output))
-        nonlocal p
-        if p is not None: 
-            p.terminate()
-        p = mp.Process(target=worker, args=(self, args))
-        p.start()
+            this.queue.put((id, True, output))
+        this.ppool.terminal(this, funcname)
+        this.ppool.start_process(this, funcname, target=worker, args=args)
+        return InQueue()
+    return wrapper
+
+def stream_decorator(this, funcname, func):
+    def wrapper(*args):
+        def worker(*args):
+            print (*args)
+            output = func(*args)
+            this.queue.put((id, True, output))
+        this.ppool.terminal(this, funcname)
+        this.ppool.start_process(this, funcname, target=worker, args=args)
         return InQueue()
     return wrapper
 
@@ -100,22 +89,6 @@ def default_reduce_fn(outputs, *args):
     for output in outputs:
         ret.extend(output)
     return ret
-
-def pool_function(map_fn, reduce_fn=default_reduce_fn, num_worker=20): 
-    def _pool_function(func):
-        """ process function is a decorator:
-            @pool_function(func) will make func a block parallel-map callable.
-        """
-        def wrapper(*args):
-            def worker(*args):
-                with Pool(10) as p:
-                    args_list = map_fn(num_worker, *args)
-                    outputs = p.map(func, args_list)
-                    #outputs = reduce_fn(outputs, *args)
-                    return outputs
-            return worker(*args)
-        return wrapper
-    return _pool_function
 
 def server_function(func):
     def wrapper(*args):

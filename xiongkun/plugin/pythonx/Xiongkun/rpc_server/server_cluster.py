@@ -6,7 +6,7 @@ import threading
 from threading import Thread
 from vimrpc.fuzzy_list import FuzzyList
 from vimrpc.file_finder import FileFinder
-from vimrpc.decorator import InQueue
+from vimrpc.decorator import InQueue, Service, AsyncServer
 from vimrpc.remote_fs import RemoteFS
 from vimrpc.yiyan_server import Yiyan
 from vimrpc.grep_search import GrepSearcher
@@ -21,19 +21,22 @@ class ProcessManager:
 
     def terminal_all(self): 
         for p in self.pools.values():
-            p.terminal()
+            p.terminate()
+            p.join()
         self.pools.clear()
 
-    def terminal(self, server):
-        self.pools[id(server)].terminal()
-        del self.pools[id(server)]
+    def terminal(self, server, func_name):
+        hashid = hash((id(server), func_name))
+        if hashid in self.pools:
+            self.pools[hashid].terminate()
+            self.pools[hashid].join()
+            del self.pools[hashid]
 
-    def start_process(self, server, target, args):
-        server_id = id(server)
-        p = mp.Process(target=worker, args=args)
+    def start_process(self, server, func_name, target, args):
+        hashid = hash((id(server), func_name))
+        p = mp.Process(target=target, args=args)
         p.start()
-        server_process = self.pools.get(server_id, [])
-        server_process.append(p)
+        self.pools[hashid] = p
         return p
 
 class ServerCluster: 
@@ -67,7 +70,10 @@ class ServerCluster:
         obj = self
         for f in name.split('.'): 
             if hasattr(obj, f): 
-                obj = getattr(obj, f)
+                if isinstance(obj, (Service, AsyncServer)):
+                    obj = obj.get_service(f)
+                else:
+                    obj = getattr(obj, f)
             elif isinstance(obj, dict) and f in obj:
                 obj = obj.get(f, None)
             else:
@@ -82,7 +88,9 @@ class ServerCluster:
         self.queue_thread.start()
 
     def stop(self):
+        print ("[ServerCluster] Stop All Processes and Queue.")
         self._stop = True
+        self.process_manager.terminal_all()
         self.queue_thread.join()
 
 def printer_process_fn(output):

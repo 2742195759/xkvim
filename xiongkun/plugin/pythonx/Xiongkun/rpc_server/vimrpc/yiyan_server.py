@@ -5,7 +5,7 @@ import time
 from .decorator import *
 from .functions import KillablePool
 
-class Yiyan:
+class Yiyan(Service):
     def __init__(self, queue):
         self.cmd = f"bash {os.environ['HOME']}/xkvim/bash_scripts/yiyan.sh"
         self.child = None

@@ -42,7 +42,7 @@ def hoogle_search(keyword):
         results.append(HoogleResult(sig, pac, doc, exp))
     return results
 
-class HoogleSearcher:
+class HoogleSearcher(Service):
     def __init__(self, queue):
         self.last = []
 

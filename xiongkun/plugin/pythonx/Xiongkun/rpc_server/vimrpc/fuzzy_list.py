@@ -5,7 +5,7 @@ import time
 from .decorator import *
 from .functions import KillablePool
 
-class FuzzyList:
+class FuzzyList(AsyncServer):
     def __init__(self, queue, ppool):
         """ 
         Save a mapping from: name:String -> items:List(String)
@@ -29,7 +29,7 @@ class FuzzyList:
     #       how to ignore them.
     #       Hints: https://stackoverflow.com/questions/11312525/catch-ctrlc-sigint-and-exit-multiprocesses-gracefully-in-python
     #@server_function
-    @process_function 
+    @async_function 
     def search(self, name, search_text): 
         # map and calculate
         num_worker=20
