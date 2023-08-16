@@ -143,6 +143,7 @@ def parameter_parser():
     return parser.parse_args()
 
 if __name__ == "__main__":
+    mp.set_start_method("fork")
     mp_manager = mp.Manager()
     args = parameter_parser()
     server_tcp_main(args.host, int(args.port))
