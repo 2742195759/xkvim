@@ -254,10 +254,10 @@ class LSPProxy:
             "wantDiagnostics": want_diag,
             "forceRebuild": False,
         }
-        if isinstance(content[0], str): 
-            param['contentChanges'] = [{"text": "\n".join(content)}]
-        elif isinstance(content[0], dict):
+        if len(content)==0 or isinstance(content[0], dict): 
             param['contentChanges'] = content
+        elif isinstance(content[0], str): 
+            param['contentChanges'] = [{"text": "\n".join(content)}]
 
         json = {
             "jsonrpc": "2.0",

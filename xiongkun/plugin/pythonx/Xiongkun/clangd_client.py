@@ -108,6 +108,9 @@ class LSPDiagManager:
     def warn(self, file, line, message=""):
         return
         self._place("lsp_warn", file, line, message)
+
+    #def get_text(self, file, line): 
+        #for item in vim.eval(f"prop_list({line})"): 
     
     def clear(self, file):
         if not FileSystem().bufexist(file): return
@@ -125,19 +128,19 @@ class FileSyncManager:
         self.lastContent = {} # bufname -> Content
         self.lsp = lsp
 
-    def did_change(self, filepath, want_diagnostic=True):
+    def did_change(self, filepath, want_diagnostic=False):
         abspath = FileSystem().abspath(filepath)
         assert FileSystem().bufexist(abspath)
         new_content = vim_utils.GetAllLines(abspath)
         if abspath not in self.lastContent: 
             self.lastContent[abspath] = new_content
-            self.lsp.notification("did_change", filepath, new_content, True)
+            self.lsp.notification("did_change", filepath, new_content, want_diagnostic)
             return 
             
         old_content = self.lastContent[abspath]
         diff = self.cal_diff(new_content, old_content)
         self.lastContent[abspath] = new_content
-        if diff:
+        if diff or want_diagnostic:
             self.lsp.notification("did_change", filepath, diff, want_diagnostic)
 
     def cal_diff(self, new_content, old_content):
@@ -392,7 +395,7 @@ def complete(args):
     cur_file = vim_utils.CurrentEditFile(True)
     position = vim_utils.GetCursorXY()
     position = position[0]-1, position[1]-1
-    did_change([True])
+    did_change([False])
     lsp_server().call("complete", handle, cur_file, position)
 
 @vim_register(name="GoToDefinition", command="Def")
@@ -460,7 +463,7 @@ def signature_help(args):
         SignatureWindow().set_content(function, param, vim.eval("&ft"))
 
     file, pos = lsp_server().text_document_location()
-    did_change([True])
+    did_change([False])
     lsp_server().call("signature_help", handle, file, pos)
 
 @vim_register(name="Py_complete_done")
