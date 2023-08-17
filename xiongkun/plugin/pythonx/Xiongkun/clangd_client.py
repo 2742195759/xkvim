@@ -242,6 +242,7 @@ class LSPClient:# {{{
         self.lsp_server = LSPServer(host)
 
 def goto_definition(args):
+    did_change([False])
     cur_file = vim_utils.CurrentEditFile(True)
     position = vim_utils.GetCursorXY()
     position = position[0]-1, position[1]-1

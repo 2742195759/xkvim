@@ -895,13 +895,14 @@ class UniverseSearchEngine(Searcher):# {{{
         self.query_id += 1
 
     def kill_async(self):
-        for s in self.workers: 
-            s.cancel()
-        self.workers = None
-
         if self.pcm is not None:
             self.pcm.destory()
             self.pcm = None
+
+        if self.workers is not None:
+            for s in self.workers: 
+                s.cancel()
+            self.workers = None
 
     def start_async(self, workers):
         # Refactor by xiongkun in 2023-5-27
