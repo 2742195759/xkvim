@@ -157,7 +157,7 @@ class FileTreeBuffer(CursorLineBuffer):
 
     def search_keyword(self, node):
         from .buf_app_code_action import UniverserSearchWithPath
-        UniverserSearchWithPath([node.full_path])
+        UniverserSearchWithPath([node.fullpath])
 
     def on_move_brother(self, key):
         offset = {'J': 1, 'K': -1}[key]

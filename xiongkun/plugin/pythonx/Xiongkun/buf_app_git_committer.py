@@ -42,7 +42,7 @@ class GitCommitter(CursorLineBuffer):
     def git_unstage(self, item):
         FileSystem().command(f"git reset HEAD -- {item}")
 
-    def on_space(self, current):
+    def on_space(self):
         for item in self.mult.get_selected(): 
             self.git_add(item[10:])
         for item in self.mult.get_not_selected(): 
@@ -68,7 +68,11 @@ class GitCommitter(CursorLineBuffer):
             if number < 1: return True
             self.mult.onselect(number - 1)
             GPW.hide()
-            self.on_space(number)
+            self.redraw()
+            return True
+        if key == "<cr>":
+            GPW.hide()
+            self.on_space()
             return True
         if key == "p": 
             """preview the changes"""
