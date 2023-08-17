@@ -338,21 +338,25 @@ def GetLineFromLocation(location):
 
 def SetQuickFixList(locations, jump="none", cwin=False, textlist=None):
     # local only function.
-    if jump == True: jump = "first"
-    assert jump in ['first', 'last', 'none']
     results = []
     for idx, loc in enumerate(locations): 
         results.append({'filename': loc.getfile(), 
          'lnum': loc.getline(),
          'col': loc.getcol(), 
          'text': GetLineFromLocation(loc) if textlist is None else textlist[idx]})
+    SetQuickFixListRaw(results, jump, cwin)
 
-    qflist = VimVariable().assign(results)
+def SetQuickFixListRaw(qflist, jump="none", cwin=False):
+    if jump == True: jump = "first"
+    assert jump in ['first', 'last', 'none']
+    if len(qflist) == 0: 
+        return 
+    qflist = VimVariable().assign(qflist)
     vimeval('setqflist(%s)' % qflist)
     if jump == 'first': 
         vimcommand("cr")
     elif jump == 'last': 
-        vimcommand("cr {}".format(len(locations)))
+        vimcommand("cr {}".format(len(qflist)))
     if cwin: 
         vimcommand("copen")
 

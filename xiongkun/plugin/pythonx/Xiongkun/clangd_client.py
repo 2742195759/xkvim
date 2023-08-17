@@ -54,6 +54,7 @@ def _EndAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
+    autocmd TextChanged {auto_files} call Py_did_change([1]) 
 augroup END
 """
     vim_utils.commands(cmd)# }}}
@@ -174,6 +175,42 @@ class CancelManager:
                 self.server.call("cancel", None, filepath, idx)
                 if id in self.server.channel.callbacks: del self.server.channel.callbacks[idx]
 
+def show_diagnostics_in_textprop(package):
+    """ 
+    show diagnostics in textprop
+    1. nice for print
+    2. some bugs
+    3. not easy for debug, for a good debug show method, see `show_diagnostics_in_quickfix`
+    """
+    file = package['params']['uri'][7:]
+    file = FileSystem().abspath(file)
+    LSPDiagManager().clear(file)
+    diags = package['params']['diagnostics']
+    for diag in diags:
+        line = diag['range']['start']['line'] + 1
+        if diag['severity'] == 1:
+            LSPDiagManager().error(file, line, diag['message'])
+        elif diag['severity'] == 2:
+            LSPDiagManager().warn(file, line, diag['message'])
+
+def show_diagnostics_in_quickfix(package):
+    file = package['params']['uri'][7:]
+    file = FileSystem().abspath(file)
+    bufnr = int(vim.eval(f"bufnr('{file}')"))
+    LSPDiagManager().clear(file)
+    diags = package['params']['diagnostics']
+    qflist = []
+    for diag in diags:
+        line = diag['range']['start']['line'] + 1
+        qflist.append({
+            'bufnr': bufnr,
+            'filename': file,
+            'lnum': line,
+            'text': diag['message'],
+            'type': ["/", "E", "W"][diag['severity']],
+        })
+    vim_utils.SetQuickFixListRaw(qflist, "first", cwin=True)
+
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
         self.channel = RPCChannel("LSP", remote_server, "lsp", "Xiongkun.lsp_server()", noblock=1)
@@ -181,6 +218,47 @@ class LSPServer(RPCServer):
         self.file_manager = FileSyncManager(self)
         self.id = 0
         self.notification("init", FileSystem().getcwd())
+        self.hooker = {}
+        self.hooker_identifier = 0
+        self.register_default_publishdiagnostics()
+
+    def register_default_publishdiagnostics(self):
+        def default_hander(package):
+            if is_disabled: 
+                return None
+            show_diagnostics_in_textprop(package)
+        self.register_hooker("textDocument/publishDiagnostics", default_hander)
+        
+    def register_hooker(self, method, func): 
+        # return index, we can use index to remove hooker.
+        hookers = self.hooker.get(method, {})
+        current_id = self.hooker_identifier
+        self.hooker_identifier += 1
+        hookers[current_id] = func
+        self.hooker[method] = hookers
+        return current_id
+
+    def register_once(self, method, func): 
+        # return index, we can use index to remove hooker.
+        identi = self.register_hooker(method, func)
+        origin = self.hooker[method][identi]
+        def func(x):
+            origin(x)
+            self.remove_hooker(method, identi)
+        self.hooker[method][identi] = func
+        return None
+
+    def remove_hooker(self, method, identi):
+        hooker = self.hooker.get(method, {})
+        assert identi in hooker
+        del hooker[identi]
+
+    def fire_hooker(self, package):
+        assert 'method' in package
+        funcs = list(self.hooker.get(package['method'], {}).values())
+        for hook in funcs:
+            hook(package)
+        return None
 
     def receive(self): # for hooker.
         msg = vim.eval(f"{self.channel.receive_name}")
@@ -197,20 +275,8 @@ class LSPServer(RPCServer):
             markdown_doc = "[LSP Show Message]:" + "\n=================\n" + package['params']['message']
             MessageWindow().set_markdowns([markdown_doc])
             MessageWindow().show()
-        elif package["method"] == "textDocument/publishDiagnostics":
-            if is_disabled: 
-                return
-            # add sign to buffer
-            file = package['params']['uri'][7:]
-            file = FileSystem().abspath(file)
-            LSPDiagManager().clear(file)
-            diags = package['params']['diagnostics']
-            for diag in diags:
-                line = diag['range']['start']['line'] + 1
-                if diag['severity'] == 1:
-                    LSPDiagManager().error(file, line, diag['message'])
-                elif diag['severity'] == 2:
-                    LSPDiagManager().warn(file, line, diag['message'])
+        elif 'method' in package:
+            self.fire_hooker(package)
 
     def notification(self, name, *args):
         stream = self.channel.stream_new(-1)
@@ -459,6 +525,13 @@ def PyDisableFile(args):
 @vim_register(command="LSPDisable")
 def LSPDisable(args):
     _EndAutoCompile()
+
+@vim_register(command="LSPDiags")
+def LSPGetDiags(args):
+    def handler(package):
+        show_diagnostics_in_quickfix(package)
+    did_change([True])
+    lsp_server().register_once("textDocument/publishDiagnostics", handler)
 
 @vim_register(command="LSPRestart")
 def LSPRestart(args):
