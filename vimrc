@@ -24,30 +24,6 @@ Bundle 'https://github.com/github/copilot.vim'
 Bundle 'https://github.com/godlygeek/tabular'
 Bundle 'https://github.com/vim-scripts/LargeFile'
 
-if has("cscope")
-  set cscopeprg=/usr/bin/cscope
-  set csto=0
-  set cst
-  set nocsverb
-  " add any database in current directory
-  if filereadable("cscope.out")
-      cs add cscope.out
-  endif
-  set csverb
-endif
-
-"nmap <C-@>a :cs find a <C-R>=expand("<cword>")<CR><CR>
-nmap <C-\>s :cs find s <C-R>=expand("<cword>")<CR><CR>
-nmap <C-\>g :cs find g <C-R>=expand("<cword>")<CR><CR>
-nmap <C-\>c :cs find c <C-R>=expand("<cword>")<CR><CR>
-nmap <C-\>t :cs find t <C-R>=expand("<cword>")<CR><CR>
-nmap <C-\>e :cs find e <C-R>=expand("<cword>")<CR><CR>
-nmap <C-\>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
-nmap <C-\>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-nmap <C-\>d :cs find d <C-R>=expand("<cword>")<CR><CR>
-nmap <F5> :NERDTreeToggle<cr>
-nmap <F6> :TlistToggle<cr>
-
 if has ("syntax")
   syntax on
 endif
