@@ -180,7 +180,15 @@ let g:UltiSnipsJumpBackwardTrigger='<c-k>'
 """ VimEnter
 autocmd BufEnter * source ~/.vim/after/keymap.vim
 
-if !(&diff)
+if ($VIMCODE == "ON")
+    augroup VIMCODE_INIT
+        autocmd!
+    augroup END
+    echo "starting VIMCODE MODE..."
+endif
+
+
+if !(&diff) && ($VIMCODE != "ON")
     augroup NERDTREE
         autocmd!
         autocmd VimEnter * NERDTreeToggle | wincmd w

@@ -87,7 +87,7 @@ class RPCChannel:
             if not RPCChannel.is_init: 
                 start_server_cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {port} 1>{RPCChannel.rpc_log} 2>&1"
                 self.local_server = subprocess.Popen([start_server_cmd], shell=True, universal_newlines=False, close_fds=True, preexec_fn=os.setsid)
-                print (f"log path: {RPCChannel.rpc_log}")
+                #print (f"log path: {RPCChannel.rpc_log}")
                 RPCChannel.is_init = True
 
         self.channel_name = f"g:{name}_channel"

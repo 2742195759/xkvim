@@ -1,0 +1,5 @@
+if [ $# != 2 ] ; then 
+    echo "USAGE: vimcode project.yaml"
+else
+    VIMCODE=ON vim -c "SetRPCProject $1"
+fi

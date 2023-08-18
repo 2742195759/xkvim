@@ -1,4 +1,4 @@
-git git submodule update --init
+git submodule update --init
 cd chrome-web/Yiyan-Cli
 git reset --hard HEAD
 cd -

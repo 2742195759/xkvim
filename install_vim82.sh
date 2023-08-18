@@ -55,3 +55,4 @@ vim -s ~/xkvim/install_sh/bundle_install.vim
 # install coc dependences
 cd $HOME/xkvim/
 $HOME/xkvim/install_sh/install_coc_dep.sh
+echo 'export PATH=$HOME/xkvim/cmd_script/:$PATH' >> $HOME/.bashrc
