@@ -25,12 +25,18 @@ def update_buffer_timestamp(filepath):
     bufnr = vim.eval(f"bufnr('{filepath}')")
     vim.eval(f"setbufvar({bufnr}, 'timestamp', '{timestamp}')")
 
+def check_buffer_newest():
+    bufname = vim.eval("bufname()")
+    if FileSystem().is_buffer_lastest(bufname) is False:
+        vim.command("echow 'buffer is not the latest version, RE to update.'")
+        return False
+    return True
+
 @vim_register(command="RemoteSave")
 def RemoteSave(args):
     if is_buf_remote():
         bufname = vim.eval("bufname()")
-        if FileSystem().is_buffer_lastest(bufname) is False:
-            vim.command("echow 'buffer is not the latest version, RE to update.'")
+        if not check_buffer_newest(): 
             return
         filepath = FileSystem().filepath(bufname)
         bufnr = vim.eval(f"bufnr('{bufname}')")

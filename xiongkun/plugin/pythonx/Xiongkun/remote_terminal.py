@@ -118,8 +118,11 @@ def get_abbreviate_list(bufnr):
     global_abbreviate = GetConfigByKey("terminal_abbreviate", directory=os.path.join(getHomeDirectory(), "xkvim"))
     terminal_abbreviate = global_abbreviate + project_abbreviate
     results = []
+    unique_set = set()
     for item in terminal_abbreviate :
         key, val = item
+        if key in unique_set: continue
+        unique_set.add(key)
         if val.startswith(':'): 
             new_item = [key, f"{val[1:]}"]
         else:

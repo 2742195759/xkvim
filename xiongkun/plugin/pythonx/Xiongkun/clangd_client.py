@@ -54,7 +54,6 @@ def _EndAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
-    autocmd TextChanged {auto_files} call Py_did_change([1]) 
 augroup END
 """
     vim_utils.commands(cmd)# }}}
