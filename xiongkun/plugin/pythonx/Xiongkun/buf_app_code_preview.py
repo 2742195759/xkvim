@@ -116,7 +116,23 @@ class TreeSitterManager:
                 root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('name').text.decode('utf-8'), (node[0].start_point, node[0].end_point)))
         return root
 
+    def preprocess(self, contents: list[str]):
+        # for cpp, we need some preprocess for correctness
+        # class IR_API sss{};
+        # will be considered as function definition, which is a bug in treesitter.
+        ignore_name = [
+            "IR_API",
+        ]
+        results = []
+        for line in contents:
+            tmp = line
+            for name in ignore_name: 
+                tmp = tmp.replace(name, " "*len(name))
+            results.append(tmp)
+        return results
+
     def for_each_definition_cpp_do(self, contents):
+        contents = self.preprocess(contents)
         query_str = """
         ((function_declarator) @function_decl)
         ((function_definition) @function)
@@ -152,6 +168,9 @@ class TreeSitterManager:
                 continue
             unique_set.add(def_node.start_point)
             if node_type == "class_def":
+                if len(def_node.children_by_field_name('body')) == 0: 
+                    # class ir; here is also a class specifier.
+                    continue 
                 this = DirectoryTree("dir", "class: " + def_text, (def_node.start_point, def_node.end_point))
                 for field in def_node.children_by_field_name('body')[0].named_children: 
                     if field.type == 'function_definition':

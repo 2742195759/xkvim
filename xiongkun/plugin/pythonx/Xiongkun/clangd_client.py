@@ -54,6 +54,7 @@ def _EndAutoCompile():# {{{
     cmd = """
 augroup ClangdServer
     autocmd!
+    autocmd InsertLeave * py3 Xiongkun.SignatureWindow().hide()
 augroup END
 """
     vim_utils.commands(cmd)# }}}
@@ -209,9 +210,9 @@ def show_diagnostics_in_quickfix(package):
             'filename': file,
             'lnum': line,
             'text': diag['message'],
-            'type': ["/", "E", "W"][diag['severity']],
+            'type': ["/", "E", "W"][diag['severity']] if diag['severity'] < 2 else "W",
         })
-    vim_utils.SetQuickFixListRaw(qflist, "first", cwin=True)
+    vim_utils.SetQuickFixListRaw(qflist, "none", cwin=True)
 
 class LSPServer(RPCServer):
     def __init__(self, remote_server=None):
@@ -370,6 +371,7 @@ def lsp_complete_items(rsp):
 
 vim.command("""
 inoremap <m-n> <cmd>call Py_complete ([])<cr>
+inoremap <m-d> <cmd>call Py_signature_help([])<cr>
 """
 )
 @vim_register(name="Py_complete")
@@ -527,7 +529,9 @@ def PyDisableFile(args):
 
 @vim_register(command="LSPDisable")
 def LSPDisable(args):
+    global lsp_disable
     _EndAutoCompile()
+    lsp_disable=True
 
 @vim_register(command="LSPDiags")
 def LSPGetDiags(args):
@@ -559,12 +563,6 @@ def lsp_server():
         _StartAutoCompile()
         clangd = LSPClient(f"127.0.0.1:{RPCChannel.local_port}")
     return clangd.lsp_server
-
-@vim_register(command="LSPDisable")
-def lsp_disable(args):
-    global is_disabled
-    is_disabled=True
-    _EndAutoCompile()
 
 def set_remote_lsp(config_file):
     _EndAutoCompile()
