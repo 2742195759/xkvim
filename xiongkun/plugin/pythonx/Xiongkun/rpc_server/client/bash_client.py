@@ -50,4 +50,4 @@ while True:
     sock.send(create_keeplive())
 
 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
-print ("Exit Remote Bash. thanks: @xiongkun")
+print ("\n\nExit Remote Bash. thanks: @xiongkun")

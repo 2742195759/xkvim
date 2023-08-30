@@ -110,6 +110,9 @@ def vim_rpc_loop(socket):
 
 child_pid = []
 
+import signal
+signal.signal(signal.SIGCHLD, signal.SIG_IGN) # don't need join() to avoid zombie subprocesses.
+
 class ThreadedTCPServer(socketserver.TCPServer):
     pass
 
@@ -141,11 +144,12 @@ def server_tcp_main(HOST, PORT):
     listen_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listen_s.bind((HOST, PORT))
     listen_s.listen(5)
+    print ("开始监听: ", (HOST, PORT))
     while True:
         try:
-            print ("开始监听: ", (HOST, PORT))
             cnn, addr = listen_s.accept()
             connection_handle(cnn)
+            cnn.close() # close in this process.
         except ConnectionResetError:
             cnn.close()
             break
