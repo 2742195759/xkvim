@@ -10,7 +10,7 @@ do
     upstream_lastest=`git fetch --all && git log origin/develop --pretty=oneline |  head -n1 | cut -d' ' -f1`
     if [[ $upstream_lastest == $current_commit  ]]; then
         echo "Lastest. Just do nothing."
-        sleep 10
+        sleep 60
     else
         # get the lastest version.
         echo "Start fetch and update version. "
@@ -19,7 +19,7 @@ do
         # kill all tcp_server.py
         ps | grep "python" | cut -d' ' -f1 | xargs -n1 kill -9
         # sleep 30s to wait for socket to close()
-        sleep 10
+        sleep 60
         $start_command &
     fi
 done
