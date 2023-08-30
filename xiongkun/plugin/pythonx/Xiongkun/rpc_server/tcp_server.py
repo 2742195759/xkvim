@@ -138,6 +138,7 @@ def connection_handle(socket):
     sys.stdout.flush()
 
 def server_tcp_main(HOST, PORT):
+    global child_pid
     listen_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listen_s.bind((HOST, PORT))
     listen_s.listen(5)
@@ -150,7 +151,11 @@ def server_tcp_main(HOST, PORT):
         except ConnectionResetError:
             cnn.close()
             break
-    print ("Joining Child Processes...")
+
+        print ("Joining Child Processes...")
+        child_pid = [ proc for proc in child_pid if proc.join(0.2) is not None ]
+
+    print ("Killing and Joining Child Processes...")
     for proc in child_pid:
         proc.terminate()
         proc.join()
