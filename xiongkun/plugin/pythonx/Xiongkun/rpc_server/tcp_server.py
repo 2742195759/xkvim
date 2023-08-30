@@ -143,23 +143,27 @@ def server_tcp_main(HOST, PORT):
     listen_s.bind((HOST, PORT))
     listen_s.listen(5)
     print ("开始监听: ", (HOST, PORT))
-    while True:
-        try:
-            cnn, addr = listen_s.accept()
-            connection_handle(cnn)
-            cnn.close() # close in this process.
-        except ConnectionResetError:
-            cnn.close()
-            break
 
-        print ("Joining Child Processes...")
-        child_pid = [ proc for proc in child_pid if proc.join(0.2) is not None ]
-
-    print ("Killing and Joining Child Processes...")
-    for proc in child_pid:
-        proc.terminate()
-        proc.join()
-    print ("Exit succesfully.")
+    try:
+        while True: 
+            r, w, e = select.select([listen_s], [], [], 3.0)
+            if listen_s in r:
+                try:
+                    cnn, addr = listen_s.accept()
+                    connection_handle(cnn)
+                    cnn.close() # close in this process.
+                except ConnectionResetError:
+                    cnn.close()
+                    break
+            else: 
+                print ("Joining Child Processes...")
+                child_pid = [ proc for proc in child_pid if proc.join(0.2) is not None ]
+    finally:
+        print ("Killing and Joining Child Processes...")
+        for proc in child_pid:
+            proc.terminate()
+            proc.join()
+        print ("Exit succesfully.")
 
 def parameter_parser():
     import argparse
