@@ -6,8 +6,9 @@ echo "Start command: $start_command in process $last_pid"
 $start_command &
 while true
 do
-    current_commit=`git fetch --all && git log --pretty=oneline |  head -n1 | cut -d' ' -f1`
-    upstream_lastest=`git fetch --all && git log origin/develop --pretty=oneline |  head -n1 | cut -d' ' -f1`
+    git fetch --all
+    current_commit="git log --pretty=oneline |  head -n1 | cut -d' ' -f1`
+    upstream_lastest="git log origin/develop --pretty=oneline |  head -n1 | cut -d' ' -f1`
     if [[ $upstream_lastest == $current_commit  ]]; then
         echo "Lastest. Just do nothing."
         sleep 60
