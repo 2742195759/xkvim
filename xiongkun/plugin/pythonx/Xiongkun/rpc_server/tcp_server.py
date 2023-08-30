@@ -145,7 +145,7 @@ def server_tcp_main(HOST, PORT):
     print ("开始监听: ", (HOST, PORT))
     try:
         while True: 
-            r, w, e = select.select([listen_s], [], [], 3.0)
+            r, w, e = select.select([listen_s], [], [], 10.0)
             if listen_s in r:
                 try:
                     cnn, addr = listen_s.accept()
@@ -155,7 +155,9 @@ def server_tcp_main(HOST, PORT):
                     cnn.close()
                     break
             print (f"Joining Child Processes... [{len(child_pid)}]")
-            child_pid = [ proc for proc in child_pid if proc.join(0.2) is not None ]
+            child_pid = [ proc for proc in child_pid if proc.join(0.2) is None ]
+    except: 
+        raise
     finally:
         print ("Killing and Joining Child Processes...")
         for proc in child_pid:
@@ -172,9 +174,6 @@ def parameter_parser():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    #import signal
-    #signal.signal(signal.SIGCHLD, signal.SIG_IGN) # don't need join() to avoid zombie subprocesses.
-
     mp.set_start_method("fork")
     mp_manager = mp.Manager()
     args = parameter_parser()
