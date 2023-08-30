@@ -7,8 +7,8 @@ $start_command &
 while true
 do
     git fetch --all
-    current_commit="git log --pretty=oneline |  head -n1 | cut -d' ' -f1`
-    upstream_lastest="git log origin/develop --pretty=oneline |  head -n1 | cut -d' ' -f1`
+    current_commit=`git log --pretty=oneline |  head -n1 | cut -d' ' -f1`
+    upstream_lastest=`git log origin/develop --pretty=oneline |  head -n1 | cut -d' ' -f1`
     if [[ $upstream_lastest == $current_commit  ]]; then
         echo "Lastest. Just do nothing."
         sleep 60
