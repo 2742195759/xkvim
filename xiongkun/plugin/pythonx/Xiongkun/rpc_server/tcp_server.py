@@ -143,7 +143,6 @@ def server_tcp_main(HOST, PORT):
     listen_s.bind((HOST, PORT))
     listen_s.listen(5)
     print ("开始监听: ", (HOST, PORT))
-
     try:
         while True: 
             r, w, e = select.select([listen_s], [], [], 3.0)
@@ -155,9 +154,8 @@ def server_tcp_main(HOST, PORT):
                 except ConnectionResetError:
                     cnn.close()
                     break
-            else: 
-                print ("Joining Child Processes...")
-                child_pid = [ proc for proc in child_pid if proc.join(0.2) is not None ]
+            print (f"Joining Child Processes... [{len(child_pid)}]")
+            child_pid = [ proc for proc in child_pid if proc.join(0.2) is not None ]
     finally:
         print ("Killing and Joining Child Processes...")
         for proc in child_pid:
