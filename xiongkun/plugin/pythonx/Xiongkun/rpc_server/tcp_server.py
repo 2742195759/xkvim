@@ -165,8 +165,8 @@ def parameter_parser():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    import signal
-    signal.signal(signal.SIGCHLD, signal.SIG_IGN) # don't need join() to avoid zombie subprocesses.
+    #import signal
+    #signal.signal(signal.SIGCHLD, signal.SIG_IGN) # don't need join() to avoid zombie subprocesses.
 
     mp.set_start_method("fork")
     mp_manager = mp.Manager()
