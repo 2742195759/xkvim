@@ -102,7 +102,7 @@ function! s:previewer.preview(filename, linenr, opts)
     call win_execute(self.winid, 'silent setlocal '.setting)
   endfor
   call win_execute(self.winid, 'silent normal! '.a:linenr.'Gzz')
-  py3 Xiongkun.clangd_client._StartAutoCompile()
+  "py3 Xiongkun.clangd_client._StartAutoCompile()
 endfunction
 ""}}}
 

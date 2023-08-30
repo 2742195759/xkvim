@@ -52,23 +52,26 @@ except ImportError:
     # Python 2
     import SocketServer as socketserver
 
-def vim_rpc_loop(handle):
+def vim_rpc_loop(socket):
+    rfile = socket.makefile('rb', 10240)
+    wfile = socket.makefile('wb', 10240)
     print ("===== start a vim rpc server ======")
     def send(obj):
         encoded = json.dumps(obj) + "\n"
-        handle.wfile.write(encoded.encode('utf-8'))
+        wfile.write(encoded.encode('utf-8'))
+        wfile.flush()
 
     servers = ServerCluster(mp_manager)
     servers.start_queue(send)
     stream = SockStream()
 
     while True:
-        rs, ws, es = select.select([handle.rfile.fileno()], [], [], 3.0)
+        rs, ws, es = select.select([rfile.fileno()], [], [], 3.0)
         sys.stdout.flush()
         sys.stderr.flush()
-        if handle.rfile.fileno() in rs:
+        if rfile.fileno() in rs:
             try:
-                bytes = handle.request.recv(10240)
+                bytes = socket.recv(10240)
             except socket.error:
                 print("=== socket error ===")
                 break
@@ -102,37 +105,55 @@ def vim_rpc_loop(handle):
                         send(output)
     print ("stop handle, closing...")
     servers.stop()
+    socket.close()
     print ("===== stop a vim rpc server ======")
 
-class ThreadedTCPRequestHandler(socketserver.StreamRequestHandler):
-    def handle(self):
-        # override the main process signal handler.
-        print("=== socket opened ===")
-        mode = b""
-        c = self.request.recv(1)
-        while c != b'\n': # read just one line and don't buffer.
-            mode += c
-            c = self.request.recv(1)
-        print ("[TCPServer] receive: ", mode)
-        mode = mode.strip()
-        if mode == b"bash": 
-            bash_server(self)
-        elif mode == b"vimrpc":
-            vim_rpc_loop(self)
-        elif mode == b"lsp":
-            lsp_server(self)
-        else: 
-            print (f"Unknow command. {mode}")
-        sys.stdout.flush()
-        print ("===== stop a vim rpc server ======")
+child_pid = []
 
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+class ThreadedTCPServer(socketserver.TCPServer):
     pass
 
+def connection_handle(socket):
+    # override the main process signal handler.
+    global child_pid
+    print("=== socket opened ===")
+    mode = b""
+    c = socket.recv(1)
+    while c != b'\n': # read just one line and don't buffer.
+        mode += c
+        c = socket.recv(1)
+    print ("[TCPServer] receive: ", mode)
+    mode = mode.strip()
+    if mode == b"bash": 
+        proc = mp.Process(target=bash_server, args=(socket, ))
+    elif mode == b"vimrpc":
+        proc = mp.Process(target=vim_rpc_loop, args=(socket, ))
+    elif mode == b"lsp":
+        proc = mp.Process(target=lsp_server, args=(socket, ))
+    else: 
+        print (f"Unknow command. {mode}")
+    proc.daemon=False
+    proc.start()
+    child_pid.append(proc)
+    sys.stdout.flush()
+
 def server_tcp_main(HOST, PORT):
-    server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
-    ip, port = server.server_address
-    server.serve_forever()
+    listen_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listen_s.bind((HOST, PORT))
+    listen_s.listen(5)
+    while True:
+        try:
+            print ("开始监听: ", (HOST, PORT))
+            cnn, addr = listen_s.accept()
+            connection_handle(cnn)
+        except ConnectionResetError:
+            cnn.close()
+            break
+    print ("Joining Child Processes...")
+    for proc in child_pid:
+        proc.terminate()
+        proc.join()
+    print ("Exit succesfully.")
 
 def parameter_parser():
     import argparse

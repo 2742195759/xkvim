@@ -20,6 +20,7 @@ class KillablePool:
     def __enter__(self):
         def handler(sig, frame):
             self.p.terminate()
+            #self.p.join() # may hang forever.
             sys.exit(1)
         signal.signal(signal.SIGTERM, handler)
         return self.p

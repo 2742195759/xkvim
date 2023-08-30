@@ -18,6 +18,9 @@ def _ExpandCppDefinition(filename, start):# {{{
             lines = fp.readlines()
         if start >= len(lines): return ""
         end = start
+        while start > 0 and ";" not in lines[start] and ("}" not in lines[start] or "}}" in lines[start]):
+            start -= 1 
+        start = min(start+1, end)
         while end < len(lines) and ";" not in lines[end] and ("{" not in lines[end] or "{{" in lines[end]):
             end += 1
         return "".join(lines[start:end+1])
@@ -177,14 +180,14 @@ def ParseCppDefinition(content, name=None):# {{{
     return ret# }}}
 
 def test():# {{{
-    code = _ExpandCppDefinition("/home/data/dl_framework/pytorch/c10/util/irange.h", 97)
-    tokenizer = Tokenizer(code)
-    fparser = CppParser(tokenizer)
-    fparser.is_definition("irange")
-    print(fparser.name)
-    print(fparser.rtype)
-    print(ParseCppDefinition(_ExpandCppDefinition("/home/data/Paddle/paddle/phi/kernels/matmul_kernel.h", 42)))
-    print(ParseCppDefinition(_ExpandCppDefinition("/home/data/Paddle/paddle/fluid/framework/ir/graph_pattern_detector.cc", 1815)))# }}}
+    #code = _ExpandCppDefinition("/home/data/dl_framework/pytorch/c10/util/irange.h", 97)
+    #tokenizer = Tokenizer(code)
+    #fparser = CppParser(tokenizer)
+    #fparser.is_definition("irange")
+    #print(ParseCppDefinition(_ExpandCppDefinition("/home/data/Paddle/paddle/phi/kernels/matmul_kernel.h", 42)))
+    #print(ParseCppDefinition(_ExpandCppDefinition("/home/data/Paddle/paddle/fluid/framework/ir/graph_pattern_detector.cc", 1815)))# }}}
+    print (_ExpandCppDefinition("/Users/xiongkun03/test/ttt.cc", 792))
+    print(ParseCppDefinition(_ExpandCppDefinition("/Users/xiongkun03/test/ttt.cc", 792)))# }}}
 
 def GetOffset(x, y, content):# {{{
     cur_line = 1

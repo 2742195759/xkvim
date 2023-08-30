@@ -37,6 +37,8 @@ def create_keeplive():
 old_tty = termios.tcgetattr(sys.stdin)
 tty.setraw(sys.stdin.fileno())
 while True: 
+    ppid = os.getppid()
+    if ppid == 1: break # father process is killed, we exit.
     r, w, e = select.select([sys.stdin, sock], [], [], 3.0)
     if sys.stdin in r:
         inputs = os.read(sys.stdin.fileno(), 10240)

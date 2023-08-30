@@ -935,7 +935,7 @@ class ListBoxWidget(Widget):
         cur_line = start
         for text in self.items:
             if cur_line >=  end: break
-            for col in find_pos(self.search_keyword, text):
+            for col in find_pos(self.search_keyword, text.lower()):
                 text_prop.prop_add(cur_line, col)
             cur_line += 1
 
@@ -1043,8 +1043,6 @@ class FuzzyList(WidgetBufferWithInputs):
         self.redraw()
 
     def on_search(self):
-        """ 
-        """
         search_text = self.widgets['input'].text.strip().lower()
         rpc_call("fuzzyfinder.search", self.update_ui, self.type, search_text)
 

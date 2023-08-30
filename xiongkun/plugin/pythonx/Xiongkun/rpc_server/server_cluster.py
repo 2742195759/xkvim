@@ -56,11 +56,11 @@ class ServerCluster:
         self._stop = False
 
     def _QueueLoop(self, process_fn):
-        log("[Server]: Start queue loop.")
+        #log("[Server]: Start queue loop.")
         while not self._stop:
             try:
                 output = self.queue.get(timeout=1)
-                log(f"[Server]: Queue Get! {output}")
+                #log(f"[Server]: Queue Get! {output}")
                 process_fn(output)
             except Exception as e:
                 continue

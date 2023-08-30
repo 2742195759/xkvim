@@ -7,6 +7,7 @@ import pty
 import subprocess
 import socket
 import json
+from collections import namedtuple
 
 command = 'bash'
 
@@ -15,9 +16,12 @@ def start_config(handle):
     #config['pwd']
     #return "PWD={} bash"
 
-def bash_server(handle):
+def bash_server(socket):
+    Handle = namedtuple("Handle", ['wfile', 'rfile', 'request'])
+    rfile = socket.makefile('rb', 10240)
+    wfile = socket.makefile('wb', 0)
+    handle = Handle(wfile, rfile, socket)
     print ("[Bash] start bash server.")
-    #command = start_config(handle)
     master_fd, slave_fd = pty.openpty()
     # use os.setsid() make it run in a new process group, or bash job control will not be enabled
     slave_process = subprocess.Popen(command,
@@ -46,5 +50,6 @@ def bash_server(handle):
                 handle.wfile.write(bytes)
 
     # exit bash or killed.
+    socket.close()
     print ("[Bash] exit bash server.")
     print("=== socket closed ===")

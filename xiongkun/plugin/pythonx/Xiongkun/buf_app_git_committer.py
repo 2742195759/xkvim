@@ -117,6 +117,7 @@ class GitCommitter(CursorLineBuffer):
             command = f"git checkout -- {filename}"
         if input_no_throw(prompt) == "yes": 
             FileSystem().command(command)
+            GPW.hide()
             self.on_space() # to save the changes
             self.mult.reset(*self.git_stage_files())
             self.redraw()
