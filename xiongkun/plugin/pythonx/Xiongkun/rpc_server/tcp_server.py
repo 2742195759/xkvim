@@ -155,7 +155,9 @@ def server_tcp_main(HOST, PORT):
                     cnn.close()
                     break
             print (f"Joining Child Processes... [{len(child_pid)}]")
-            child_pid = [ proc for proc in child_pid if proc.join(0.2) is None ]
+            for proc in child_pid:
+                proc.join(0.2)
+            child_pid = [ proc for proc in child_pid if proc.exitcode is None ] # None means not exit.
     except: 
         raise
     finally:
