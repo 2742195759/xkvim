@@ -17,7 +17,7 @@ do
         git pull
         git checkout develop
         # kill all tcp_server.py
-        ps | grep "python tcp_server.py" | cut -d' ' -f1 | xargs -n1 kill -9
+        ps | grep "python " | cut -d' ' -f1 | xargs -n1 kill -9
         # sleep 30s to wait for socket to close()
         sleep 10
         $start_command &
