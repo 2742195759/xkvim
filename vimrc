@@ -249,7 +249,7 @@ call airline#add_statusline_func('MyPlugin')
 " Go to the last position.
 " autocmd BufEnter * silent! normal! g`"zz
 set noshowmode
-set termwinscroll=10000000
+set termwinscroll=100000
 let delimitMate_matchpairs = "(:),[:],{:}"
 " set switchbuf=vsplit
 let g:surround_no_mappings=1

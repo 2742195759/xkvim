@@ -206,7 +206,7 @@ def show_diagnostics_in_quickfix(package):
     for diag in diags:
         line = diag['range']['start']['line'] + 1
         qflist.append({
-            'bufnr': bufnr,
+            #'bufnr': bufnr,
             'filename': file,
             'lnum': line,
             'text': diag['message'],
@@ -529,9 +529,11 @@ def PyDisableFile(args):
 
 @vim_register(command="LSPDisable")
 def LSPDisable(args):
-    global lsp_disable
+    global is_disabled
     _EndAutoCompile()
-    lsp_disable=True
+    is_disabled=True
+    file = vim.eval("bufname()")
+    LSPDiagManager().clear(file)
 
 @vim_register(command="LSPDiags")
 def LSPGetDiags(args):
