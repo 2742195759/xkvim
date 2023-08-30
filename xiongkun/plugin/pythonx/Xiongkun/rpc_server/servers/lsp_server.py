@@ -8,6 +8,7 @@ import json
 import time
 import requests  
 from socket_stream import SockStream
+from collections import namedtuple
 import traceback
 import os
 import sys
@@ -500,7 +501,11 @@ def handle_lsp_output(r, handle):
 def handle_idle(handle, lsp_proxy):
     lsp_proxy.dealing()
 
-def lsp_server(handle):
+def lsp_server(socket):
+    Handle = namedtuple("Handle", ['wfile', 'rfile', 'request'])
+    rfile = socket.makefile('rb', 10240)
+    wfile = socket.makefile('wb', 0)
+    handle = Handle(wfile, rfile, socket)
     queue = FileRequestQueue() # for speed up.
     lsp_proxy = LSPProxy(queue)
     queue.set_server_and_handle(lsp_proxy, handle)
@@ -518,7 +523,7 @@ def lsp_server(handle):
             if r in [handle.rfile.fileno()]:
                 try:
                     bytes = handle.request.recv(10240)
-                except socket.error:
+                except:
                     print("=== socket error ===")
                     exit = True
 
@@ -539,6 +544,7 @@ def lsp_server(handle):
             else:
                 handle_lsp_output(r, handle)
     lsp_proxy.close()
+    socket.close()
 
     # exit bash or killed.
     print ("[LSP] exit bash server.")
@@ -546,4 +552,3 @@ def lsp_server(handle):
 
 if __name__ == "__main__":
     pass
-    sdfsdfsdfsdfs
