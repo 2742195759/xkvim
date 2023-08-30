@@ -80,6 +80,8 @@ def BashStart(args=[]):
     print (get_address())
     configs = '{"term_name": "remote://bash"}'
     vimeval(f'term_start("python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port}", {configs})')
+    vimcommand("setlocal foldcolumn=0")
+    vimcommand("setlocal signcolumn=no")
     time.sleep(1)
     bufnr = vim.eval("bufnr()")
     send_keys(bufnr, f"cd {FileSystem().cwd}\n")
