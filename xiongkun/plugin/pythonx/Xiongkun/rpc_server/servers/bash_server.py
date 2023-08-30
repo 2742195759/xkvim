@@ -50,6 +50,8 @@ def bash_server(socket):
                 handle.wfile.write(bytes)
 
     # exit bash or killed.
+    rfile.close()
+    wfile.close()
     socket.close()
     print ("[Bash] exit bash server.")
     print("=== socket closed ===")
