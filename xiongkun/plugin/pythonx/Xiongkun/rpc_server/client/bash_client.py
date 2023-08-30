@@ -9,6 +9,9 @@ from subprocess import Popen
 import socket
 import json
 
+import signal
+signal.signal(signal.SIGCHLD, signal.SIG_DFL) # don't need join() to avoid zombie subprocesses.
+
 def parameter_parser():
     import argparse
     parser = argparse.ArgumentParser(description="Support Args:")
