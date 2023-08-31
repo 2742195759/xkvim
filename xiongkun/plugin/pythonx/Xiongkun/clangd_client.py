@@ -88,6 +88,8 @@ class LSPDiagManager:
         id = self.next_id()
         if not FileSystem().bufexist(file): return
         vim.command(f"sign place {id} line={line} name={sign_name} file={file}")
+        if message == "":
+            return
         config = {
             'bufnr': file,
             'id': id,
@@ -185,7 +187,7 @@ def show_diagnostics_in_textprop(package):
     2. some bugs
     3. not easy for debug, for a good debug show method, see `show_diagnostics_in_quickfix`
     """
-    file = package['params']['uri'][7:]
+    file = unquote(package['params']['uri'][7:])
     file = FileSystem().abspath(file)
     LSPDiagManager().clear(file)
     diags = package['params']['diagnostics']
@@ -196,8 +198,27 @@ def show_diagnostics_in_textprop(package):
         elif diag['severity'] == 2:
             LSPDiagManager().warn(file, line, diag['message'])
 
+def show_diagnostics_only_by_sign(package):
+    file = unquote(package['params']['uri'][7:])
+    file = FileSystem().abspath(file)
+    LSPDiagManager().clear(file)
+    diags = package['params']['diagnostics']
+    qflist = []
+    for diag in diags:
+        line = diag['range']['start']['line'] + 1
+        if diag['severity'] == 1:
+            LSPDiagManager().error(file, line, "") # empty, only sign
+        qflist.append({
+            #'bufnr': bufnr,
+            'filename': file,
+            'lnum': line,
+            'text': diag['message'],
+            'type': ["/", "E", "W"][diag['severity']] if diag['severity'] < 2 else "W",
+        })
+    vim_utils.SetQuickFixListRaw(qflist, "none", cwin=False)
+
 def show_diagnostics_in_quickfix(package):
-    file = package['params']['uri'][7:]
+    file = unquote(package['params']['uri'][7:])
     file = FileSystem().abspath(file)
     bufnr = int(vim.eval(f"bufnr('{file}')"))
     LSPDiagManager().clear(file)
@@ -229,7 +250,8 @@ class LSPServer(RPCServer):
         def default_hander(package):
             if is_disabled: 
                 return None
-            show_diagnostics_in_textprop(package)
+            #show_diagnostics_in_textprop(package)
+            show_diagnostics_only_by_sign(package)
         self.register_hooker("textDocument/publishDiagnostics", default_hander)
         
     def register_hooker(self, method, func): 
@@ -369,6 +391,13 @@ def lsp_complete_items(rsp):
         results.append(r)
     return results
 
+def fuzzy_filter(word, items):
+    #closed by vim. so don't work.
+
+    #from fuzzyfinder import fuzzyfinder
+    #items = fuzzyfinder(word, items, accessor=lambda x: x['word'])
+    return items
+
 vim.command("""
 inoremap <m-n> <cmd>call Py_complete ([])<cr>
 inoremap <m-d> <cmd>call Py_signature_help([])<cr>
@@ -383,12 +412,16 @@ def complete(args):
         def find_start_pos():
             line = vim_utils.GetCurrentLine()
             col = vim_utils.GetCursorXY()[1] - 2 # 1-base -> 0-base
+            cur_col = col
             while col >= 0 and (col >= len(line) or line[col].isalpha() or line[col] in ['_']):
                 col -= 1
-            return col + 2  # 1 for offset, 2 for 1-base}}}
+            return line[col+1:cur_col], col + 2  # 1 for offset, 2 for 1-base}}}
+        # fuzzy filter here.
+        word, start_pos = find_start_pos()
+        totals = fuzzy_filter(word, totals)
         # set complete list.
         obj = vim_utils.VimVariable().assign(totals)
-        vim.eval('complete(%d, %s)' % (find_start_pos(), obj))
+        vim.eval('complete(%d, %s)' % (start_pos, obj))
         
     ultisnip_items = ultisnip_complete_items()
     cur_word = vim_utils.CurrentWordBeforeCursor()
@@ -555,7 +588,8 @@ def LSPRestart(args):
 def lsp_to_location(result):# {{{
     loc = []
     for r in result:
-        loc.append(remote_fs.Location(r['uri'][7:], r['range']['start']['line']+1, r['range']['start']['character']+1))
+        path = unquote(r['uri'][7:])
+        loc.append(remote_fs.Location(path, r['range']['start']['line']+1, r['range']['start']['character']+1))
     return loc# }}}
 
 def lsp_server():

@@ -50,6 +50,7 @@ git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/vundle
 python3 -m pip install requests_toolbelt
 python3 -m pip install easydict
 python3 -m pip install ply
+python3 -m pip install fuzzyfinder
 
 vim -s ~/xkvim/install_sh/bundle_install.vim
 # install coc dependences

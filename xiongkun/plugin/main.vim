@@ -87,6 +87,7 @@ endfunction"}}}
 
 function! ThreadDispatchExecutor(timer_id)"{{{
     py3 Xiongkun.vim_dispatcher.ui_thread_worker()
+    py3 Xiongkun.PythonFunctionTimer().fire()
 endfunction"}}}
 
 function! ReloadPythonPlugin()"{{{
@@ -194,7 +195,7 @@ let g:enable_uidispatcher=1
 if g:enable_uidispatcher == 1
     augroup VimThreadDispatcher
         autocmd!
-        autocmd VimEnter * let g:vim_thread_timer = timer_start(200, "ThreadDispatchExecutor", {"repeat": -1})
+        autocmd VimEnter * let g:vim_thread_timer = timer_start(100, "ThreadDispatchExecutor", {"repeat": -1})
         autocmd VimLeave * let g:vim_thread_timer = timer_stop(g:vim_thread_timer)
     augroup END
 endif

@@ -349,10 +349,10 @@ def SetQuickFixList(locations, jump="none", cwin=False, textlist=None):
 def SetQuickFixListRaw(qflist, jump="none", cwin=False):
     if jump == True: jump = "first"
     assert jump in ['first', 'last', 'none']
+    qflist_obj = VimVariable().assign(qflist)
+    vimeval('setqflist(%s)' % qflist_obj)
     if len(qflist) == 0: 
         return 
-    qflist = VimVariable().assign(qflist)
-    vimeval('setqflist(%s)' % qflist)
     if jump == 'first': 
         vimcommand("cr")
     elif jump == 'last': 
@@ -994,3 +994,37 @@ def find_free_port():
         s.bind(('', 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
+
+class Todo:
+    def __init__(self, time, func, args):
+        self.time = time
+        self.func = func
+        self.args = args
+        self.done = False
+
+    def do(self):
+        self.func(*self.args)
+        self.done = True
+
+    def is_done(self):
+        return self.done
+
+@Singleton
+class PythonFunctionTimer:
+    fire_interval = 0.1 # second
+    def __init__(self):
+        self.todos = []
+        self.fire_count = 0
+        pass
+
+    def do_later(self, time, func, args):
+        time = self.fire_count + int(time / self.fire_interval)
+        todo = Todo(time, func, args)
+        self.todos.append(todo)
+        
+    def fire(self): # call by callee.
+        self.fire_count += 1
+        for todo in self.todos:
+            if todo.time <= self.fire_count: 
+                todo.do()
+        self.todos = list(filter(lambda x: not x.is_done(), self.todos))

@@ -163,12 +163,10 @@ def run_in_terminal_window(cmd):
         with vim_utils.CurrentWindowGuard():
             vim.command("bot sb terminal_run_file")
             vim.command("resize 7")
-    time.sleep(0.1)
     from .remote_terminal import send_keys
-    send_keys(bufnr, cmd + "\n")
-    #vim.command(f"call create_popup({bufnr})")
+    vim_utils.PythonFunctionTimer().do_later(1, send_keys, [bufnr, cmd+"\n"])
 
-def run_file_in_terminal_window(file, **kwargs):
+def get_run_file_command(file, **kwargs):
     args_str = []
     file = FileSystem().abspath(file)
     pre_command = ["source ~/.bashrc"]
@@ -189,7 +187,7 @@ def run_file_in_terminal_window(file, **kwargs):
         raise NotImplementedError("Not support file type.")
     command_str = "&&".join(pre_command)
     cmd = f"bash -c '{command_str} {file} {args_str}'"
-    run_in_terminal_window(cmd)
+    return cmd
 
 @vim_register(command="Trans")
 def TranslateAndReplace(args):
@@ -227,6 +225,7 @@ def GastDump(args):
 def RunCurrentFile(args):
     """
     `Run`: Run a python file and print the output.
+    we need a sleep to wait for draw.
     >>> Run
     >>> <F9>
     """
@@ -236,10 +235,8 @@ def RunCurrentFile(args):
     if vim.eval("getcwd()").strip() in file: 
         run_command = rpc_wait("config.get_config_by_key", "default_run", FileSystem().getcwd())
     if len(run_command) == 0: 
-        run_file_in_terminal_window(file)
-    else:
-        run_in_terminal_window(run_command)
-        
+        run_command = get_run_file_command(file)
+    run_in_terminal_window(run_command)
 
 @vim_register(command="Copyfile")
 def PaddleCopyfile(args):

@@ -73,19 +73,25 @@ def load_config(args):
 
 @vim_register(command="Bash", with_args=True)
 def BashStart(args=[]):
+    """
+    Bash + name
+    """
     if not FileSystem().is_remote(): 
         print ("Bash only support remote mode! :terminal is suit for local mode.")
         return
+    if len(args) == 1: 
+        name = "bash://" + args[0]
+    else: 
+        name = "bash://remote"
     host, port = get_address()
     print (get_address())
-    configs = '{"term_name": "remote://bash"}'
+    configs = '{"term_name": "%s"}' % name
     vimeval(f'term_start("python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port}", {configs})')
     vimcommand("setlocal foldcolumn=0")
     vimcommand("setlocal signcolumn=no")
-    time.sleep(1)
     bufnr = vim.eval("bufnr()")
-    send_keys(bufnr, f"cd {FileSystem().cwd}\n")
-    send_keys(bufnr, f"resize\n")
+    PythonFunctionTimer().do_later(0.2, send_keys, [bufnr, f"cd {FileSystem().cwd}\n"])
+    PythonFunctionTimer().do_later(0.4, send_keys, [bufnr, f"resize\n"])
 
 @vim_register(command="BashHelp", with_args=True)
 def TerminalHelper(args):
