@@ -150,7 +150,7 @@ def server_tcp_main(HOST, PORT):
                 try:
                     cnn, addr = listen_s.accept()
                     cnn.setsocket(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True) # 设置保活机制
-                    cnn.ioctl(socket.SIO_KEEPALIVE_VALS, 
+                    cnn.ioctl(socket.SIO_KEEPALIVE_VALS,  
                         (1,  # open
                         60*1000, # 1 min/ send keepalive
                         30*1000))# 30s interval,10 times.
