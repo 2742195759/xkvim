@@ -149,11 +149,10 @@ def server_tcp_main(HOST, PORT):
             if listen_s in r:
                 try:
                     cnn, addr = listen_s.accept()
-                    cnn.setsocket(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True) # 设置保活机制
-                    cnn.ioctl(socket.SIO_KEEPALIVE_VALS,  
-                        (1,  # open
-                        60*1000, # 1 min/ send keepalive
-                        30*1000))# 30s interval,10 times.
+                    cnn.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True) # 设置保活机制
+                    cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
+                    cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 30)
+                    cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
                     connection_handle(cnn)
                     cnn.close() # close in this process.
                 except ConnectionResetError:
