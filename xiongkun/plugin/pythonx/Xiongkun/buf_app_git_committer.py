@@ -42,11 +42,17 @@ class GitCommitter(CursorLineBuffer):
     def git_unstage(self, item):
         FileSystem().command(f"git reset HEAD -- {item}")
 
+    def is_git_staged(self, item: str):
+        if item.startswith("stage"): return True
+        return False
+
     def on_space(self):
         for item in self.mult.get_selected(): 
-            self.git_add(item[10:])
+            if not self.is_git_staged(item): 
+                self.git_add(item[10:])
         for item in self.mult.get_not_selected(): 
-            if "untrace" not in item: self.git_unstage(item[10:])
+            if "untrace" not in item and self.is_git_staged(item):
+                self.git_unstage(item[10:])
         self.mult.reset(*self.git_stage_files())
         self.redraw()
 

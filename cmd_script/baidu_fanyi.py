@@ -22,4 +22,7 @@ else:
 sign = hashlib.md5((app_id + query + salt + pwd).encode("utf=8")).hexdigest()
 url = f"http://api.fanyi.baidu.com/api/trans/vip/translate?q={query}&from={fr}&to={to}&appid={app_id}&salt={salt}&sign={sign}"
 out = requests.get(url)
-print(out.json()['trans_result'][0]['dst'])
+if "trans_result" in out.json(): 
+    print(out.json()['trans_result'][0]['dst'])
+else: 
+    print(out.json())

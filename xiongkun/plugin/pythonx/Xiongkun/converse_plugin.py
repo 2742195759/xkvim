@@ -271,11 +271,10 @@ def ShareCode(args):
 
 @vim_register(command="Share")
 def ShareCodeToClipboard(args):
-    """ we share code into 0007 server.
-    """
     word = vim_utils.GetVisualWords()
     open("/tmp/share.txt", "w").write(word)
     if vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/share.txt")[0]: 
+        print ("Your code is shared into http://10.255.125.22:8082/share.txt")
         vim.command("ShareCodeCopyClipboard")
         
 

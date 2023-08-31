@@ -30,6 +30,7 @@ from servers.lsp_server import lsp_server
 import select
 from socket_stream import SockStream
 from log import log
+import platform
 import multiprocessing as mp
 import signal
 import os
@@ -149,10 +150,11 @@ def server_tcp_main(HOST, PORT):
             if listen_s in r:
                 try:
                     cnn, addr = listen_s.accept()
-                    cnn.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True) # 设置保活机制
-                    cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
-                    cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 30)
-                    cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+                    if "linux" in platform.platform().lower():
+                        cnn.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True) # 设置保活机制
+                        cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
+                        cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 30)
+                        cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
                     connection_handle(cnn)
                     cnn.close() # close in this process.
                 except ConnectionResetError:
