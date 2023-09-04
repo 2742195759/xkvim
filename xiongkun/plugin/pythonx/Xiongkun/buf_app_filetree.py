@@ -12,7 +12,7 @@ file_tree_history = BufferHistory("file_tree_history")
 
 class CursorLineBuffer(WidgetBuffer):
     def __init__(self, widgets, name, title, history=None, options=None):
-        options = {
+        win_options = {
             'title': title, 
             'maxwidth': 100, 
             'minwidth':  50,
@@ -20,7 +20,9 @@ class CursorLineBuffer(WidgetBuffer):
             'maxheight': 30, 
             'cursorline': 1,
         }
-        super().__init__(widgets, name, history, options)
+        if options is not None: 
+            win_options.update(options)
+        super().__init__(widgets, name, history, win_options)
 
     def show_label(self, cmd):
         from .quick_jump import JumpLines
@@ -100,9 +102,6 @@ class CursorLineBuffer(WidgetBuffer):
 
 class FileTreeBuffer(CursorLineBuffer): 
     def __init__(self, name, title):
-        widgets = [
-            TextWidget("", name=""),
-        ]
         self.root_path = title
         self.tree = FileSystem().tree(title)
         self.views = []

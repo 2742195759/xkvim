@@ -201,6 +201,11 @@ class Buffer:
     def hide(self):
         if hasattr(self, "wid"): vim.eval(f"popup_hide({self.wid})")
 
+    def move_to(self, options):
+        if hasattr(self, "wid"): 
+            config = dict2str(options)
+            vim.eval(f"popup_move({self.wid}, {config})")
+
     def delete(self):
         if self.state != "exit":
             self._unset_autocmd()
