@@ -197,7 +197,11 @@ class CodeTreeBuffer(CursorLineBuffer):
         self.render_tree()
         self.select_item = self.tree
         self.syntax = "code_preview"
-        super().__init__(self.root, name, "code preview", None)
+        options = {
+            'minwidth':  50,
+            'minheight': 30,
+        }
+        super().__init__(self.root, name, "code preview", None, options)
 
     def locate_by_pos(self, line, col):
         self.select_item = self.tree

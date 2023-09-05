@@ -17,7 +17,11 @@ class GitCommitter(CursorLineBuffer):
             self.mult,
         ])
         self.syntax = "gitcommitter"
-        super().__init__(self.widgets, name, "Git Committer")
+        options = {
+            'minwidth':  50,
+            'minheight': 30,
+        }
+        super().__init__(self.widgets, name, "Git Committer", None, options)
 
     def git_stage_files(self):
         lines = FileSystem().eval("git status -s")

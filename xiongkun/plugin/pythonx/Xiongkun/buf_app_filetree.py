@@ -15,8 +15,6 @@ class CursorLineBuffer(WidgetBuffer):
         win_options = {
             'title': title, 
             'maxwidth': 100, 
-            #'minwidth':  50,
-            #'minheight': 30,
             'maxheight': 30, 
             'cursorline': 1,
         }
@@ -108,7 +106,11 @@ class FileTreeBuffer(CursorLineBuffer):
         self.render_tree()
         self.select_item = self.tree
         self.syntax = "filetree"
-        super().__init__(self.root, name, "filetree", file_tree_history)
+        options = {
+            'minwidth':  50,
+            'minheight': 30,
+        }
+        super().__init__(self.root, name, "filetree", file_tree_history, options)
 
 
     def on_key(self, key):
