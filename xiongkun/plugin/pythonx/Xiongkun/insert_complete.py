@@ -117,12 +117,13 @@ class TypingState(State):
     def __init__(self, body, start_point): 
         super().__init__(body)
         self.start_point = start_point # 1-based
+        self.trigger_point = vim_utils.GetCursorXY()[1] # 1-based
+        self.origin_item = self.body.buf.items
 
     def close_typing_state(self):
         self.body.goto_state(CloseState(self.body))
 
     def enter(self):
-        print ("enter typing state")
         self.body.show(self.start_point)
         self.save_and_remove_mapping([
             ['<c-n>', 'i'],
@@ -149,6 +150,7 @@ class TypingState(State):
         inoremap <buffer> <space> <Cmd>py3 Xiongkun.InsertWindow().state.type_space()<cr>
         inoremap <buffer> . <Cmd>py3 Xiongkun.InsertWindow().state.type_dot()<cr>
         inoremap <buffer> <C-u> <Cmd>py3 Xiongkun.InsertWindow().state.delete_all()<cr>
+        inoremap <buffer> <C-u> <Cmd>py3 Xiongkun.InsertWindow().state.delete_all()<cr>
         """)
         vim_utils.commands("""
         augroup InsertComplete
@@ -159,6 +161,8 @@ class TypingState(State):
 
     def select_string(self):
         select_nr = self.body.buf.cur_cursor_line()
+        if select_nr >= len(self.body.buf.items): 
+            return ""
         cur_item = self.body.buf.items[select_nr]
         cur_col = vim_utils.GetCursorXY()[1] - 1 # 1-base -> 0-base
         backspace_num = cur_col - self.start_point + 1
@@ -168,11 +172,16 @@ class TypingState(State):
         ret = self.select_string()
         self.close_typing_state()
         with vim_utils.VimVariableGuard(ret) as obj:
-            return vim.eval(f'feedkeys({obj}, "in")')
+            vim.eval(f'feedkeys({obj}, "in")')
+
+        # close the next autocommand trigger. 
+        vim.command("set ei=TextChangedI")
+        vim.eval(f'feedkeys("\\<Ignore>", "n")') # start a next loop.
+        vim.command("set ei=")
 
     def type_backspace(self):
-        cur_col = vim_utils.GetCursorXY()[1] - 1 # 1-base -> 0-base
-        if cur_col < self.start_point + 1: 
+        cur_col = vim_utils.GetCursorXY()[1] # 1-based
+        if cur_col <= self.trigger_point: 
             self.close_typing_state()
         return vim.eval('feedkeys("\x08", "in")')
 
@@ -198,18 +207,26 @@ class TypingState(State):
         with vim_utils.VimVariableGuard(ret) as obj:
             return vim.eval(f'feedkeys({obj}, "in")')
 
+    def check_exit(self, word):
+        for char in "()[]{}@#*": 
+            if char in word: 
+                self.close_typing_state()
+                return True
+        return False
+
     def insert(self):
         def fuzzy_filter(word, items):
             from fuzzyfinder import fuzzyfinder
             mapping = { id(item['word']):item for item in items }
             filtered_items = fuzzyfinder(word, [item['word'] for item in items])
             return [ mapping[id(item)] for item in filtered_items ]
-
         line = vim_utils.GetCurrentLine()
-        cur_col = vim_utils.GetCursorXY()[1] - 1
+        cur_col = vim_utils.GetCursorXY()[1]
         col = self.start_point
         word = line[col-1:cur_col-1] # | start - end | cursor
-        items = fuzzy_filter(word, self.body.buf.items)
+        if self.check_exit(word):
+            return
+        items = fuzzy_filter(word, self.origin_item)
         self.body.buf.set_complete_items(items)
 
     def next(self):
@@ -219,7 +236,6 @@ class TypingState(State):
         self.body.buf.on_cursor_move('k')
 
     def exit(self):
-        print ("exit typing state")
         self.clear_auto()
         self.restore_mapping()
 

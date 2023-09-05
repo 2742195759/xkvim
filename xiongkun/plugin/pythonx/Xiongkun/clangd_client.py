@@ -373,6 +373,7 @@ def ultisnip_complete_items():
         results.append(r)
     return results
 
+
 def lsp_complete_items(rsp):
     if 'result' not in rsp or rsp['result'] == None: return []
     items = rsp['result']['items']
@@ -392,7 +393,7 @@ def lsp_complete_items(rsp):
     return results
 
 vim.command("""
-inoremap <m-n> <cmd>call Py_complete ([])<cr>
+inoremap <m-n> <cmd>call Py_complete (["force"])<cr>
 inoremap <m-d> <cmd>call Py_signature_help([])<cr>
 """
 )
@@ -411,7 +412,7 @@ def complete(args):
                 col -= 1
             return line[col+1:cur_col], col + 2  # 1 for offset, 2 for 1-base}}}
         # fuzzy filter here.
-        word, start_pos = find_start_pos()
+        _, start_pos = find_start_pos()
         # set complete list.
         InsertWindow().complete(totals, start_pos)
 
@@ -419,7 +420,10 @@ def complete(args):
         return 
     ultisnip_items = ultisnip_complete_items()
     cur_word = vim_utils.CurrentWordBeforeCursor()
-    if len(cur_word) < 1 and '.' not in cur_word: return
+    force = False
+    if len(args) > 0 and args[0] == 'force':
+        force = True
+    if not force and len(cur_word) < 1 and '.' not in cur_word and '/' not in cur_word: return # Force
     cur_file = vim_utils.CurrentEditFile(True)
     position = vim_utils.GetCursorXY()
     position = position[0]-1, position[1]-1
