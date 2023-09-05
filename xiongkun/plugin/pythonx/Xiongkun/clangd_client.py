@@ -391,13 +391,6 @@ def lsp_complete_items(rsp):
         results.append(r)
     return results
 
-def fuzzy_filter(word, items):
-    #closed by vim. so don't work.
-
-    #from fuzzyfinder import fuzzyfinder
-    #items = fuzzyfinder(word, items, accessor=lambda x: x['word'])
-    return items
-
 vim.command("""
 inoremap <m-n> <cmd>call Py_complete ([])<cr>
 inoremap <m-d> <cmd>call Py_signature_help([])<cr>
@@ -405,6 +398,7 @@ inoremap <m-d> <cmd>call Py_signature_help([])<cr>
 )
 @vim_register(name="Py_complete")
 def complete(args):
+    from .insert_complete import InsertWindow
     def handle(rsp):
         totals = ultisnip_items
         if not vim.eval("mode()").startswith('i'): return
@@ -418,11 +412,11 @@ def complete(args):
             return line[col+1:cur_col], col + 2  # 1 for offset, 2 for 1-base}}}
         # fuzzy filter here.
         word, start_pos = find_start_pos()
-        totals = fuzzy_filter(word, totals)
         # set complete list.
-        obj = vim_utils.VimVariable().assign(totals)
-        vim.eval('complete(%d, %s)' % (start_pos, obj))
-        
+        InsertWindow().complete(totals, start_pos)
+
+    if not InsertWindow().is_ready():  # already complete.
+        return 
     ultisnip_items = ultisnip_complete_items()
     cur_word = vim_utils.CurrentWordBeforeCursor()
     if len(cur_word) < 1 and '.' not in cur_word: return
@@ -528,6 +522,8 @@ def complete_select(args):
     if len(args[0]) == 0: return
     filepath = vim_utils.CurrentEditFile(True)
     user_data = args[0]['user_data']
+    if not isinstance(user_data, dict):  # may be a vim builtin.
+        return 
     if user_data['type'] == "lsp": 
         def handle_lsp(rsp):
             # set completepopup option to make ui beautiful

@@ -15,8 +15,8 @@ class CursorLineBuffer(WidgetBuffer):
         win_options = {
             'title': title, 
             'maxwidth': 100, 
-            'minwidth':  50,
-            'minheight': 30,
+            #'minwidth':  50,
+            #'minheight': 30,
             'maxheight': 30, 
             'cursorline': 1,
         }

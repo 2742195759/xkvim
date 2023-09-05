@@ -78,6 +78,12 @@ class VimVariable:
     def __str__(self):
         return self._name
 
+@contextmanager
+def VimVariableGuard(value):
+    obj = VimVariable(value=value)
+    yield obj
+    obj.delete()
+
 global_name_generator = NameGenerator()
 
 def GetCurrentLine():
@@ -402,7 +408,7 @@ def print_table(table):
         (max([len(str(row[i])) for row in table]) + 3)
         for i in range(len(table[0]))
     ]
-    row_format = "".join(["{:>" + str(longest_col) + "}" for longest_col in longest_cols])
+    row_format = "".join(["{:<" + str(longest_col) + "}" for longest_col in longest_cols])
     outs = []
     for row in table:
         outs.append(row_format.format(*row))
@@ -1011,7 +1017,7 @@ class Todo:
 
 @Singleton
 class PythonFunctionTimer:
-    fire_interval = 0.1 # second
+    fire_interval = 0.01 # second
     def __init__(self):
         self.todos = []
         self.fire_count = 0
@@ -1021,6 +1027,9 @@ class PythonFunctionTimer:
         time = self.fire_count + int(time / self.fire_interval)
         todo = Todo(time, func, args)
         self.todos.append(todo)
+
+    def next_loop_do(self, func, args):
+        self.do_later(self.fire_interval, func, args)
         
     def fire(self): # call by callee.
         self.fire_count += 1
