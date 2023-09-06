@@ -21,9 +21,10 @@ from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput
 
 class InsertCompleteBuffer(CursorLineBuffer):
     def __init__(self):
+        self.max_height = 20
         self.win_options = {
             'maxwidth': 50,
-            'maxheight': 30,
+            'maxheight': self.max_height,
             'filter': None,
             'pos': 'topleft',
             'line': "cursor+1",
@@ -262,8 +263,8 @@ class InsertWindow:
         self.state.enter()
 
     def show(self, col):
-        self.move_to_cursor(col)
-        self.buf.show()
+        self.buf.show() # show first, we can create the window.
+        self.move_to_cursor(col) # after create window, we can move it.
 
     def hide(self):
         self.buf.hide()
@@ -273,9 +274,22 @@ class InsertWindow:
 
     def move_to_cursor(self, col):
         col_offset = vim_utils.GetCursorXY()[1] - col
-        self.buf.move_to(
-           {'line':'cursor+1',
-            'col':'cursor-'+str(col_offset), 
-            'posinvert': 1,
-            'pos': 'topleft'} 
-        )
+        width, height = vim_utils.TotalWidthHeight()
+        screen_line, screen_col = vim_utils.GetCursorScreenXY()                                                  
+        print (screen_line, self.buf.max_height, height)
+        if screen_line + self.buf.max_height >= height - 2: # out of screen - 2
+           print ("inverse")
+           options = {
+              'line':'cursor-1',
+              'col':'cursor-'+str(col_offset), 
+              'posinvert': False,
+              'pos': 'botleft'
+           }
+        else: 
+           options = {
+              'line':'cursor+1',
+              'col':'cursor-'+str(col_offset), 
+              'posinvert': False,
+              'pos': 'topleft'
+           }
+        self.buf.move_to(options)

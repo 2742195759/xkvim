@@ -203,8 +203,8 @@ class Buffer:
 
     def move_to(self, options):
         if hasattr(self, "wid"): 
-            config = dict2str(options)
-            vim.eval(f"popup_move({self.wid}, {config})")
+            with VimVariableGuard(options) as config:
+                vim.eval(f"popup_move({self.wid}, {config})")
 
     def delete(self):
         if self.state != "exit":

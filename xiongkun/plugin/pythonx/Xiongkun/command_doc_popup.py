@@ -6,16 +6,14 @@ from .log import log
 
 class DocPreviewBuffer(Buffer):
     def __init__(self, options={}):
-        col, line = TotalWidthHeight()
         self.win_options = {
             'maxwidth': 120,
             'minwidth': 50,
             'maxheight': 10,
             'filter': None,
-            'pos': 'botleft',
             'title': ' DocPreview ',
-            'line': line - 1,
-            'col': 1,
+            'line': 0,
+            'col': 0,
         }
         self.win_options.update(options)
         super().__init__("doc-preview", None, self.win_options)
@@ -48,6 +46,13 @@ class DocPreviewBuffer(Buffer):
 
     def show(self):
         super().show()
+        col, line = TotalWidthHeight()
+        options = {
+            'line': line - 1,
+            'col': 1,
+            'pos': 'botleft',
+        }
+        self.move_to(options)
         self.execute(f'set conceallevel=3')
         if self.dirty: 
             vim.command("redraw")

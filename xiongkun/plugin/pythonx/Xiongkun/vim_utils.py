@@ -990,6 +990,7 @@ def StringBytes(string):
     return int(vim.eval(f"len('{string}')"))
 
 def TotalWidthHeight():
+    #screen width and columns
     return int(vim.eval("&columns")), int(vim.eval("&lines"))
 
 def getHomeDirectory(): 
