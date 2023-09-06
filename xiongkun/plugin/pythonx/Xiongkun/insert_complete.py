@@ -243,12 +243,9 @@ class TypingState(State):
         self.fire_item_select()
 
     def fire_item_select(self):
-        buf : Buffer = self.body.buf
-        if len(buf.items) == 0: return
-        select_nr = buf.cur_cursor_line()
-        cur_item = buf.items[select_nr]
-        if self.select_fn:
-            self.select_fn(cur_item, vim.eval(f"popup_getpos({buf.wid})"))
+        cur_item = self.body.current_item()
+        if self.select_fn and hasattr(self.body.buf, "wid"):
+            self.select_fn(cur_item, vim.eval(f"popup_getpos({self.body.buf.wid})"))
 
     def exit(self):
         self.clear_auto()
@@ -281,6 +278,12 @@ class InsertWindow:
     def show(self, col):
         self.buf.show() # show first, we can create the window.
         self.move_to_cursor(col) # after create window, we can move it.
+
+    def current_item(self):
+        buf : Buffer = self.buf
+        if len(buf.items) == 0: return None
+        select_nr = buf.cur_cursor_line()
+        return buf.items[select_nr]
 
     def hide(self):
         self.buf.hide()

@@ -29,11 +29,12 @@ def create_rpc_handle(name, function_name, receive_name):
         call ch_sendraw(a:channel, a:package)
         let receive_jsons = []
         while 1
-            let out = ch_read(a:channel)
+            let out = ch_read(a:channel, {{'timeout': 1000}})
             if out == ""
                 let status = ch_status(a:channel)
                 if status == "fail" || status ==  "closed"
                     echom "[Warnings] Connection error: ".status
+                    break
                 endif
                 continue
             endif
@@ -106,6 +107,7 @@ class RPCChannel:
         vimcommand(
             f'let {self.channel_name} = ch_open("{self.job_name}", {dict2str(config)})'
         )
+        time.sleep(0.1)
 
         vimcommand(
             f'call ch_sendraw({self.channel_name}, "{type}\n")'

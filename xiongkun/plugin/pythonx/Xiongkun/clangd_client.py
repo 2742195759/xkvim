@@ -17,6 +17,7 @@ from .rpc import RPCServer, RPCChannel
 from .remote_fs import FileSystem
 from .command_doc_popup import DocPreviewBuffer
 from .clangd_client_utils import get_content_deltas
+from .insert_complete import InsertWindow
 
 vim.command("set cot=menuone,noselect")
 vim.command("set scl=yes")
@@ -399,7 +400,6 @@ inoremap <m-d> <cmd>call Py_signature_help([])<cr>
 
 @vim_register(name="Py_complete")
 def complete(args):
-    from .insert_complete import InsertWindow
     def handle(rsp):
         totals = ultisnip_items
         if not vim.eval("mode()").startswith('i'): return
@@ -505,9 +505,11 @@ def complete_done(args):
 def complete_select(cur_item, window_pos):
     def show_info(title, content):
         screen_col, screen_line = vim_utils.TotalWidthHeight()
-        max_width = 70
         info_window_col = int(window_pos['col'])+ int(window_pos['width']) + 2
-        if info_window_col + max_width < screen_col:
+        right_max_width = screen_col - info_window_col
+        left_max_width = int(window_pos['col']) - 1
+        if right_max_width > left_max_width:
+            max_width = min(70, right_max_width)
             window_options = {
                 "line": int(window_pos['line']),
                 "col" : int(window_pos['col'])+ int(window_pos['width']) + 2,
@@ -518,6 +520,7 @@ def complete_select(cur_item, window_pos):
                 "minheight":15, 
             }
         else:
+            max_width = min(70, left_max_width)
             window_options = {
                 "line": int(window_pos['line']),
                 "col" : int(window_pos['col']) - 1,
@@ -527,6 +530,7 @@ def complete_select(cur_item, window_pos):
                 "maxheight":15, 
                 "minheight":15, 
             }
+
         GlobalPreviewWindow.tmp_window()
         GlobalPreviewWindow.set_showable(
             [PreviewWindow.ContentItem(title, content, vim.eval("&ft"), 1, window_options)])
@@ -534,7 +538,7 @@ def complete_select(cur_item, window_pos):
         if not content: 
             GlobalPreviewWindow.hide()
 
-    if len(cur_item) == 0: return
+    if cur_item is None: return
     filepath = vim_utils.CurrentEditFile(True)
     user_data = cur_item['user_data']
     if not isinstance(user_data, dict):  # may be a vim builtin.
@@ -554,6 +558,8 @@ def complete_select(cur_item, window_pos):
                     content.append("===========Documentation=========")
                     content.extend(rsp['documentation']['value'].split("\n"))
                 return content
+            if id(InsertWindow().current_item()) != id(cur_item):  # closed.
+                return
             content = get_content(rsp)
             show_info(f"   LSP   ", content)
         item = json.loads(user_data['origin'])
