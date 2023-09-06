@@ -61,6 +61,8 @@ def RemoteEdit(args):
         filepath = FileSystem().filepath(bufname)
         FileSystem().edit(filepath, force=True)
         return
+    if not FileSystem().exists(args[0]): 
+        FileSystem().create_node(args[0])
     FileSystem().edit(args[0])
             
 vim_utils.commands(""" 

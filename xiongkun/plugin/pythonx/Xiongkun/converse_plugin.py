@@ -164,7 +164,7 @@ def run_in_terminal_window(cmd):
             vim.command("bot sb terminal_run_file")
             vim.command("resize 7")
     from .remote_terminal import send_keys
-    vim_utils.PythonFunctionTimer().do_later(1, send_keys, [bufnr, cmd+"\n"])
+    vim_utils.PythonFunctionTimer().do_later(0.5, send_keys, [bufnr, cmd+"\n"])
 
 def get_run_file_command(file, **kwargs):
     args_str = []

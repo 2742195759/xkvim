@@ -6,14 +6,16 @@ from .log import log
 
 class DocPreviewBuffer(Buffer):
     def __init__(self, options={}):
+        col, line = TotalWidthHeight()
         self.win_options = {
             'maxwidth': 120,
             'minwidth': 50,
             'maxheight': 10,
             'filter': None,
             'title': ' DocPreview ',
-            'line': 0,
-            'col': 0,
+            'line': line - 1,
+            'col': 1,
+            'pos': 'botleft',
         }
         self.win_options.update(options)
         super().__init__("doc-preview", None, self.win_options)

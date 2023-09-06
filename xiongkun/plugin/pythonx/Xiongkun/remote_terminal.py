@@ -90,8 +90,8 @@ def BashStart(args=[]):
     vimcommand("setlocal foldcolumn=0")
     vimcommand("setlocal signcolumn=no")
     bufnr = vim.eval("bufnr()")
-    PythonFunctionTimer().do_later(0.2, send_keys, [bufnr, f"cd {FileSystem().cwd}\n"])
-    PythonFunctionTimer().do_later(0.4, send_keys, [bufnr, f"resize\n"])
+    PythonFunctionTimer().do_later(0.1, send_keys, [bufnr, f"cd {FileSystem().cwd}\n"])
+    PythonFunctionTimer().do_later(0.2, send_keys, [bufnr, f"resize\n"])
 
 @vim_register(command="BashHelp", with_args=True)
 def TerminalHelper(args):

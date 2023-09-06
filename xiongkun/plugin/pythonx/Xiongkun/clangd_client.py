@@ -22,6 +22,7 @@ vim.command("set cot=menuone,noselect")
 vim.command("set scl=yes")
 
 is_disabled = False
+auto_diag = True
 
 auto_files = [
     '*.py',
@@ -42,8 +43,6 @@ augroup ClangdServer
     autocmd TextChanged {auto_files} call Py_did_change([1]) 
     autocmd TextChangedI {auto_files} call Py_complete([])
     autocmd CursorMovedI {auto_files} call Py_signature_help([]) 
-    autocmd CompleteDonePre {auto_files} call Py_complete_done([v:completed_item])
-    autocmd CompleteChanged {auto_files} call Py_complete_select([v:event['completed_item']])
     autocmd InsertLeave * py3 Xiongkun.SignatureWindow().hide()
 augroup END
 """
@@ -248,7 +247,7 @@ class LSPServer(RPCServer):
 
     def register_default_publishdiagnostics(self):
         def default_hander(package):
-            if is_disabled: 
+            if is_disabled or not auto_diag: 
                 return None
             #show_diagnostics_in_textprop(package)
             show_diagnostics_only_by_sign(package)
@@ -397,6 +396,7 @@ inoremap <m-n> <cmd>call Py_complete (["force"])<cr>
 inoremap <m-d> <cmd>call Py_signature_help([])<cr>
 """
 )
+
 @vim_register(name="Py_complete")
 def complete(args):
     from .insert_complete import InsertWindow
@@ -414,7 +414,7 @@ def complete(args):
         # fuzzy filter here.
         _, start_pos = find_start_pos()
         # set complete list.
-        InsertWindow().complete(totals, start_pos)
+        InsertWindow().complete(totals, start_pos, complete_change=complete_select, complete_done=complete_done)
 
     if not InsertWindow().is_ready():  # already complete.
         return 
@@ -448,6 +448,7 @@ class SignatureWindow(DocPreviewBuffer):
             "line": "cursor-1",
             "col" : "cursor",
             "title": "",
+            "posinvert": 1,
             "border": [0, 0, 0, 0],
         }
         self.content = ""
@@ -498,24 +499,34 @@ def signature_help(args):
     did_change([False])
     lsp_server().call("signature_help", handle, file, pos)
 
-@vim_register(name="Py_complete_done")
 def complete_done(args):
-    # do nothing.
-    if len(args[0]) == 0: return
     GlobalPreviewWindow.hide()
 
-@vim_register(name="Py_complete_select")
-def complete_select(args):
+def complete_select(cur_item, window_pos):
     def show_info(title, content):
-        pum_pos = vim.eval("pum_getpos()")
-        if len(pum_pos) == 0: return
-        window_options = {
-            "line": int(pum_pos['row']),
-            "col" : int(pum_pos['col']) + int(pum_pos['width']) + 2,
-            "maxwidth": 70,
-            "minwidth": 70,
-            "maxheight":15, 
-        }
+        screen_col, screen_line = vim_utils.TotalWidthHeight()
+        max_width = 70
+        info_window_col = int(window_pos['col'])+ int(window_pos['width']) + 2
+        if info_window_col + max_width < screen_col:
+            window_options = {
+                "line": int(window_pos['line']),
+                "col" : int(window_pos['col'])+ int(window_pos['width']) + 2,
+                "maxwidth": max_width,
+                "minwidth": max_width,
+                "pos" : "topleft",
+                "maxheight":15, 
+                "minheight":15, 
+            }
+        else:
+            window_options = {
+                "line": int(window_pos['line']),
+                "col" : int(window_pos['col']) - 1,
+                "pos" : "topright",
+                "maxwidth": max_width,
+                "minwidth": max_width,
+                "maxheight":15, 
+                "minheight":15, 
+            }
         GlobalPreviewWindow.tmp_window()
         GlobalPreviewWindow.set_showable(
             [PreviewWindow.ContentItem(title, content, vim.eval("&ft"), 1, window_options)])
@@ -523,9 +534,9 @@ def complete_select(args):
         if not content: 
             GlobalPreviewWindow.hide()
 
-    if len(args[0]) == 0: return
+    if len(cur_item) == 0: return
     filepath = vim_utils.CurrentEditFile(True)
-    user_data = args[0]['user_data']
+    user_data = cur_item['user_data']
     if not isinstance(user_data, dict):  # may be a vim builtin.
         return 
     if user_data['type'] == "lsp": 
@@ -565,6 +576,12 @@ def LSPDisable(args):
     global is_disabled
     _EndAutoCompile()
     is_disabled=True
+    LSPDisableDiag(args)
+
+@vim_register(command="LSPDisableDiag")
+def LSPDisableDiag(args):
+    global auto_diag
+    auto_diag=False
     file = vim.eval("bufname()")
     LSPDiagManager().clear(file)
 

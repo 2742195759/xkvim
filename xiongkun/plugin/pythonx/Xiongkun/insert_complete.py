@@ -115,9 +115,11 @@ class CloseState(State):
 
 
 class TypingState(State):
-    def __init__(self, body, start_point): 
+    def __init__(self, body, start_point, select_fn, done_fn): 
         super().__init__(body)
         self.start_point = start_point # 1-based
+        self.select_fn = select_fn
+        self.done_fn = done_fn
         self.trigger_point = vim_utils.GetCursorXY()[1] # 1-based
         self.origin_item = self.body.buf.items
 
@@ -126,6 +128,7 @@ class TypingState(State):
 
     def enter(self):
         self.body.show(self.start_point)
+        self.fire_item_select()
         self.save_and_remove_mapping([
             ['<c-n>', 'i'],
             ['<c-p>', 'i'],
@@ -203,7 +206,6 @@ class TypingState(State):
         return vim.eval('feedkeys("\x15", "in")')
 
     def type_tab(self):
-        self.close_typing_state()
         ret = self.select_string()
         with vim_utils.VimVariableGuard(ret) as obj:
             return vim.eval(f'feedkeys({obj}, "in")')
@@ -221,6 +223,7 @@ class TypingState(State):
             mapping = { id(item['word']):item for item in items }
             filtered_items = fuzzyfinder(word, [item['word'] for item in items])
             return [ mapping[id(item)] for item in filtered_items ]
+
         line = vim_utils.GetCurrentLine()
         cur_col = vim_utils.GetCursorXY()[1]
         col = self.start_point
@@ -229,16 +232,29 @@ class TypingState(State):
             return
         items = fuzzy_filter(word, self.origin_item)
         self.body.buf.set_complete_items(items)
+        self.fire_item_select()
 
     def next(self):
         self.body.buf.on_cursor_move('j')
+        self.fire_item_select()
 
     def previous(self): 
         self.body.buf.on_cursor_move('k')
+        self.fire_item_select()
+
+    def fire_item_select(self):
+        buf : Buffer = self.body.buf
+        if len(buf.items) == 0: return
+        select_nr = buf.cur_cursor_line()
+        cur_item = buf.items[select_nr]
+        if self.select_fn:
+            self.select_fn(cur_item, vim.eval(f"popup_getpos({buf.wid})"))
 
     def exit(self):
         self.clear_auto()
         self.restore_mapping()
+        if self.done_fn:
+            self.done_fn(None)
 
 @vim_utils.Singleton
 class InsertWindow:
@@ -249,9 +265,9 @@ class InsertWindow:
         self.goto_state(CloseState(self))
 
     #@interface
-    def complete(self, items, start_point):
+    def complete(self, items, start_point, complete_change=None, complete_done=None):
         self.set_complete_items(items)
-        self.goto_state(TypingState(self, start_point))
+        self.goto_state(TypingState(self, start_point, complete_change, complete_done))
 
     def is_ready(self):
         return isinstance(self.state, CloseState)
@@ -276,9 +292,7 @@ class InsertWindow:
         col_offset = vim_utils.GetCursorXY()[1] - col
         width, height = vim_utils.TotalWidthHeight()
         screen_line, screen_col = vim_utils.GetCursorScreenXY()                                                  
-        print (screen_line, self.buf.max_height, height)
         if screen_line + self.buf.max_height >= height - 2: # out of screen - 2
-           print ("inverse")
            options = {
               'line':'cursor-1',
               'col':'cursor-'+str(col_offset), 

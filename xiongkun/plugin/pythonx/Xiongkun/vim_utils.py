@@ -1021,6 +1021,7 @@ class PythonFunctionTimer:
     fire_interval = 0.01 # second
     def __init__(self):
         self.todos = []
+        self.idle_jobs = []
         self.fire_count = 0
         pass
 
@@ -1031,10 +1032,21 @@ class PythonFunctionTimer:
 
     def next_loop_do(self, func, args):
         self.do_later(self.fire_interval, func, args)
+
+    def next_idle_do(self, func, args):
+        # next idle time, do this.
+        todo = Todo(-1, func, args)
+        self.idle_jobs.append(todo)
         
     def fire(self): # call by callee.
         self.fire_count += 1
+        done_jobs = 0
         for todo in self.todos:
             if todo.time <= self.fire_count: 
                 todo.do()
+                done_jobs += 1
         self.todos = list(filter(lambda x: not x.is_done(), self.todos))
+        if done_jobs == 0 and len(self.idle_jobs): 
+            # do idle
+            self.idle_jobs.pop().do()
+            
