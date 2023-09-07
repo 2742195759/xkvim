@@ -91,7 +91,7 @@ endfunction
 
         if keymap != "": 
             vim.command( f"""
-{keymap_mode} {keymap} :call {vim_name} ([])<cr>
+{keymap_mode} {keymap} <cmd>call {vim_name} ([])<cr>
 """)
 
         if command != "": 

@@ -36,6 +36,7 @@ def create_rpc_handle(name, function_name, receive_name):
                     echom "[Warnings] Connection error: ".status
                     break
                 endif
+                sleep 100m
                 continue
             endif
             let json = json_decode(out)
@@ -222,7 +223,7 @@ class RPCServer:
         self.channel.send([-1, "keeplive", []])
 
         
-local_rpc = RPCServer("Local", None, "vimrpc")
+local_rpc = RPCServer("Local", None, "vimrpc", function="Xiongkun.rpc_local_server()")
 commands("""
 augroup LocalServerDelete
     autocmd!
@@ -230,12 +231,26 @@ augroup LocalServerDelete
 augroup END
 """)
 
+@contextmanager  
+def LocalServerContextManager():  
+    global force_local_server
+    force_local_server = True
+    try:  
+        yield  
+    finally:
+        force_local_server = False
+
+force_local_server = False
+# 使用context manager  
 def rpc_server():
-    global local_rpc
+    if force_local_server: 
+        return local_rpc
     if remote_project is None: 
         return local_rpc
     return remote_project.rpc
 
+def rpc_local_server():
+    return local_rpc
 
 def rpc_call(name, on_return=None, *args): 
     """ rpc_call("goto", [1, 2], on_return)

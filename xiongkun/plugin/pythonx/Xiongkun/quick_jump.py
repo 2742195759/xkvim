@@ -284,6 +284,7 @@ def WindowJump(args):
 @vim_register(command="GlobalJump", with_args=True, interactive=True)
 def GlobalJump(args):
     ## search all the matches
+
     from .ijump import DFAContext
     def search_fn(pattern):
         searched = []
@@ -299,3 +300,18 @@ def QuickPeek(args):
     with CursorGuard():
         vim.command("BufferJump")
         vim.command('execute "normal \\<m-p>"')
+
+vim_utils.commands(
+"""
+augroup QuickJumpInsert
+    autocmd InsertLeave * normal mE
+augroup END
+"""
+)
+@vim_register(keymap="ge")
+def JumpLastEdit(args):
+    vim.command("normal `E")
+
+@vim_register(keymap="gl")
+def JumpLastBuffer(args):
+    vim.eval('feedkeys("\\<c-^>", "ix")')

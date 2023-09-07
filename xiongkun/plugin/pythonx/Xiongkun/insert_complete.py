@@ -206,9 +206,7 @@ class TypingState(State):
         return vim.eval('feedkeys("\x15", "in")')
 
     def type_tab(self):
-        ret = self.select_string()
-        with vim_utils.VimVariableGuard(ret) as obj:
-            return vim.eval(f'feedkeys({obj}, "in")')
+        self.next()
 
     def check_exit(self, word):
         for char in "()[]{}@#*": 

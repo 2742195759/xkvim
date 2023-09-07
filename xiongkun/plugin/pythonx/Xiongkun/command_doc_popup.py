@@ -16,6 +16,7 @@ class DocPreviewBuffer(Buffer):
             'line': line - 1,
             'col': 1,
             'pos': 'botleft',
+            'buflisted': 0,
         }
         self.win_options.update(options)
         super().__init__("doc-preview", None, self.win_options)
@@ -116,10 +117,10 @@ def DocPreviewHide(args):
     if cmd_type == ':': CommandDocPreview().hide()
 
 # AutoCmd for DocPreview
-commands("""
-augroup DocPreviewGroup
-    autocmd!
-    autocmd CmdlineChanged * DocPreviewUpdate
-    autocmd CmdlineLeave * DocPreviewHide
-augroup END
-""")
+#commands("""
+#augroup DocPreviewGroup
+    #autocmd!
+    #autocmd CmdlineChanged * DocPreviewUpdate
+    #autocmd CmdlineLeave * DocPreviewHide
+#augroup END
+#""")

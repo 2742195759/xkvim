@@ -10,7 +10,40 @@ import re
 from .log import log
 import threading
 from .vim_utils import VimWindow
-from .rpc import rpc_call
+from .rpc import rpc_call, LocalServerContextManager
+from .windows import MessageWindow
+
+class YiyanResponsePostProcessor:
+
+    def __init__(self, outputs):
+        self.outputs = outputs
+
+    def get_first_code(self):
+        """ get code line from yiyan response.
+            return: [str], without \n.
+        """
+        class YiyanCode: 
+            def __init__(self, code, language):
+                self.code = code
+                self.language = language
+        start = False
+        code = []
+        lang = None
+        for line in self.outputs:
+            line = line.rstrip()
+            match = re.match(r"```[a-z]*$", line) # match for ``` and ```python
+            if match:
+                start = not start
+                if start == False: break
+                lang = line.split("```")[-1].strip()
+                continue
+            if start: 
+                code.append(line)
+        return YiyanCode(code, lang)
+
+    def is_error(self):
+        if self.outputs: return False
+        return True
 
 class YiyanSession:
     def __init__(self):
@@ -58,7 +91,8 @@ class YiyanSession:
             # when in insert mode, the inputs don't startswith "yiyan>", a new 
             # line will be inserted, so we need a <space> to disable a new line.
             vim.command('exec "normal gi "') 
-        rpc_call("yiyan.query", on_return, query)
+        with LocalServerContextManager(): # yiyan default use the local server for convinent configuration.
+            rpc_call("yiyan.query", on_return, query)
 
     def _create_buffer(self):
         self.bufnr = vim.eval(f"bufadd('{self.buf_name}')")
@@ -123,13 +157,30 @@ def yiyan_trigger(args):
     session.init()
     session.show()
 
-#@vim_register(command="YiyanCodeUI", keymap="<f7>")
-#def yiyan_code(args):
-    #from .buf_app_translate import TranslatorBuffer
-    #assert len(args) == 0
-    #def on_return(outputs):
-        #if len(outputs) == 0: 
-            #print("Retry.")
-        #else: 
-            #print("")
-    #rpc_call("yiyan.query", on_return, query)
+@vim_register(command="YiyanCodeCmd", with_args=True)
+def yiyan_code(args):
+    assert len(args) > 0
+    def on_return(outputs):
+        package = YiyanResponsePostProcessor(outputs)
+        if not package.is_error(): 
+            code = package.get_first_code()
+            if len(code.code): 
+                MessageWindow().display_message("\n".join(code.code), syntax=code.language)
+                vim.command("set mouse=a")
+            else:
+                MessageWindow().display_message("没有代码.", 10)
+        else:
+            MessageWindow().display_message("Error happens, please retry later.", 10)
+        
+    query = "".join(args)
+    prefix_query = "只输出一段完整代码, "
+    MessageWindow().display_message("等待文心一言...") 
+    with LocalServerContextManager(): # yiyan default use the local server for convinent configuration.
+        rpc_call("yiyan.query", on_return, prefix_query + query)
+
+@vim_register(command="YiyanCodeAccept")
+def yiyan_code_accept(args):
+    code = MessageWindow().markdowns[0]
+    vim_utils.insert_text(code)
+    MessageWindow().hide()
+    vim.command("set mouse=")

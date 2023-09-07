@@ -173,6 +173,11 @@ class Buffer:
         vim.command("set filetype=")
         vim.command("set syntax=")
         vim.command("setlocal bufhidden=hide")
+        if 'buflisted' in self.options:
+            buflisted = "buflisted"
+            if self.options['buflisted'] == 0:
+                buflisted = "nobuflisted"
+            vim.command(f"setlocal {buflisted}")
         vim.command('setlocal modifiable')
         vim.command("setlocal buftype=nofile")
         vim.command("setlocal noswapfile")

@@ -298,8 +298,7 @@ class LSPServer(RPCServer):
         if package["method"] == "window/showMessage":
             # show message by window.
             markdown_doc = "[LSP Show Message]:" + "\n=================\n" + package['params']['message']
-            MessageWindow().set_markdowns([markdown_doc])
-            MessageWindow().show()
+            MessageWindow().display_message(markdown_doc, 5)
         elif 'method' in package:
             self.fire_hooker(package)
 
@@ -378,7 +377,7 @@ def lsp_complete_items(rsp):
     if 'result' not in rsp or rsp['result'] == None: return []
     items = rsp['result']['items']
     kind2type = {
-        7: "class", 2: "method", 1: "text", 4: "constructor", 22: "struct", 6: "variable", 3: "function", 14: "keyword", 9: "module",
+        7: "class", 2: "method", 1: "text", 4: "constructor", 22: "struct", 6: "variable", 3: "function", 14: "keyword", 9: "module", 17: "path"
     }
     results = []
     for item in items:
@@ -505,14 +504,14 @@ def complete_done(args):
 def complete_select(cur_item, window_pos):
     def show_info(title, content):
         screen_col, screen_line = vim_utils.TotalWidthHeight()
-        info_window_col = int(window_pos['col'])+ int(window_pos['width']) + 2
+        info_window_col = int(window_pos['col'])+ int(window_pos['width']) + 1
         right_max_width = screen_col - info_window_col
-        left_max_width = int(window_pos['col']) - 1
+        left_max_width = int(window_pos['col']) - 2
         if right_max_width > left_max_width:
             max_width = min(70, right_max_width)
             window_options = {
                 "line": int(window_pos['line']),
-                "col" : int(window_pos['col'])+ int(window_pos['width']) + 2,
+                "col" : info_window_col,
                 "maxwidth": max_width,
                 "minwidth": max_width,
                 "pos" : "topleft",

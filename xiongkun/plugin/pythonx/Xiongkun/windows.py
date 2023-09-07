@@ -751,6 +751,21 @@ class MessageWindow:
         self.markdowns = markdowns
         if self.is_show: self.show()
 
+    def display_message(self, text, time=-1, syntax=None): 
+        """
+        self.display_message("xxx\nsss\n", time=1(s))
+        """
+        from .vim_utils import PythonFunctionTimer
+        self.set_markdowns([text])
+        def close(): 
+            self.hide()
+        if time > 0:
+            PythonFunctionTimer().do_later(time, close, [])
+        self.show()
+        if syntax is not None: 
+            self.doc_buffer.execute(f'set syntax={syntax}')
+        else: 
+            self.doc_buffer.execute(f'set syntax=markdown')
 
 class LSPSearcher(Searcher):# {{{
     def do_search(self, inp, d):

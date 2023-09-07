@@ -20,14 +20,14 @@ code_action_dict = {
     "paddle doc        |   Paddle文档   |": "PdocUI",
     "baidu_fanyi       |    百度翻译    |": "Fanyi",
     "yiyan             |  百度文心一言  |": "YiyanTrigger", 
-    "yiyan login       |百度文心一言登录|": "YiyanLogin",
-    "yiyan code        |文心一言代码生成|": "YiyanCode",
     "preview window    |   QuickPeek    |": "QuickPeek",
     "create tmp file   | 创建新临时文件 |": "@CreateTmp",
     "change directory  |    更换目录    |": "@ChangeDirectory",
     "set remote        |  更换远程机器  |": "@SetRemote",
     "clean swp         | 删除掉swap文件 |": "CleanSwaps",
     "restart           | 重新启动服务   |": "RestartAll",
+    "yiyan code accept |一言接受代码建议|": "YiyanCodeAccept",
+    "yiyan code        |一言接受生成代码|": "@YiyanCodeCmd",
 }
 
 vim.command(""" 

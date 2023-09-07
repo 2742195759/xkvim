@@ -16,7 +16,8 @@ from .quick_note import *
 from .remote_terminal import *
 from .log_analysis_plugin import *
 from .traceback import *
-from .quick_jump import BufferJump, WindowJump, GlobalJump, QuickPeek
+from .quick_jump import BufferJump, WindowJump, GlobalJump, QuickPeek, JumpLastEdit, JumpLastBuffer
+from .quick_edit import *
 from .log import OpenLog
 from .paddle import *
 from .rpc import *
@@ -89,53 +90,6 @@ def Impl(args):
 def Helper(args):
     global pro
     pro.create_helper_file()
-
-@vim_register(command="Test")
-def Test(args):
-    assert toCapitalize("lgamma_grad") == "LgammaGrad"
-    assert toCapitalize("lgamma") == "Lgamma"
-    print("implement what you want to test.")
-
-@vim_register(command="Yaml", with_args=True)
-def YamlGen(args):
-    from os import path as osp
-    op_name = args[0]
-    if len(args) == 2 : backward = args[1]
-    prefix = "/home/data/Paddle4/Paddle/"
-    EditFileWithPath(osp.join(prefix, 'python/paddle/utils/code_gen/api.yaml'), "tabe")
-    EditFileWithPath(osp.join(prefix, 'python/paddle/utils/code_gen/backward.yaml'), "vne")
-    yaml_string = vim.eval('system("python3 /home/data/web/scripts/yaml_generator.py --op_name=%s --backward=%s")' % (op_name, backward))
-    print (yaml_string)
-    SetVimRegister("y", yaml_string)
-    EditFileWithPath(osp.join(prefix, 'paddle/phi/kernels/%s_kernel.h' % op_name), "tabe")
-    EditFileWithPath(osp.join(prefix, 'paddle/fluid/operators/%s_op.cc' % op_name), "tabe")
-    SearchToString("InferMeta")
-    EditFileWithPath(osp.join(prefix, 'python/paddle/fluid/tests/unittests/test_%s_op.py' % op_name), "tabe")
-    SearchToString("self.op_type")  # for write python_api
-    SetVimRegister("z", "")
-    EditFileWithPath(osp.join(prefix, 'python/xktmp.py'), "tabe")
-    ClearCurrent()
-
-@vim_register(command="YamlC", with_args=True)
-def YamlGenCursor(args):
-    from os import path as ops
-    op_name = args[0]
-    filename = CurrentEditFile(True)
-    start = GetCursorXY()[0] - 1
-    yaml_string = vim.eval('system("python3 /home/data/web/scripts/yaml_generator.py --op_name=%s --file=%s --start=%d")' % (op_name, filename, start))
-    SetVimRegister("y", yaml_string)
-
-@vim_register(command="YamlR")
-def YamlReplace(args):
-    vim.command('g/self.check_grad/execute "normal" "f(%i, check_eager=True"')
-    vim.command('g/self.check_output/execute "normal" "f(%i, check_eager=True"')
-
-@vim_register(command="FN")
-def CopyFileName(args):
-    filename = vim_utils.CurrentEditFile()
-    vim_utils.SetVimRegister('"', filename)
-    cmd = "/bin/cp ../%s ./%s" % (filename, filename)
-    os.system("echo %s >> /home/data/web/scripts/copy_file.sh" % cmd)
 
 @vim_register(command="VimConfig")
 def EditSearchConfig(args):

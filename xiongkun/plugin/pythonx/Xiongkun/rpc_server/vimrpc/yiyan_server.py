@@ -7,7 +7,7 @@ from .functions import KillablePool
 
 class Yiyan(Service):
     def __init__(self, queue):
-        self.cmd = f"bash {os.environ['HOME']}/xkvim/bash_scripts/yiyan.sh"
+        self.cmd = f"bash {os.environ['HOME']}/xkvim/bash_scripts/yiyan.sh no"
         self.child = None
         self.queue = queue
         pass

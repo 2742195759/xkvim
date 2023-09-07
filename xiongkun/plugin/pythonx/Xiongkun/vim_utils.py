@@ -542,9 +542,9 @@ def CurrentBufferGuard(bufnr=None):
     with BufferOptionGuard({"bufhidden": "hide"}):  
         saved_buf = vim.eval("bufnr()")
         saved_view = vim.eval("winsaveview()")
-        if bufnr: command_retry(f'silent keepjumps b {bufnr}')
+        if bufnr: command_retry(f'silent keepjumps keepalt b {bufnr}')
         yield
-        command_retry(f'silent keepjumps b {saved_buf}')
+        command_retry(f'silent keepjumps keepalt b {saved_buf}')
         vim.eval(f"winrestview({dict2str(saved_view)})")
 
 @contextmanager
@@ -1050,3 +1050,16 @@ class PythonFunctionTimer:
             # do idle
             self.idle_jobs.pop().do()
             
+def insert_text(text, pos=None): 
+    if pos is None: 
+        pos = GetCursorXY()
+    line, col = pos
+    mode = vim.eval("mode()")
+    assert mode.startswith('i') or mode.startswith('n')
+    if mode.startswith('n'): 
+        text = 'i' + text + ''
+    with VimVariableGuard(text) as text: 
+        vim.command("set paste")
+        vim.eval(f'feedkeys({text}, "in")')
+        vim.eval(f'feedkeys("\\<Ignore>", "n")')
+        vim.eval(f'feedkeys("\\<cmd>set nopaste\\<cr>")')
