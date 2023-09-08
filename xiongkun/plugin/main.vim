@@ -171,7 +171,7 @@ vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:set filetype
 " go back to the normal mode
 noremap  <C-w>c :echo "change c-q to close"<cr>
 tnoremap <C-w><C-c> :echo "change c-q to close"<cr>
-tnoremap <M-n> <C-w>N  
+tnoremap <M-e> <C-w>N  
 " copy and paste by the vim register
 tnoremap <M-p> <C-w>""  
 " forcefully exit the ternimal mode
@@ -181,7 +181,6 @@ tnoremap <M-1> <C-w>gT
 tnoremap <M-2> <C-w>gt
 " insert command
 tnoremap <F1> <C-w>:BashHelp<cr>
-"tnoremap <M-a> <Cmd>TerminalAbbre<cr>
 " abbre in terminal mode
 tnoremap <M-o> <Cmd>JumpPrevFile<cr>
 tnoremap <M-i> <Cmd>JumpNextFile<cr>

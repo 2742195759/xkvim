@@ -1396,3 +1396,32 @@ output.to_excel('output.xlsx')
 
 breakpoint() 
 endsnippet  
+#}}}
+
+snippet debug_program_split "a example for pandas deal with xlsx" #{{{
+    def forward_backward_print(forward_program, backward_program, program_attr):
+        def get_result_label(program, opresult):
+            opr_set = set()
+            for idx, op in enumerate(program.block().ops): 
+                for r in op.results(): 
+                    opr_set.add(r)
+                    if r == opresult:
+                        return len(opr_set) - 1
+            assert False
+        print ("Forward:")
+        print (forward_program)
+        print ("Backward:")
+        print (backward_program)
+        mapping = {'bo': 'fo', 'bm': 'fm', 'bx': 'fx', 'bp': 'fp'}
+        for idx, op in enumerate(backward_program.block().ops): 
+            if op.name() == "pd.data":
+                opresult = op.results()[0]
+                for bw, fw in mapping.items(): 
+                    if opresult in program_attr[bw]: 
+                        fwd_opresult = program_attr[fw][program_attr[bw].index(opresult)]
+                        print (f"mapping opresult: bwd_%{idx} -> fwd_%{get_result_label(forward_program, fwd_opresult)}")
+                if opresult in program_attr['bo_g']: 
+                    fwd_opresult = program_attr['fo'][program_attr['bo_g'].index(opresult)]
+                    print (f"mapping opresult: bwd_%{idx} -> fwd_%{get_result_label(forward_program, fwd_opresult)}_grad")
+endsnippet  
+#}}}

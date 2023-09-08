@@ -35,3 +35,9 @@ terminal_abbreviate: [
     ["paddle develop install", "pip uninstall paddlepaddle_gpu && wget http://10.255.125.22:8082/paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl && pip install paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl\n"],
     ["install nsys", "wget -O NsightSystems-linux-public-2022.4.1.21-0db2c85.run http://10.255.125.22:8082/software/NsightSystems-linux-public-2022.4.1.21-0db2c85.run"],
 ]
+
+# mac | pc is supported
+default_remote: mac
+
+# Run command <F9>
+#default_run: ""

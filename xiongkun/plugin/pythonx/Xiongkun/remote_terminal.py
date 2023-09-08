@@ -149,5 +149,4 @@ def TerminalAbbre(args):
     bufnr = int(FindWindowInCurrentTabIf(prediction))
     abbres = get_abbreviate_list(bufnr)
     from .buf_app import CommandList
-    CommandList("terminal_abbreviates", [n[0] for n in abbres], [n[1] for n in abbres]).start()
-
+    CommandList("terminal_abbreviates", [n[0] for n in abbres], [n[1] for n in abbres], options={'local': 1}).start()

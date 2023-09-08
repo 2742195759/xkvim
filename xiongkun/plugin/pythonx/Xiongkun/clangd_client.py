@@ -470,7 +470,7 @@ class SignatureWindow(DocPreviewBuffer):
         self._clear()
         if self.content: self._put_strings(self.content)
         if self.syntax: self.execute(f'set syntax={self.syntax}')
-        if self.param : self.execute(f"match Search /{self.param}/")
+        if self.param : self.execute(f"match Search /{vim_utils.escape(self.param, '/')}/")
 
 @vim_register(name="Py_signature_help")
 def signature_help(args):

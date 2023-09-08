@@ -56,6 +56,7 @@ def CodeAction(args):
         maxwidth=40,
         minheight=15,
         maxheight=15,
+        local=1,
     )
     code_action = CommandList("    [ CodeAction ]    ", keys, vals, options, code_action_history)
     code_action.create()

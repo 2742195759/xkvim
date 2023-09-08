@@ -5,6 +5,7 @@ from .func_register import *
 from .vim_utils import *
 from collections import OrderedDict
 from .rpc import rpc_call, rpc_wait, rpc_server, rpc_server
+from .rpc import LocalServerContextManager
 from .log import debug
 from .remote_fs import GoToLocation, FileSystem
 from . import remote_fs
@@ -1031,6 +1032,7 @@ class FuzzyList(WidgetBufferWithInputs):
         root = WidgetList("", widgets, reverse=False)
         self.items = items
         self.type = type
+        self.local = default_options.get("local", 0)
         super().__init__(root, name, history, default_options)
         self.set_items(self.type, self.items)
 
@@ -1054,7 +1056,14 @@ class FuzzyList(WidgetBufferWithInputs):
 
     def on_search(self):
         search_text = self.widgets['input'].text.strip().lower()
-        rpc_call("fuzzyfinder.search", self.update_ui, self.type, search_text)
+        self.rpc_call_wrapper("fuzzyfinder.search", self.update_ui, self.type, search_text)
+
+    def rpc_call_wrapper(self, *args, **kwargs):
+        if self.local == 1: 
+            with LocalServerContextManager(): # yiyan default use the local server for convinent configuration.
+                rpc_call(*args, **kwargs)
+        else:
+            rpc_call(*args, **kwargs)
 
     def on_text_changed_i(self):
         self.on_search()
@@ -1075,9 +1084,9 @@ class FuzzyList(WidgetBufferWithInputs):
     def set_items(self, name, items):
         def do_set(cur_type):
             if cur_type is False:
-                rpc_call("fuzzyfinder.set_items", None, name, items)
+                self.rpc_call_wrapper("fuzzyfinder.set_items", None, name, items)
         hashid = hash(tuple(items))
-        rpc_call("fuzzyfinder.is_init", do_set, name, hashid)
+        self.rpc_call_wrapper("fuzzyfinder.is_init", do_set, name, hashid)
 
     def show_label(self):
         def on_select(item):
@@ -1130,7 +1139,10 @@ class CommandList(FuzzyList):
             """ promote mode, with DocPreviewEnable
             """
             prefix = cmd[1:]
-            vim.eval(f'feedkeys(":{prefix} ")')
+            feed_str = f":{prefix} "
+            if vim.eval("mode()").startswith("i"): 
+                vim.eval(f'feedkeys("\\<esc>\\<Ignore>")')
+            vim.eval(f'feedkeys("{feed_str}")')
         else: 
             vim.command(cmd)
 
@@ -1187,7 +1199,7 @@ class FileFinderBuffer(FuzzyList):
 
     def on_search(self):
         search_text = self.widgets['input'].text.strip().lower()
-        rpc_call("filefinder.search", self.update_ui, self.type, search_text)
+        self.rpc_call_wrapper("filefinder.search", self.update_ui, self.type, search_text)
 
     def set_items(self, name, items):
         pass
@@ -1267,15 +1279,3 @@ def SplitBufferFinder(args):
     ff.mainbuf.on_search()
     if len(ff.mainbuf.widgets['result']) == 1: 
         ff.mainbuf.on_enter("sb")
-    
-@vim_register(command="TestInput")
-def TestInput(args):
-    ff = SimpleInputBuffer()
-    ff.create()
-    ff.show()
-    
-@vim_register(command="TestFuzzyList")
-def TestFuzzyList(args):
-    ff = CommandList("abbre", ['aaa', 'bbb', 'ccc'])
-    ff.create()
-    ff.show()
