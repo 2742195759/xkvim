@@ -27,7 +27,7 @@ code_action_dict = {
     "clean swp         | 删除掉swap文件 |": "CleanSwaps",
     "restart           | 重新启动服务   |": "RestartAll",
     "yiyan code accept |一言接受代码建议|": "YiyanCodeAccept",
-    "yiyan code        |一言接受生成代码|": "@YiyanCodeCmd",
+    "yiyan code        |一言接受生成代码|": "@YiyanCode",
 }
 
 vim.command(""" 

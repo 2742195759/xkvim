@@ -14,7 +14,6 @@ from .rpc import rpc_call, LocalServerContextManager
 from .windows import MessageWindow
 
 class YiyanResponsePostProcessor:
-
     def __init__(self, outputs):
         self.outputs = outputs
 
@@ -44,6 +43,9 @@ class YiyanResponsePostProcessor:
     def is_error(self):
         if self.outputs: return False
         return True
+
+    def get_outputs(self):
+        return self.outputs
 
 class YiyanSession:
     def __init__(self):
@@ -138,7 +140,7 @@ endfunction
 
 session = YiyanSession()
 
-@vim_register(command="Yiyan", with_args=True)
+@vim_register(with_args=True)
 def query_yiyan(args):
     if len(args) == 0 or "".join(args).strip() == "": 
         return 
@@ -157,26 +159,48 @@ def yiyan_trigger(args):
     session.init()
     session.show()
 
-@vim_register(command="YiyanCodeCmd", with_args=True)
-def yiyan_code(args):
-    assert len(args) > 0
+def yiyan_converse(query, query_process_fn=None, return_process_fn=None): 
     def on_return(outputs):
         package = YiyanResponsePostProcessor(outputs)
         if not package.is_error(): 
-            code = package.get_first_code()
-            if len(code.code): 
-                MessageWindow().display_message("\n".join(code.code), syntax=code.language)
+            context, syntax = return_process_fn(package)
+            assert isinstance(context, str), "Context must be string."
+            if len(context): 
+                MessageWindow().display_message(context, syntax=syntax)
+                MessageWindow().doc_buffer.execute("setlocal wrap")
+                MessageWindow().doc_buffer.execute("setlocal num")
                 vim.command("set mouse=a")
             else:
                 MessageWindow().display_message("没有代码.", 10)
         else:
             MessageWindow().display_message("Error happens, please retry later.", 10)
         
-    query = "".join(args)
-    prefix_query = "只输出一段完整代码, "
+    if query_process_fn:  
+        query = query_process_fn(query)
     MessageWindow().display_message("等待文心一言...") 
     with LocalServerContextManager(): # yiyan default use the local server for convinent configuration.
-        rpc_call("yiyan.query", on_return, prefix_query + query)
+        rpc_call("yiyan.query", on_return, query)
+
+
+@vim_register(command="Yiyan", with_args=True)
+def yiyan_query(args):
+    assert len(args) > 0
+    query = "".join(args)
+    def context_filter(package):
+        return "\n".join(package.get_outputs()), "yiyan"
+    yiyan_converse(query, None, context_filter)
+
+
+@vim_register(command="YiyanCode", with_args=True)
+def yiyan_code(args):
+    assert len(args) > 0
+    query = "".join(args)
+    prefix_query = "只输出一段完整代码, "
+    query = prefix_query + query
+    def code_filter(package):
+        code = package.get_first_code()
+        return "\n".join(code.code), code.language
+    yiyan_converse(query, None, code_filter)
 
 @vim_register(command="YiyanCodeAccept")
 def yiyan_code_accept(args):

@@ -257,7 +257,7 @@ class InsertWindow:
         self.buf = InsertCompleteBuffer()
         self.buf.create()
         self.state = None
-        self.goto_state(CloseState(self))
+        self.close()
 
     #@interface
     def complete(self, items, start_point, complete_change=None, complete_done=None):
@@ -276,6 +276,9 @@ class InsertWindow:
     def show(self, col):
         self.buf.show() # show first, we can create the window.
         self.move_to_cursor(col) # after create window, we can move it.
+
+    def close(self):
+        self.goto_state(CloseState(self))
 
     def current_item(self):
         buf : Buffer = self.buf

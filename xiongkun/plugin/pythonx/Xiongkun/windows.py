@@ -751,11 +751,13 @@ class MessageWindow:
         self.markdowns = markdowns
         if self.is_show: self.show()
 
-    def display_message(self, text, time=-1, syntax=None): 
+    def display_message(self, text, time=-1, syntax=None, appendline=False): 
         """
         self.display_message("xxx\nsss\n", time=1(s))
         """
         from .vim_utils import PythonFunctionTimer
+        if appendline is True:
+            text = self.markdowns[0] + "\n" + text
         self.set_markdowns([text])
         def close(): 
             self.hide()
