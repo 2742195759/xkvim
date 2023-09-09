@@ -10,8 +10,15 @@ import re
 from .log import log
 import threading
 from .vim_utils import VimWindow
-from .rpc import rpc_call, LocalServerContextManager
+from .rpc import rpc_call, RPCServer
 from .windows import MessageWindow
+
+__yiyan_server = None
+def yiyan_server():
+    global __yiyan_server
+    if __yiyan_server is None: 
+        __yiyan_server = RPCServer("Yiyan", None, "yiyan", function="Xiongkun.yiyan_server()")
+    return __yiyan_server
 
 class YiyanResponsePostProcessor:
     def __init__(self, outputs):
@@ -93,8 +100,7 @@ class YiyanSession:
             # when in insert mode, the inputs don't startswith "yiyan>", a new 
             # line will be inserted, so we need a <space> to disable a new line.
             vim.command('exec "normal gi "') 
-        with LocalServerContextManager(): # yiyan default use the local server for convinent configuration.
-            rpc_call("yiyan.query", on_return, query)
+            yiyan_server().call("yiyan.query", on_return, query)
 
     def _create_buffer(self):
         self.bufnr = vim.eval(f"bufadd('{self.buf_name}')")
@@ -178,8 +184,7 @@ def yiyan_converse(query, query_process_fn=None, return_process_fn=None):
     if query_process_fn:  
         query = query_process_fn(query)
     MessageWindow().display_message("等待文心一言...") 
-    with LocalServerContextManager(): # yiyan default use the local server for convinent configuration.
-        rpc_call("yiyan.query", on_return, query)
+    yiyan_server().call("yiyan.query", on_return, query)
 
 
 @vim_register(command="Yiyan", with_args=True)

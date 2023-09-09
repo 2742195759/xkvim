@@ -43,17 +43,19 @@ class ServerCluster:
     def __init__(self, mp_manager):
         self.process_manager = ProcessManager()
         self.queue = mp_manager.Queue()
-        self.filefinder = FileFinder(self.queue, self.process_manager)
-        self.remotefs = RemoteFS()
-        self.fuzzyfinder = FuzzyList(self.queue, self.process_manager)
-        self.yiyan = Yiyan(self.queue)
-        self.grepfinder = GrepSearcher(self.queue, self.process_manager)
-        self.hoogle = HoogleSearcher(self.queue)
-        self.config = ProjectConfigure(self.queue)
+        self._init_server()
         def keeplive(*a, **kw): 
             return [-1, True, 'ok']
         self.keeplive = keeplive
         self._stop = False
+
+    def _init_server(self):
+        self.filefinder = FileFinder(self.queue, self.process_manager)
+        self.remotefs = RemoteFS()
+        self.fuzzyfinder = FuzzyList(self.queue, self.process_manager)
+        self.grepfinder = GrepSearcher(self.queue, self.process_manager)
+        self.hoogle = HoogleSearcher(self.queue)
+        self.config = ProjectConfigure(self.queue)
 
     def _QueueLoop(self, process_fn):
         #log("[Server]: Start queue loop.")
@@ -95,3 +97,7 @@ class ServerCluster:
 
 def printer_process_fn(output):
     print (output)
+
+class YiyanServerCluster(ServerCluster):
+    def _init_server(self):
+        self.yiyan = Yiyan(self.queue)
