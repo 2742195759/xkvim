@@ -7,6 +7,7 @@ import requests
 import json
 from bs4 import BeautifulSoup as Soup
 from dataclasses import dataclass
+import traceback
 
 @dataclass
 class HoogleResult: 
@@ -48,9 +49,12 @@ class HoogleSearcher(Service):
 
     @server_function
     def search(self, keyword):
-        results = hoogle_search(keyword)
-        self.last = results
-        return [item.to_markdown() for item in self.last]
+        try:
+            results = hoogle_search(keyword)
+            self.last = results
+            return [item.to_markdown() for item in self.last]
+        except Exception as e:
+            return ["\n".join(traceback.format_exception_only(type(e), e))]
 
 if __name__ == "__main__":
     from server_cluster import ServerCluster, printer_process_fn

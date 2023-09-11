@@ -1262,11 +1262,13 @@ def FileFinder(args):
     ff = FileFinderBuffer(directory=directory)
     ff.start()
 
-@vim_register(command="B", with_args=True, command_completer="buffer", keymap="<space>b")
+@vim_register(command="B", with_args=True, command_completer="buffer", keymap="<M-b>")
 def BufferFinder(args):
     ff = BufferFinderBuffer()
     ff.create()
     ff.show()
+vim.command("inoremap <M-b> <Cmd>B<CR>")
+vim.command("tnoremap <M-b> <Cmd>B<CR>")
         
 @vim_register(command="SB", with_args=True, command_completer="buffer")
 def SplitBufferFinder(args):

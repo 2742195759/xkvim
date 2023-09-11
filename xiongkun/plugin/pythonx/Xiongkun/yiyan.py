@@ -168,7 +168,7 @@ def yiyan_converse(query, query_process_fn=None, return_process_fn=None):
             if len(context): 
                 MessageWindow().display_message(context, syntax=syntax)
                 MessageWindow().doc_buffer.execute("setlocal wrap")
-                MessageWindow().doc_buffer.execute("setlocal num")
+                MessageWindow().doc_buffer.execute("setlocal nu")
                 vim.command("set mouse=a")
             else:
                 MessageWindow().display_message("没有代码.", 10)
