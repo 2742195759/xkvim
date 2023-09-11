@@ -79,6 +79,8 @@ class MacMachine(OSMachine):
         from .converse_plugin import UploadFile
         UploadFile([filepath])
         cmd = [
+            "unset https_proxy",
+            "unset http_proxy",
             "curl http://10.255.125.22:8082/tmpfile.tar --output /tmp/tmpfile.tar ",
             "cd /tmp && tar -zxvf tmpfile.tar && rm -rf tmpfile.tar" , 
             "cd /tmp/tmpfile ",
@@ -116,6 +118,8 @@ class WindowMachine(OSMachine):
         from .converse_plugin import UploadFile
         UploadFile([filepath])
         cmd = [
+            "unset https_proxy",
+            "unset http_proxy",
             "curl http://10.255.125.22:8082/tmpfile.tar --output C:\\Users\\xiongkun\\Desktop\\linux\\XKConverser-develop\\tmpfile.tar",
             "cd C:\\Users\\xiongkun\\Desktop\\linux\\XKConverser-develop",
             "tar -zxvf tmpfile.tar && del tmpfile.tar " , 

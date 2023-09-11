@@ -257,7 +257,7 @@ def UploadFile(args):
         return
     FileSystem().command(f"rm -rf /tmp/tmpfile && mkdir -p /tmp/tmpfile && cp -r {args[0]} /tmp/tmpfile")
     FileSystem().command("cd /tmp && tar -zcvf tmpfile.tar tmpfile")
-    FileSystem().command("python3 ~/xkvim/cmd_script/upload.py --file /tmp/tmpfile.tar")
+    FileSystem().command("unset http_proxy && unset https_proxy && python3 ~/xkvim/cmd_script/upload.py --file /tmp/tmpfile.tar")
 
 @vim_register(command="SendFile", with_args=True, command_completer="customlist,RemoteFileCommandComplete")
 def SendFile(args):
