@@ -116,7 +116,7 @@ class TreeSitterManager:
                 root.add_child(DirectoryTree("file", "function: " + node[0].child_by_field_name('name').text.decode('utf-8'), (node[0].start_point, node[0].end_point)))
         return root
 
-    def preprocess(self, contents: list[str]):
+    def preprocess(self, contents):
         # for cpp, we need some preprocess for correctness
         # class IR_API sss{};
         # will be considered as function definition, which is a bug in treesitter.

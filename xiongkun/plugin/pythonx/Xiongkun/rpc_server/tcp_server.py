@@ -23,7 +23,7 @@ import socket
 import sys
 import threading
 from threading import Thread
-from server_cluster import ServerCluster
+from server_cluster import ServerCluster, YiyanServerCluster
 from vimrpc.decorator import InQueue
 from servers.bash_server import bash_server
 from servers.lsp_server import lsp_server
@@ -37,15 +37,6 @@ import os
 
 mp_manager = None
 
-# send the signal to the child process.
-#def handler(sig, frame):
-    #pgid = os.getpgid(0)
-    #with open("/tmp/local_vimcode.log", "w") as fp:
-        #fp.write(f"Start killing all pgid process: pgid={pgid}")
-    #signal.signal(signal.SIGTERM, signal.SIG_DFL)
-    #os.killpg(pgid, signal.SIGTERM)
-#signal.signal(signal.SIGTERM, handler)
-
 try:
     # Python 3
     import socketserver
@@ -53,7 +44,7 @@ except ImportError:
     # Python 2
     import SocketServer as socketserver
 
-def vim_rpc_loop(socket):
+def vim_rpc_loop(socket, services_cluster_cls):
     rfile = socket.makefile('rb', 10240)
     wfile = socket.makefile('wb', 10240)
     print ("===== start a vim rpc server ======")
@@ -62,7 +53,7 @@ def vim_rpc_loop(socket):
         wfile.write(encoded.encode('utf-8'))
         wfile.flush()
 
-    servers = ServerCluster(mp_manager)
+    servers = services_cluster_cls(mp_manager)
     servers.start_queue(send)
     stream = SockStream()
 
@@ -128,7 +119,9 @@ def connection_handle(socket):
     if mode == b"bash": 
         proc = mp.Process(target=bash_server, args=(socket, ))
     elif mode == b"vimrpc":
-        proc = mp.Process(target=vim_rpc_loop, args=(socket, ))
+        proc = mp.Process(target=vim_rpc_loop, args=(socket, ServerCluster))
+    elif mode == b"yiyan":
+        proc = mp.Process(target=vim_rpc_loop, args=(socket, YiyanServerCluster))
     elif mode == b"lsp":
         proc = mp.Process(target=lsp_server, args=(socket, ))
     else: 
