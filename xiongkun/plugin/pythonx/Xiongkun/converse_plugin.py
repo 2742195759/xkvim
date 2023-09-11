@@ -70,39 +70,6 @@ def RandomReadPaper(args):
     selected = int(vim.eval(f"inputlist({lis.name()})"))
     RemoteConfig().get_machine().chrome(link[selected])
 
-@vim_register(command="ProfileProject", with_args=True)
-def ProfileProject(args):
-    """ --args0: project root path, directory
-        --args1: project start command
-    """
-    assert len(args) >= 2, "Must have 2 arguments:  <ROOT> <CMD>"
-    assert osp.isdir(args[0])
-    abs_path = osp.abspath(args[0])
-    dir_name = osp.basename(abs_path)
-    cmd = f"cd {dir_name} && " + " ".join(args[1:])
-    print(dir_name, abs_path, cmd)
-    random_name = "tmp_" + vim.eval("rand()") + ".qdrep"
-    os.system(f"~/xkvim/cmd_script/send_profile_task.sh {abs_path} \"{cmd}\"")
-    from .remote_terminal import TerminalStart, LoadConfig, send_keys
-    config = LoadConfig()
-    bufnr = TerminalStart(config.profile['ssh_url'], config.profile['ssh_passwd'], config.profile['docker_cmd'], "/home/ssd3/xiongkun")
-    send_keys(bufnr, f"/home/ssd3/xiongkun/prepare_profile.sh\n\r")
-    send_keys(bufnr, f"cd /home/ssd3/xiongkun/profile\n\r")
-
-@vim_register(command="Make")
-def PaddleMake(args):
-    def send(cmd="", password=""):
-        import json
-        import requests
-        headers = {"Content-Type":"application/json", "port": '1000'}
-        return requests.post("http://10.255.129.13:10000", data=json.dumps({'cmd':cmd, 'password':password}), headers=headers)
-    project_path = vim_utils.get_git_prefix(vim_utils.CurrentEditFile())
-    build_path = os.path.join(project_path, "build/")
-    error_file = os.path.join(build_path, "error.txt")
-    vim_utils.Notification("Compiling...Please wait.")
-    send(f"cd {build_path} && ./rebuild.sh >{error_file} 2>&1", "807377414")
-    vim.command(f"cfile {error_file}")
-
 def baidu_translate(sentence):
     import subprocess
     sentence = sentence.replace("\n", "")
@@ -278,29 +245,29 @@ def ShareCodeToClipboard(args):
         vim.command("ShareCodeCopyClipboard")
         
 
-@vim_register(command="UploadFile", with_args=True)
+@vim_register(command="UploadFile", with_args=True, command_completer="customlist,RemoteFileCommandComplete")
 def UploadFile(args):
     """ 
-    `UploadFile (<local-file>|<local-dir>) `: send a compressed file in local machine into 007 server and renamed to tmpfile.tar
+    `UploadFile (<remotefs-file>|<remotefs-dir>) `: send a compressed file in local machine into 007 server and renamed to tmpfile.tar
     >>> UploadFile /home/data/tmp.py # upload a single file.
     >>> UploadFile /home/data/ # upload a directory.
     """
     if len(args) != 1: 
         print ("Usage: SendFile <local_file>|<local_dir>")
         return
-    vim_utils.system(f"rm -rf /tmp/tmpfile && mkdir -p /tmp/tmpfile && cp -r {args[0]} /tmp/tmpfile")
-    vim_utils.system("cd /tmp && tar -zcvf tmpfile.tar tmpfile")
-    vim_utils.system("python3 ~/xkvim/cmd_script/upload.py --file /tmp/tmpfile.tar")
+    FileSystem().command(f"rm -rf /tmp/tmpfile && mkdir -p /tmp/tmpfile && cp -r {args[0]} /tmp/tmpfile")
+    FileSystem().command("cd /tmp && tar -zcvf tmpfile.tar tmpfile")
+    FileSystem().command("python3 ~/xkvim/cmd_script/upload.py --file /tmp/tmpfile.tar")
 
-@vim_register(command="SendFile", with_args=True, command_completer="file")
+@vim_register(command="SendFile", with_args=True, command_completer="customlist,RemoteFileCommandComplete")
 def SendFile(args):
     """ 
-    `SendFile (<local-file> | <local-dir>) <remote-machine>`: upload file to 007 server and let remote machine open it.
+    `SendFile (<remotefs-file> | <remotefs-dir>) <remote-machine>`: upload file to 007 server and let remote machine open it.
     ----------------------------------------------------
     >>> SendFile /home/data/tmp.py # send a single file and open it.
     >>> SendFile /home/data/ # send a directory and open it.
     """
-    if not os.path.isfile(args[0]) and not os.path.isdir(args[0]): 
+    if not FileSystem().exists(args[0]): 
         print("Please inputs a valid direcotry or file path.")
         return
     exe_machine = RemoteConfig().get_remote()
@@ -309,15 +276,15 @@ def SendFile(args):
     with remote_machine_guard(exe_machine): 
         RemoteConfig().get_machine().send_file(args[0])
 
-@vim_register(command="PreviewFile", with_args=True, command_completer="file")
+@vim_register(command="PreviewFile", with_args=True, command_completer="customlist,RemoteFileCommandComplete")
 def PreviewFile(args):
     """ 
-    `PreviewFile (<local-file> | <local-dir>) <remote-machine>`: upload file to 007 server and let remote machine open it.
+    `PreviewFile (<remotefs-file> | <remotefs-dir>) <remote-machine>`: upload file to 007 server and let remote machine open it.
     ----------------------------------------------------
     >>> PreviewFile /home/data/tmp.py # send a single file and open it.
     >>> PreviewFile /home/data/ # send a directory and open it.
     """
-    if not os.path.isfile(args[0]) and not os.path.isdir(args[0]): 
+    if not FileSystem().exists(args[0]): 
         print("Please inputs a valid direcotry or file path.")
         return
     exe_machine = RemoteConfig().get_remote()

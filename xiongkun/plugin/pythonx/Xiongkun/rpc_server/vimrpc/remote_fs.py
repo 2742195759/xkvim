@@ -72,6 +72,14 @@ class RemoteFS(Service):
         return files
 
     @server_function
+    def isfile(self, filepath: str):
+        return os.path.isfile(filepath)
+
+    @server_function
+    def isdir(self, filepath: str):
+        return os.path.isdir(filepath)
+
+    @server_function
     def exists(self, filepath):
         return os.path.exists(filepath)
     

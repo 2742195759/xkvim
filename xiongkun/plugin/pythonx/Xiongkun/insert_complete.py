@@ -141,6 +141,7 @@ class TypingState(State):
             ['<down>', 'i'],
             ['<space>', 'i'],
             ['.', 'i'],
+            ['<c-k>', 'i'],
         ])
         vim_utils.commands("""
         inoremap <buffer> <C-n> <Cmd>py3 Xiongkun.InsertWindow().state.next()<cr>
@@ -154,7 +155,7 @@ class TypingState(State):
         inoremap <buffer> <space> <Cmd>py3 Xiongkun.InsertWindow().state.type_space()<cr>
         inoremap <buffer> . <Cmd>py3 Xiongkun.InsertWindow().state.type_dot()<cr>
         inoremap <buffer> <C-u> <Cmd>py3 Xiongkun.InsertWindow().state.delete_all()<cr>
-        inoremap <buffer> <C-u> <Cmd>py3 Xiongkun.InsertWindow().state.delete_all()<cr>
+        inoremap <buffer> <C-k> <Cmd>py3 Xiongkun.InsertWindow().state.stop()<cr>
         """)
         vim_utils.commands("""
         augroup InsertComplete
@@ -171,6 +172,9 @@ class TypingState(State):
         cur_col = vim_utils.GetCursorXY()[1] - 1 # 1-base -> 0-base
         backspace_num = cur_col - self.start_point + 1
         return "\x08"*backspace_num + cur_item['word']
+
+    def stop(self):
+        self.body.close()
 
     def type_enter(self):
         ret = self.select_string()

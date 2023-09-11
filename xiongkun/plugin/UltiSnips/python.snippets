@@ -1425,3 +1425,73 @@ snippet debug_program_split "a example for pandas deal with xlsx" #{{{
                     print (f"mapping opresult: bwd_%{idx} -> fwd_%{get_result_label(forward_program, fwd_opresult)}_grad")
 endsnippet  
 #}}}
+
+snippet example_sot_slow "a example which sot behaves badly." #{{{                                                                                                                                          
+import paddle
+import time
+import paddle
+import numpy as np
+import random
+import os
+from numpy.testing import assert_array_equal
+from sot.utils import sotprof_range
+
+os.environ['ENABLE_FALL_BACK'] = "True"
+os.environ['MIN_GRAPH_SIZE'] = '1'
+os.environ['FLAGS_cudnn_deterministic'] = '1'
+
+class SimpleNet(paddle.nn.Layer):               
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.layers = paddle.nn.LayerList([paddle.nn.Linear(10, 10) for _ in range(100)])
+        
+    def forward(self, x):
+        try:
+            for i in range(len(self.layers)):
+                x = self.layers[i](x)
+                x = self.layers[i](x)
+                x = self.layers[i](x)
+                x = self.layers[i](x)
+        except:
+            pass
+        return x
+
+def execute_time(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print("Execute time:", execution_time)
+        return result
+    return wrapper
+
+@execute_time
+def run_graph(inp, to_static, start_profile=False):
+    """ dygraph only backward.
+    """
+    paddle.seed(2021)
+    np.random.seed(2021)
+    random.seed(2021)
+    net = SimpleNet()
+    if to_static:
+        net = paddle.jit.to_static(net)
+    for i in range(100):
+        if start_profile:
+            with sotprof_range(i, 30, 40, True):
+                inp = net(inp)
+        else:
+            inp = net(inp)
+    loss = inp
+    print ("loss is", loss.mean())
+    return loss
+
+inp = paddle.rand((10,10))
+run_graph(inp, True)
+
+# ================================== #
+run_graph(inp, True, True)
+#run_graph(inp, False, True)
+endsnippet
+#}}}
+

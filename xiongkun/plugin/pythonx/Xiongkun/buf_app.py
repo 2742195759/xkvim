@@ -1162,6 +1162,7 @@ class CommandList(FuzzyList):
 
 class BufferFinderBuffer(FuzzyList):
     def __init__(self, name="BufferFinder", history=None, options={}):
+        options['local'] = 1
         self.buffers = GetBufferList()
         super().__init__("vim_buffer", self.buffers, name, history, options)
         self.last_window_id = vim.eval("win_getid()")

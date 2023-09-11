@@ -301,16 +301,39 @@ def QuickPeek(args):
         vim.command("BufferJump")
         vim.command('execute "normal \\<m-p>"')
 
+@Singleton
+class GlobalInsertStack: 
+    def __init__(self):
+        self.cur = 0
+        self.max_size = 100
+        self.stack = []
+
+    def jump_previous(self):
+        if self.cur <= 0: return 
+        self.cur -= 1
+        pos = self.stack[self.cur]
+        with vim_utils.VimVariableGuard(pos) as pos:
+            vim.eval(f'setpos(".", {pos})')
+
+    def push(self):
+        assert self.cur >= 0
+        if len(self.stack) > self.max_size: 
+            self.stack.pop(0)
+        pos = vim.eval("getpos('.')")
+        self.stack.append(pos)
+        self.cur = len(self.stack)
+
 vim_utils.commands(
 """
 augroup QuickJumpInsert
-    autocmd InsertLeave * normal mE
+    autocmd InsertLeave * py3 Xiongkun.GlobalInsertStack().push()
 augroup END
 """
 )
+
 @vim_register(keymap="ge")
 def JumpLastEdit(args):
-    vim.command("normal `E")
+    GlobalInsertStack().jump_previous()
 
 @vim_register(keymap="gl")
 def JumpLastBuffer(args):
