@@ -359,6 +359,16 @@ class FileSystem:
         """
         return rpc_wait("remotefs.exists", filepath)
 
+    def isfile(self, filepath):
+        """ whether this file exist in remote filesystem.
+        """
+        return rpc_wait("remotefs.isfile", filepath)
+
+    def isdir(self, filepath):
+        """ whether this file exist in remote filesystem.
+        """
+        return rpc_wait("remotefs.isdir", filepath)
+
     def edit(self, filepath, force=False): 
         filepath = self.abspath(filepath)
         bufnr = FileSystem().bufload_file(filepath, force)
@@ -367,9 +377,9 @@ class FileSystem:
     def jumpto(self, location, method):
         GoToLocation(location, method)
 
-    def command(self, command_str):
+    def command(self, command_str, block=True):
         try: 
-            self.eval(command_str)
+            self.eval(command_str, block)
             return True
         except Exception as e: 
             print (f"Error while execute: {command_str}, {e}")
@@ -378,17 +388,21 @@ class FileSystem:
     def getcwd(self):
         return self.cwd
 
-    def eval(self, command_str): 
+    def eval(self, command_str, block=True): 
         """ call bash command and get output 
             outputs is a list of string without '\n'
         """
         cwd = self.getcwd()
         command_str = f"cd {cwd} && " + command_str
-        ret = rpc_wait("remotefs.eval", command_str)
-        if ret['status'] == "ok":
-            return ret['output']
-        if ret['status'] == "error":
-            raise RuntimeError(f"Eval Failed: {command_str} with error: {ret['error']}")
+        if block is True: 
+            ret = rpc_wait("remotefs.eval", command_str)
+            if ret['status'] == "ok":
+                return ret['output']
+            if ret['status'] == "error":
+                raise RuntimeError(f"Eval Failed: {command_str} with error: {ret['error']}")
+        else: 
+            rpc_call("remotefs.eval", None, command_str)
+            return True
 
     def create_temp_file(self, suffix=""):
         """ create a temp file and start to edit it.

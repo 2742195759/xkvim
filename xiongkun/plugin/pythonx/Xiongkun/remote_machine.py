@@ -13,6 +13,7 @@ import os.path as osp
 from .log import log, log_google
 from urllib.parse import quote
 import shlex
+from .remote_fs import FileSystem
 
 def ExecuteCommand(name, cmd, silent=True, block=True):
     log(f"Execute name={name} cmd={cmd} silent={silent} block={block}")
@@ -85,9 +86,9 @@ class MacMachine(OSMachine):
         self.execute(cmd, block=True)
 
     def preview_file(self, filepath):
-        if os.path.isfile(filepath):
+        if FileSystem().isfile(filepath):
             open_cmd = f"open /tmp/tmpfile/{os.path.basename(filepath)}"
-        elif os.path.isdir(filepath): 
+        elif FileSystem().isdir(filepath): 
             open_cmd = f"open /tmp/tmpfile"
         else: 
             print("Please inputs a valid direcotry or file path.")
@@ -122,9 +123,9 @@ class WindowMachine(OSMachine):
         self.execute(cmd)
 
     def preview_file(self, filepath):
-        if os.path.isfile(filepath):
+        if FileSystem().isfile(filepath):
             open_cmd = f"start tmpfile\\{os.path.basename(filepath)}"
-        elif os.path.isdir(filepath): 
+        elif FileSystem().isdir(filepath): 
             open_cmd = f"start tmpfile"
         else: 
             print("Please inputs a valid direcotry or file path.")
