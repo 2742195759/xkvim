@@ -58,20 +58,27 @@ async def wait_output(page):
     loop_time = 0.3
     for i in range(int(tot_time / loop_time)):
         time.sleep(loop_time)
-        await page.focus(f"button[data-testid='send-button']")
         element = await page.querySelector("button[data-testid='send-button']")
         element = await element.querySelector("span[data-state='closed']")
-        if element != "none": 
+        if element != "none" and element is not None: 
             return True
     return False
 
 async def login(): # Google 账号的登录依赖 headless=False，否则无法登录。所以无法在服务器端使用，但是可以在mac上使用。
-    browser = await launch(userDataDir=r"C:\Users\xiongkun\Desktop\linux", headless=False, options={'args': ['--no-sandbox'], 'defaultViewport': {'width': 1920, 'height': 1080}})
+    browser = await launch(userDataDir=r"./ChromeCache", headless=False, options={'args': ['--no-sandbox'], 'defaultViewport': {'width': 1920, 'height': 1080}})
     page = await browser.newPage()
     await page.goto('https://chat.openai.com')
+    time.sleep(5.0)
+    buttons = await page.JJ("button.btn-primary")
+    for button in buttons:
+        text = await page.evaluate('(element) => element.textContent', button)
+        if text == "Okay, let’s go":
+            await page.evaluate('(element) => element.click()', button)
+    time.sleep(1.0)
+    breakpoint() 
     
 async def process_loop(promote=True):
-    browser = await launch(userDataDir=r"C:\Users\xiongkun\Desktop\linux", headless=True, options={'args': ['--no-sandbox'], 'defaultViewport': {'width': 1920, 'height': 1080}})
+    browser = await launch(userDataDir=r"./ChromeCache", headless=True, options={'args': ['--no-sandbox'], 'defaultViewport': {'width': 1920, 'height': 1080}})
     page = await browser.newPage()
     await page.evaluate("Object.defineProperties(navigator,{ webdriver:{ get: () => false } })", force_expr=True)
     await page.setBypassCSP(True)
@@ -84,13 +91,19 @@ async def process_loop(promote=True):
 
     # change the page visiblity...
     await page.evaluateOnNewDocument("""
-    Object.defineProperty(window.document,'hidden',{get:function(){return false;},configurable:true});
-    Object.defineProperty(window.document,'visibilityState',{get:function(){return 'visible';},configurable:true});
+        Object.defineProperty(window.document,'hidden',{get:function(){return false;},configurable:true});
+        Object.defineProperty(window.document,'visibilityState',{get:function(){return 'visible';},configurable:true});
     """);
 
     await page.goto('https://chat.openai.com')
-    print ("HideState: ", await page.evaluate('document.visibilityState', force_expr=True))
-    time.sleep(10.0)
+    #print ("HideState: ", await page.evaluate('document.visibilityState', force_expr=True))
+    time.sleep(5.0)
+    buttons = await page.JJ("button.btn-primary")
+    for button in buttons:
+        text = await page.evaluate('(element) => element.textContent', button)
+        if text == "Okay, let’s go":
+            await page.evaluate('(element) => element.click()', button)
+    time.sleep(1.0)
     pages = await browser.pages()
     # input the text and query yiyan.
     while True:
@@ -105,11 +118,9 @@ async def process_loop(promote=True):
             break
 
         await page.type(f"textarea#{text_area_class}", inp, delay=5)
-        time.sleep(3.0)
+        time.sleep(2.0)
         await page.click(f"button[data-testid='send-button']")
-        await page.click(f"button[data-testid='send-button']")
-        time.sleep(3.0)
-
+        time.sleep(1.0)
         if await wait_output(page) == False: 
             print ("TimeOut")
         else:
@@ -120,7 +131,6 @@ async def process_loop(promote=True):
             outputs = []
             for response in responses[::-1]: 
                 output = await page.evaluate('(element) => element.innerHTML', response)
-                #outputs.append(output)
                 outputs.append(render(output))
             to_output = [ line.strip("\n") for line in outputs[0].split("\n") if line.strip() != "" ]
             print("\n".join(to_output))
@@ -131,19 +141,80 @@ async def process_loop(promote=True):
 from html.parser import HTMLParser
 from html.entities import name2codepoint
 
+class Node:
+    def __init__(self, tag, attr, father=None):
+        self.childs = []
+        self.father = father
+        if father is not None:
+            father.append_child(self)
+        self.tag = tag
+        self.attr = attr
+
+    def append_child(self, child):
+        self.childs.append(child)
+        child.father = self
+
+    def append_data(self, data):
+        self.childs.append(data)
+
+    def render_to_text(self):
+        return Render(self).render(self)
+
+    def has_class(self, class_name):
+        if "class" in self.attr and class_name in self.attr["class"]: return True        
+        return False
+
+class Data: 
+    def __init__(self, string):
+        self.text = string
+
+class Render:
+    def __init__(self, root):
+        self.root = root
+
+    def render(self, root):
+        outputs = []
+        for child in root.childs:
+            if isinstance(child, Data): outputs.append(child.text)
+            if isinstance(child, Node): outputs.append(self.render(child))
+        tag = root.tag
+        res = getattr(self, f"render_{tag}", self.render_default)(root, outputs)
+        assert isinstance(res, str)
+        return res
+
+    def render_p(self, node, child_str_outs): 
+        return "".join(child_str_outs) + "\n"
+
+    def render_default(self, node, child_str_outs):
+        return "".join(child_str_outs)
+
+    def render_div(self, node, child_str_outs):
+        if node.has_class("font-sans") and node.has_class("rounded-t-md"): 
+            # code head block
+            lang = node.childs[0].childs[0].text + "\n"
+            return lang
+        return self.render_default(node, child_str_outs)
+
+    def render_pre(self, node, child_str_outs):
+        # code
+        return "```" + self.render_default(node, child_str_outs) + "```\n"
+
 class MyHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__()
         # lists of fields to be extracted
         self.stack = []
+        self.root = Node("root", None, None)
+        self.stack.append(self.root)
         
     def wrapper(self, tag, attrs, tmp_out):
         if 'class' in attrs and attrs['class'] in ['code-copy-text', 'code-lang']: 
             return []
         if tag == "tr": tmp_out.append("\n")
         if tag == "p": tmp_out.append("\n")
-        if tag == "code": 
-            if 'class' in attrs and 'language' in attrs['class']:
+        if tag == "pre": 
+            if 'class' in attrs and 'bg-black' in attrs['class']:
+                breakpoint() 
                 family = attrs['class'].replace("language-", "")
                 tmp_out[0:0] = f"```{family}\n"
                 tmp_out.append("\n```")
@@ -154,52 +225,27 @@ class MyHTMLParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        self.stack.append((tag, attrs))
-
-    def extend_list(self, items):
-        extended = []
-        for out in items: 
-            extended.extend(out)
-        return extended
+        self.stack.append(Node(tag, attrs, self.stack[-1]))
 
     def handle_endtag(self, tag):
-        tmp_out = []
-        finded = False
-        while len(self.stack) > 0: 
-            if isinstance(self.stack[-1], tuple) and self.stack[-1][0] == tag:
-                tag, attrs = self.stack.pop()
-                tmp_out = list(reversed(tmp_out))
-                tmp_out = self.extend_list(tmp_out)
-                tmp_out = self.wrapper(tag, attrs, tmp_out)
-                self.stack.append(tmp_out)
-                finded = True
-                break
-            else:
-                out = self.stack.pop()
-                if not isinstance(out, tuple):
-                    """ <input> may not close. just ignore it.
-                    """
-                    tmp_out.append(out)
-        if finded is False:
-            raise Exception(f"Error: tag not closed. {tag}")
+        self.stack.pop(-1)
 
     def handle_data(self, data):
-        self.stack.append(data)
+        self.stack[-1].append_data(Data(data))
 
     def handle_entityref(self, name):
         c = chr(name2codepoint[name])
-        self.stack.append(c)
+        self.stack[-1].append_data(Data(c))
 
     def handle_charref(self, name):
         if name.startswith('x'):
             c = chr(int(name[1:], 16))
         else:
             c = chr(int(name))
-        self.stack.append(c)
+        self.stack[-1].append_data(Data(c))
 
     def get_output(self):
-        output = self.extend_list(self.stack)
-        return "".join(output)
+        return self.root.render_to_text()
 
 def render(innerhtml_content):
     """ render html content and return a ascii text. """
@@ -211,9 +257,12 @@ def render(innerhtml_content):
 
 def test():
     print("".join(render("<p>hello</p>")))
-    with open("/root/xkvim/text.html", "r") as fp :
+    with open("../html.txt", "r") as fp :
         lines = fp.readlines()
+    breakpoint() 
     print("".join(render("".join(lines))))
+
+#test()
 
 if cmd_args.login == "yes": 
     asyncio.get_event_loop().run_until_complete(login())

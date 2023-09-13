@@ -8,6 +8,7 @@ from .functions import KillablePool
 class Yiyan(Service):
     def __init__(self, queue):
         self.cmd = f"bash {os.environ['HOME']}/xkvim/bash_scripts/yiyan.sh no"
+        self.cmd = f"cd {os.environ['HOME']}/xkvim/chrome-web/ && python chat_gpt.py --prompt=no"
         self.child = None
         self.queue = queue
         pass

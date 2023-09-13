@@ -32,7 +32,6 @@ set <M-e>=e  "<ESC>"
 set <M-/>=/  "<ESC>"
 set <M-h>=h  
 set <M-l>=l  
-set <M-b>=b  "<goto buffer>"
 set <M-n>=n  
 set <M-O>=O
 set <M-I>=I
