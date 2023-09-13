@@ -190,6 +190,7 @@ def yiyan_converse(query, query_process_fn=None, return_process_fn=None):
 @vim_register(command="Yiyan", with_args=True)
 def yiyan_query(args):
     assert len(args) > 0
+    args = [ '\n' if i.strip() == "<cr>" else i for i in args ]
     query = "".join(args)
     def context_filter(package):
         return "\n".join(package.get_outputs()), "yiyan"

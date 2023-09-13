@@ -45,7 +45,7 @@ class Yiyan(Service):
         if self.check_alive() is False: 
             self.init_yiyan()
         query = query.strip("\n\r")
-        self.child.stdin.write(query + "\n")
+        self.child.stdin.write(query + "\n\n")
         self.child.stdin.flush()
         lines = []
         while True:

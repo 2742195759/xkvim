@@ -20,34 +20,11 @@ def parameter_parser():
     parser.add_argument("--cookie",                 type=str,   help="data path")
     parser.add_argument("--proxy",                  type=str,   default=""  ,  help="data path")
     parser.add_argument("--login",                  type=str,   default="no"  ,  help="data path")
-    parser.add_argument("--debug",                  type=str,   default="no"  ,  help="data path")
     return parser.parse_args()
 
 # NOTE: change this when web version update.
 text_area_class = "prompt-textarea"
-send_area_class = "VAtmtpqL"
-
 cmd_args = parameter_parser()
-if cmd_args.debug == "yes": 
-    """
-    Step1: 
-        Visit http://10.255.125.22:8086/json/list to get frontendURI
-    Step2: 
-        Visit http://10.255.125.22:8086/{DevToolFrontendURL} to access the remote debugging. 
-
-    Useful for login and record cookies.
-
-    If you want to use http_proxy.py and you want to access it from outside: 
-    Step1: 
-        change: search `server` and change it to `127.0.0.1:10000` if your chrome listen in 0.0.0.0:10000
-    Step2: 
-        add listen port and expose it by docker.
-    """
-    from pyppeteer.launcher import Launcher
-    pyppeteer.launcher.DEFAULT_ARGS.append("--remote-debugging-address=0.0.0.0")
-    pyppeteer.launcher.DEFAULT_ARGS.append("--remote-debugging-port=10000")
-    print(' '.join(Launcher(userDataDir=f"{cmd_args.cookie}", headless=True, options={'args': ['--no-sandbox'], 'defaultViewport': {'width': 1920, 'height': 1080}}).cmd))
-
 def do_every(total, every):
     for i in range(int(total / every)): 
         time.sleep(every)
@@ -65,7 +42,7 @@ async def wait_output(page):
     return False
 
 async def login(): # Google 账号的登录依赖 headless=False，否则无法登录。所以无法在服务器端使用，但是可以在mac上使用。
-    browser = await launch(userDataDir=r"./ChromeCache", headless=False, options={'args': ['--no-sandbox'], 'defaultViewport': {'width': 1920, 'height': 1080}})
+    browser = await launch(userDataDir=r"./ChromeCache", headless=False, options={'args': ['--no-sandbox', '--proxy-server=http://agent.baidu.com:8891'], 'defaultViewport': {'width': 1920, 'height': 1080}})
     page = await browser.newPage()
     await page.goto('https://chat.openai.com')
     time.sleep(5.0)
@@ -78,7 +55,7 @@ async def login(): # Google 账号的登录依赖 headless=False，否则无法�
     breakpoint() 
     
 async def process_loop(promote=True):
-    browser = await launch(userDataDir=r"./ChromeCache", headless=True, options={'args': ['--no-sandbox'], 'defaultViewport': {'width': 1920, 'height': 1080}})
+    browser = await launch(userDataDir=r"./ChromeCache", headless=True, options={'args': ['--no-sandbox', '--proxy-server=http://agent.baidu.com:8891'], 'defaultViewport': {'width': 1920, 'height': 1080}})
     page = await browser.newPage()
     await page.evaluate("Object.defineProperties(navigator,{ webdriver:{ get: () => false } })", force_expr=True)
     await page.setBypassCSP(True)
@@ -108,16 +85,29 @@ async def process_loop(promote=True):
     # input the text and query yiyan.
     while True:
         if promote: 
-            print ("请输入你的文本：")
+            await page.screenshot({'path': 'example.png'})
+            print ("请输入你的文本：(\\n\\n结束输入)")
         try:
-            inp = input()
+            inputs = []
+            while True:
+                inp = input()
+                if inp.strip() == "": break
+                inputs.append(inp)
         except:
             # EOF, Exit this subprocess.
             break
+        if promote:
+            print ("处理中...")
         if inp == "quit": 
             break
 
-        await page.type(f"textarea#{text_area_class}", inp, delay=5)
+        for inp in inputs:
+            await page.type(f"textarea#{text_area_class}", inp, delay=1)
+            # simulate a \n in chatgpt textarea.
+            await page.keyboard.down("Shift")
+            await page.keyboard.press("Enter")
+            await page.keyboard.up("Shift")
+
         time.sleep(2.0)
         await page.click(f"button[data-testid='send-button']")
         time.sleep(1.0)
