@@ -1,7 +1,7 @@
 import os
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, WidgetBuffer, BufferHistory, MultiSelectWidget
 from .func_register import vim_register
-from .vim_utils import SetVimRegister, Normal_GI, Singleton, input_no_throw, escape
+from .vim_utils import SetVimRegister, Normal_GI, Singleton, input_no_throw, escape, win_eval
 import vim
 from functools import partial
 from .log import debug
@@ -136,9 +136,30 @@ class GitCommitter(CursorLineBuffer):
         number = self.cur_cursor_line()
         if number < 1: return True
         file = self.mult.items[number-1][10:]
+        file_line_nr = 1
+
+        if hasattr(GPW.pwin, "wid"):
+            wid = GPW.pwin.wid
+            preview_line = int(win_eval(wid, 'getpos(".")')[1]) - 1
+            preview_text = win_eval(wid, 'getline(1, "$")')
+            offset = 0
+            print (preview_line)
+            print (preview_text)
+            while preview_line >= 0: 
+                line = preview_text[preview_line]
+                if line.startswith("@@"): break
+                preview_line -= 1
+                offset += 1
+            if preview_line < 0: 
+                file_line_nr = 1
+            else:   
+                line = preview_text[preview_line]
+                file_line_nr = offset + int(line.split("@@")[1].strip().split(" ")[1].strip().split(",")[0][1:])
+
         GPW.hide()
         self.close()
         FileSystem().edit(file)
+        vim.command(f":{file_line_nr}")
 
     def git_show(self, item):
         if "untrace" in item: 
