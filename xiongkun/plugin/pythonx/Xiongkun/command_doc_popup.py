@@ -49,19 +49,22 @@ class DocPreviewBuffer(Buffer):
 
     def show(self):
         super().show()
+        max_width = max([ len(line) for line in self.auto_skip_indent(self.markdown_doc)])
         col, line = TotalWidthHeight()
+        max_width = max(max_width, 50)
+        max_width = min(max_width, 150)
         options = {
             'line': line - 1,
             'col': 1,
             'pos': 'botleft',
+            'minwidth': max_width + 2,
+            'maxwidth': max_width + 2,
         }
         self.move_to(options)
         self.execute(f'set conceallevel=3')
         if self.dirty: 
             vim.command("redraw")
         self.dirty = False
-        config = dict2str(self.win_options)
-        vim.eval(f"popup_move({self.wid}, {config})")
             
 
     def set_command_doc(self):

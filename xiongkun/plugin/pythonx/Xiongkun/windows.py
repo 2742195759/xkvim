@@ -734,6 +734,7 @@ class MessageWindow:
     def __init__(self):
         self.doc_buffer = DocPreviewBuffer(options={'title': ' MessageWindow '})
         self.markdowns = []
+        self.extra = None
         self.cur = 0
         self.is_show = False
 
@@ -750,6 +751,12 @@ class MessageWindow:
     def set_markdowns(self, markdowns):
         self.markdowns = markdowns
         if self.is_show: self.show()
+
+    def get_extra(self):
+        return self.extra
+
+    def set_extra(self, extra):
+        self.extra = extra
 
     def display_message(self, text, time=-1, syntax=None, appendline=False): 
         """

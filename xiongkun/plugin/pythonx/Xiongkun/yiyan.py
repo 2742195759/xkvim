@@ -165,7 +165,7 @@ def yiyan_trigger(args):
     session.init()
     session.show()
 
-def yiyan_converse(query, query_process_fn=None, return_process_fn=None): 
+def yiyan_converse(query, query_process_fn=None, return_process_fn=None, accept_fn=None): 
     def on_return(outputs):
         package = YiyanResponsePostProcessor(outputs)
         if not package.is_error(): 
@@ -175,6 +175,7 @@ def yiyan_converse(query, query_process_fn=None, return_process_fn=None):
                 MessageWindow().display_message(context, syntax=syntax)
                 MessageWindow().doc_buffer.execute("setlocal wrap")
                 MessageWindow().doc_buffer.execute("setlocal nu")
+                MessageWindow().set_extra((package, accept_fn))
                 vim.command("set mouse=a")
             else:
                 MessageWindow().display_message("没有代码.", 10)
@@ -208,9 +209,36 @@ def yiyan_code(args):
         return "\n".join(code.code), code.language
     yiyan_converse(query, None, code_filter)
 
+
+@vim_register(command="YiyanRewrite", with_args=True)
+def yiyan_code_rewrite(args):
+    word = vim_utils.GetVisualWords()
+    word = word.strip()
+    lines = word.split("\n")
+    lines = [ "<cr>" if line=="" else line for line in lines ]
+    word = "\n".join(lines)
+    print (word)
+    assert len(args) > 0
+    query = "".join(args)
+    query = query.strip()
+    query = "只输出一段完整代码, 按要求改写下面代码：\n要求: " + query + "\n代码:\n"
+    query += word
+    def code_filter(package):
+        return "\n".join(package.get_outputs()), "yiyan"
+    def accept_fn(package):
+        code = "\n".join(package.get_first_code().code) + "\n"
+        vim.command("normal gvd`<")
+        vim_utils.insert_text(code)
+    yiyan_converse(query, None, code_filter, accept_fn)
+
+
 @vim_register(command="YiyanCodeAccept")
 def yiyan_code_accept(args):
-    code = MessageWindow().markdowns[0]
-    vim_utils.insert_text(code)
+    package, accept_fn = MessageWindow().get_extra()
+    if accept_fn is None:
+        code = "\n".join(package.get_first_code().code)
+        vim_utils.insert_text(code)
+    else:
+        accept_fn(package)
     MessageWindow().hide()
     vim.command("set mouse=")
