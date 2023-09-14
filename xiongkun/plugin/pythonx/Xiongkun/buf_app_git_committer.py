@@ -71,7 +71,7 @@ class GitCommitter(CursorLineBuffer):
 
     def on_key(self, key):
         if key in ['j', 'k'] and not GPW.hidden:
-            { 'j': GPW.page_down, 'k': GPW.page_up }[key]()
+            { 'j': GPW.line_down, 'k': GPW.line_up }[key]()
             return True
         if key == "<space>":
             number = self.cur_cursor_line()
@@ -142,14 +142,14 @@ class GitCommitter(CursorLineBuffer):
             wid = GPW.pwin.wid
             preview_line = int(win_eval(wid, 'getpos(".")')[1]) - 1
             preview_text = win_eval(wid, 'getline(1, "$")')
-            offset = 0
+            offset = -1
             print (preview_line)
             print (preview_text)
             while preview_line >= 0: 
                 line = preview_text[preview_line]
                 if line.startswith("@@"): break
                 preview_line -= 1
-                offset += 1
+                if not line.startswith("-"): offset += 1
             if preview_line < 0: 
                 file_line_nr = 1
             else:   

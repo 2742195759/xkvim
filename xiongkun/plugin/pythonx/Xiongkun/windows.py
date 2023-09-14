@@ -244,7 +244,6 @@ class BoxListWindow(Window):# {{{
     def __init__(self, items, inp=None, title="UniverseSearch(@xiongkun):", keymap={}, callback={}, **args):
         super().__init__()
         self.items = items
-        from threading import Lock
         self.win_options = {
             "border": [], 
             "h": 20, 
@@ -256,6 +255,7 @@ class BoxListWindow(Window):# {{{
             "highlight": "Normal",
             "borderhighlight": ["Grep"],
             'mapping': False,  
+            'zindex': 300, # greater than 200, so that it will not be covered by the popup window.
         }
         """
         mapping = False is important, see 'h popup_create-arguments' for more details.
@@ -585,9 +585,14 @@ class LocationPreviewWindows:# {{{
             self.pwin._execute_normal("")
             self.pwin._execute_normal("zz")
 
-    def page_up(self):
+    def line_down(self):
         if self.pwin is not None:
-            self.pwin._execute_normal("")
+            self.pwin._execute_normal("j")
+            self.pwin._execute_normal("zz")
+
+    def line_up(self):
+        if self.pwin is not None:
+            self.pwin._execute_normal("k")
             self.pwin._execute_normal("zz")
 
     def next(self):
@@ -729,10 +734,29 @@ class Searcher:# {{{
     def force_cancel(self, inp, d):
         pass
 # }}}
+
 @Singleton
 class MessageWindow:
     def __init__(self):
+
         self.doc_buffer = DocPreviewBuffer(options={'title': ' MessageWindow '})
+
+        def message_post_show():
+            max_width = max([ len(line) for line in self.doc_buffer.auto_skip_indent(self.doc_buffer.markdown_doc)])
+            col, line = TotalWidthHeight()
+            max_width = max(max_width, 50)
+            max_width = min(max_width, 150)
+            options = {
+                'line': line - 2,
+                'col': col,
+                'pos': 'botright',
+                'minwidth': max_width + 2,
+                'maxwidth': max_width + 2,
+            }
+            self.doc_buffer.move_to(options)
+            self.doc_buffer.execute(f'set conceallevel=3')
+
+        self.doc_buffer.post_show = message_post_show
         self.markdowns = []
         self.extra = None
         self.cur = 0
@@ -876,7 +900,6 @@ class UniverseSearchEngine(Searcher):# {{{
     def __init__(self, opts):
         self.opts = opts
         self.pcm = None
-        from threading import Lock
         self.last_results = []
         self.sync = []
         self.async_ = []

@@ -472,6 +472,10 @@ class SignatureWindow(DocPreviewBuffer):
         if self.syntax: self.execute(f'set syntax={self.syntax}')
         if self.param : self.execute(f"match Search /{vim_utils.escape(self.param, '/')}/")
 
+    def post_show(self):
+        self.execute(f'set conceallevel=3')
+
+
 @vim_register(name="Py_signature_help")
 def signature_help(args):
     def handle(rsp):

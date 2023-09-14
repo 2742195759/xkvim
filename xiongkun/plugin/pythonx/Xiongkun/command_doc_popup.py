@@ -46,9 +46,8 @@ class DocPreviewBuffer(Buffer):
         self._put_strings(
             self.auto_skip_indent(self.markdown_doc)
         )
-
-    def show(self):
-        super().show()
+    
+    def post_show(self):
         max_width = max([ len(line) for line in self.auto_skip_indent(self.markdown_doc)])
         col, line = TotalWidthHeight()
         max_width = max(max_width, 50)
@@ -62,8 +61,13 @@ class DocPreviewBuffer(Buffer):
         }
         self.move_to(options)
         self.execute(f'set conceallevel=3')
+
+
+    def show(self):
+        super().show()
         if self.dirty: 
             vim.command("redraw")
+        self.post_show()
         self.dirty = False
             
 
