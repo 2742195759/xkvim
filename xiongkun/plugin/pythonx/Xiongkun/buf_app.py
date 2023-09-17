@@ -1182,6 +1182,7 @@ class FileFinderBuffer(FuzzyList):
             directory = FileSystem().cwd
         self.directory = directory
         files = self.set_root(self.directory)
+        name = f"FileFinder [{self.directory}]"
         super().__init__(self.file_type, files, name, history, options)
         self.last_window_id = vim.eval("win_getid()")
         self.saved_cursor = GetCursorXY()

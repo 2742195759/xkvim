@@ -585,6 +585,11 @@ class LocationPreviewWindows:# {{{
             self.pwin._execute_normal("")
             self.pwin._execute_normal("zz")
 
+    def page_up(self):
+        if self.pwin is not None:
+            self.pwin._execute_normal("")
+            self.pwin._execute_normal("zz")
+
     def line_down(self):
         if self.pwin is not None:
             self.pwin._execute_normal("j")
