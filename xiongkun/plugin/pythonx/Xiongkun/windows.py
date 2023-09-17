@@ -743,10 +743,8 @@ class Searcher:# {{{
 @Singleton
 class MessageWindow:
     def __init__(self):
-
         self.doc_buffer = DocPreviewBuffer(options={'title': ' MessageWindow '})
-
-        def message_post_show():
+        def position_options():
             max_width = max([ len(line) for line in self.doc_buffer.auto_skip_indent(self.doc_buffer.markdown_doc)])
             col, line = TotalWidthHeight()
             max_width = max(max_width, 50)
@@ -758,10 +756,9 @@ class MessageWindow:
                 'minwidth': max_width + 2,
                 'maxwidth': max_width + 2,
             }
-            self.doc_buffer.move_to(options)
-            self.doc_buffer.execute(f'set conceallevel=3')
+            return options
 
-        self.doc_buffer.post_show = message_post_show
+        self.doc_buffer.position_options = position_options
         self.markdowns = []
         self.extra = None
         self.cur = 0

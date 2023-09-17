@@ -89,7 +89,7 @@ def filter_by_context(args):
     print (actual_text, items)
     result = []
     for item in items:
-        context = "".join(peek_line(item['filename'], int(item['lnum']), int(item['lnum'])+5))
+        context = "".join(peek_line(item['filename'], int(item['lnum'])-5, int(item['lnum'])+5))
         item['text'] = context
         if actual_text in context:
             result.append(item)

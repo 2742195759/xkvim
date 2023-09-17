@@ -20,6 +20,9 @@ search_config: [
 terminal_abbreviate: [
     ["proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\nexport no_proxy=localhost,bj.bcebos.com,su.bcebos.com,paddle-wheel.bj.bcebos.com\n"], 
     ["noproxy", "unset http_proxy\nunset https_proxy\n"], 
+    ["find", "find ./ -name '*.py'"], 
+    ["objdump", "objdump -t -C "], 
+    ["nm", "nm -C "], 
     ["CUDA_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES=2"], 
     ["FLAGS_call_stack_level", "FLAGS_call_stack_level=2"],
     ["copy_file.sh", "/home/data/web/scripts/copy_file.sh"],
