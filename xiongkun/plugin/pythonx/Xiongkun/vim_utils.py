@@ -1063,3 +1063,13 @@ def insert_text(text, pos=None):
         vim.eval(f'feedkeys({text}, "in")')
         vim.eval(f'feedkeys("\\<Ignore>", "n")')
         vim.eval(f'feedkeys("\\<cmd>set nopaste\\<cr>")')
+
+def win_execute(wid, cmd):
+    with VimVariableGuard(cmd) as cmd:
+        log("[WinExe]", f'win_execute({wid}, {cmd})')
+        vim.eval(f'win_execute({wid}, {cmd})')
+
+def win_eval(wid, expr): 
+    win_execute(wid, f"let g:filetree_line_number={expr}")
+    return vim.eval("g:filetree_line_number")
+

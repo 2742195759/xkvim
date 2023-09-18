@@ -69,7 +69,67 @@ def StopAutoCompileGuard():# {{{
     finally:
         if not is_disabled:
             _StartAutoCompile()
-    
+
+@vim_utils.Singleton
+class LSPDiagMessageWindow(DocPreviewBuffer): 
+    def __init__(self):
+        options = {
+            'filter': None,
+            'title': ' ErrorMessage ',
+            'buflisted': 0,
+        }
+        super().__init__(options)
+        self.create()
+
+    def position_options(self):
+        return {
+            'maxwidth': 100,
+            'minwidth': 0,
+            'maxheight': 10,
+            'line': 'cursor+1',
+            'col': 'cursor',
+            'pos': 'topleft',
+            'posinvert': 1,
+        }
+
+    def _set_syntax(self):
+        self.execute(f'set syntax=txt')
+
+@vim_register(name="Py_diag_trigger")
+def diag_trigger(args):
+    filepath = FileSystem().abspath(vim_utils.CurrentEditFile(True))
+    line = vim_utils.GetCursorXY()[0]
+    message_str = LSPDiagManager().get_message(filepath, line)
+    if message_str is not None:
+        LSPDiagMessageWindow().set_markdown_doc(message_str)
+        LSPDiagMessageWindow().show()
+    else: 
+        LSPDiagMessageWindow().hide()
+
+@vim_register(keymap="[g")
+def jump_diag_prev(args):
+    filepath = FileSystem().abspath(vim_utils.CurrentEditFile(True))
+    line = vim_utils.GetCursorXY()[0]
+    line = LSPDiagManager().get_message_location(filepath, line, 'prev')
+    if line is not None:
+        vim.command(f":{line}")
+
+@vim_register(keymap="]g")
+def jump_diag_next(args):
+    filepath = FileSystem().abspath(vim_utils.CurrentEditFile(True))
+    line = vim_utils.GetCursorXY()[0]
+    line = LSPDiagManager().get_message_location(filepath, line, 'next')
+    if line is not None:
+        vim.command(f":{line}")
+
+vim_utils.commands(f"""
+augroup LSPDiagManagerAuto
+    autocmd!
+    autocmd CursorMoved {",".join(auto_files)} call Py_diag_trigger([]) 
+    autocmd InsertEnter {",".join(auto_files)} call Py_diag_trigger([]) 
+augroup END
+""")
+
 @vim_utils.Singleton
 class LSPDiagManager: 
     def __init__(self):
@@ -78,6 +138,11 @@ class LSPDiagManager:
         vim.command("sign define lsp_warn  text=>> texthl=Search")
         vim.command("sign define lsp_error text=>> texthl=Error")
         vim.eval("prop_type_add('lsp_message', {'highlight': 'Error'})")
+        # map: 
+        #   filename 
+        #   map: 
+        #       line -> [message]
+        self.messages = {}
 
     def next_id(self):
         ret = self.id
@@ -88,37 +153,41 @@ class LSPDiagManager:
         id = self.next_id()
         if not FileSystem().bufexist(file): return
         vim.command(f"sign place {id} line={line} name={sign_name} file={file}")
-        if message == "":
-            return
-        config = {
-            'bufnr': file,
-            'id': id,
-            'text': message,
-            'text_align': 'right',
-            'type': 'lsp_message',
-            'text_wrap': 'wrap'
-        }
-        try:
-            vim.eval(f"prop_add({line}, 0, {json.dumps(config)})")
-        except: 
-            # change while diagnostic sending will cause invalid {line} exception.
-            pass
+        mess = self.messages.get(file, {})
+        if line not in mess: 
+            mess[line] = []
+        mess[line].append(message)
+        self.messages[file] = mess
 
     def error(self, file, line, message=""): 
         self._place("lsp_error", file, line, message)
+
+    def get_message(self, file, line):
+        if file in self.messages and line in self.messages[file]:
+            return "\n".join(self.messages[file][line])
+        return None
+
+    def get_message_location(self, file, line, direction='next'):
+        assert direction in ['next', 'prev']
+        if file not in self.messages: return None
+        if direction == 'next':
+            for l in sorted(self.messages[file].keys()):
+                if l > line: return l
+        else:
+            for l in sorted(self.messages[file].keys(), reverse=True):
+                if l < line: return l
+        return None
 
     def warn(self, file, line, message=""):
         return
         self._place("lsp_warn", file, line, message)
 
-    #def get_text(self, file, line): 
-        #for item in vim.eval(f"prop_list({line})"): 
-    
     def clear(self, file):
         if not FileSystem().bufexist(file): return
         vim.command(f"sign unplace * file={file}")
         config = { 'bufnr': file, 'type': 'lsp_message', 'all': 1 }
         vim.eval(f"prop_remove({json.dumps(config)})")
+        self.messages[file] = {}
 
 class FileSyncManager:
     """
@@ -207,7 +276,7 @@ def show_diagnostics_only_by_sign(package):
     for diag in diags:
         line = diag['range']['start']['line'] + 1
         if diag['severity'] == 1:
-            LSPDiagManager().error(file, line, "") # empty, only sign
+            LSPDiagManager().error(file, line, diag['message'])
         qflist.append({
             #'bufnr': bufnr,
             'filename': file,
@@ -443,12 +512,9 @@ def did_change(args):
 class SignatureWindow(DocPreviewBuffer):
     def __init__(self):
         options = {
-            "maxheight": 1,
-            "line": "cursor-1",
-            "col" : "cursor",
             "title": "",
-            "posinvert": 1,
             "border": [0, 0, 0, 0],
+            "zindex": 20,
         }
         self.content = ""
         self.param = ""
@@ -461,6 +527,15 @@ class SignatureWindow(DocPreviewBuffer):
         self.syntax = syntax
         self.redraw()
         self.show()
+
+    def position_options(self): 
+        options = {
+            "maxheight": 1,
+            "line": "cursor-1",
+            "col" : "cursor",
+            "posinvert": 1,
+        }
+        return options
 
     def hide(self):
         self.execute(f"match none")
@@ -493,7 +568,6 @@ def signature_help(args):
                 param = sig["parameters"][param_nr]['label']
         function = sig["label"]
         SignatureWindow().set_content(function, param, vim.eval("&ft"))
-
     file, pos = lsp_server().text_document_location()
     did_change([False])
     lsp_server().call("signature_help", handle, file, pos)

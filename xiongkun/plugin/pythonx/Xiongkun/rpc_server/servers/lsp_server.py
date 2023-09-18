@@ -102,7 +102,7 @@ def uri_file(file):
 
 class LSPProxy:
     def __init__(self, queue):
-        self.server_candidate = [JediServer(), ClangdServer(), HaskellServer()]
+        self.server_candidate = [JediServer(), ClangdServer(), HaskellServer(), CMakeServer()]
         self.version_map = {}
         self.disable_filetype = []
         self.rootUri = ""
@@ -454,6 +454,33 @@ class ClangdServer(LanguageServer):
 
     def get_command(self):
         return [f'clangd --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
+
+class CMakeServer(LanguageServer): 
+    def __init__(self):
+        super().__init__()
+
+    def initialize(self, rootUri):
+        init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":null,"workspaceFolders":null}}'
+        package = json.loads(init)
+        package['params']['rootUri'] = uri_file(os.path.join(rootUri, "build"))
+        package['params']['initializationOptions'] = {"buildDirectory": uri_file(os.path.join(rootUri, "build"))}
+        return package
+
+    def match_suffix(self, suf):
+        return suf in ['cmake']
+
+    def getLanguageId(self):
+        return "cmake"
+
+    def executable(self):
+        return "cmake-language-server"
+
+    def get_command(self):
+        return [f'cmake-language-server --background-index=0 --compile-commands-dir={self.rootUri} -j=10 2>clangd.log']
+
+    def install_command(self):
+        return "pip install cmake-language-server"
+
 
 def handle_input(handle, lsp, req):
     try:

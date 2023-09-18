@@ -7,20 +7,15 @@ from .log import log
 class DocPreviewBuffer(Buffer):
     def __init__(self, options={}):
         col, line = TotalWidthHeight()
+        self.markdown_doc = "EmptyBuffer"
         self.win_options = {
-            'maxwidth': 120,
-            'minwidth': 50,
-            'maxheight': 10,
             'filter': None,
             'title': ' DocPreview ',
-            'line': line - 1,
-            'col': 1,
-            'pos': 'botleft',
             'buflisted': 0,
         }
         self.win_options.update(options)
+        self.win_options.update(self.position_options())
         super().__init__("doc-preview", None, self.win_options)
-        self.markdown_doc = "EmptyBuffer"
         self.dirty = False
         self.create()
 
@@ -47,8 +42,7 @@ class DocPreviewBuffer(Buffer):
             self.auto_skip_indent(self.markdown_doc)
         )
 
-    def show(self):
-        super().show()
+    def position_options(self):
         max_width = max([ len(line) for line in self.auto_skip_indent(self.markdown_doc)])
         col, line = TotalWidthHeight()
         max_width = max(max_width, 50)
@@ -60,12 +54,18 @@ class DocPreviewBuffer(Buffer):
             'minwidth': max_width + 2,
             'maxwidth': max_width + 2,
         }
-        self.move_to(options)
+        return options
+    
+    def post_show(self):
         self.execute(f'set conceallevel=3')
+
+    def show(self):
+        super().show()
+        self.move_to(self.position_options())
+        self.post_show()
         if self.dirty: 
             vim.command("redraw")
         self.dirty = False
-            
 
     def set_command_doc(self):
         vim.command("set eventignore=all")

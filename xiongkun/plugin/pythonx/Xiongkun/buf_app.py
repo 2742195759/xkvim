@@ -10,14 +10,9 @@ from .log import debug
 from .remote_fs import GoToLocation, FileSystem
 from . import remote_fs
 from .log import debug
+from .vim_utils import win_execute
 
 start = None
-
-def win_execute(wid, cmd):
-    cmd = escape(cmd)
-    log("[WinExe]", f'win_execute({wid}, "{cmd}")')
-    vim.eval(f'win_execute({wid}, "{cmd}")')
-
 
 @vim_register(name="BufApp_KeyDispatcher", with_args=True)
 def Dispatcher(args):
@@ -1187,6 +1182,7 @@ class FileFinderBuffer(FuzzyList):
             directory = FileSystem().cwd
         self.directory = directory
         files = self.set_root(self.directory)
+        name = f"FileFinder [{self.directory}]"
         super().__init__(self.file_type, files, name, history, options)
         self.last_window_id = vim.eval("win_getid()")
         self.saved_cursor = GetCursorXY()

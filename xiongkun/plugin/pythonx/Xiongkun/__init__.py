@@ -124,6 +124,4 @@ def XKVIM_reflesh_screen(args):
     vim.eval('feedkeys("\\<Cmd>call system(\\"resize\\")\\<cr>\\<Cmd>redraw!\\<cr>\\<Cmd>syntax sync fromstart\\<cr>")')
     vim.command('set mouse=')
     GlobalPreviewWindow.hide()
-
-
-
+    LSPDiagMessageWindow().hide()

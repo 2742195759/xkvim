@@ -20,6 +20,7 @@ class FileFinder(Service):
             return self.files[:17]
         self.root = rootpath
         self.files = GetSearchFiles(self.root)
+        self.files = [ file[len(self.root)+1:] for file in self.files ] # remove directory
         # TODO: find files and reset it.
         self.fuzzy.set_items(-1, "filefinder", self.files)
         return self.files[:17]
