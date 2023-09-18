@@ -89,15 +89,13 @@ def GitDiffFiles(commit_id=None, filename=None):
     if FileSystem().command("git show %s:%s > %s" % (commit_id, filename, tmpfile)) is False:
         return
     vim.command("wincmd T")
-    vim.command("diffthis")
     vim.command("vertical split")
     vim.command("set nofoldenable")
     vim.command("wincmd w")
     FileSystem().edit(tmpfile, True)
-    vim.command("diffthis")
     vim.command(f"setlocal filetype={filetype}")
     vim.command("set nofoldenable")
-    vim.command("wincmd w")
+    vim.eval('feedkeys("\\<cmd>windo diffthis\\<cr>")')
 
 def GitDiffRecentChangesGivenWindows(commit_ids, window_ids, filename):#{{{
     """ Diff commit_ids[0]:filename and commit_ids[1]:filename in windows.

@@ -37,7 +37,8 @@ class GitCommitter(CursorLineBuffer):
             if type[1] == " ":
                 selected[file] = True
             files.append(file)
-        files.sort(key=lambda x: x[0][0:7])
+        sort_map = {'unstage': 1, 'untrace': 2, 'stage  ': 3}
+        files.sort(key=lambda x: sort_map[x[0:7]])
         return files, selected
 
     def git_add(self, item):

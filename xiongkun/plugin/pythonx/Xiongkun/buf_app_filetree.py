@@ -49,6 +49,10 @@ class CursorLineBuffer(WidgetBuffer):
         self.execute("let g:filetree_line_number=getpos('.')")
         return int(vim.eval("g:filetree_line_number")[1]) - 1
 
+    def get_lines(self):
+        self.execute("let g:filetree_line_number=getline(1, '$')")
+        return vim.eval("g:filetree_line_number")
+
     def on_cursor_move(self, char):
         char = {
             'l': '',

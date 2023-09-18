@@ -19,6 +19,7 @@ search_config: [
 
 terminal_abbreviate: [
     ["proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\nexport no_proxy=localhost,bj.bcebos.com,su.bcebos.com,paddle-wheel.bj.bcebos.com\n"], 
+    ["proxy2", "export https_proxy=agent.baidu.com:8188;export http_proxy=agent.baidu.com:8188"], 
     ["noproxy", "unset http_proxy\nunset https_proxy\n"], 
     ["CUDA_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES=2"], 
     ["FLAGS_call_stack_level", "FLAGS_call_stack_level=2"],

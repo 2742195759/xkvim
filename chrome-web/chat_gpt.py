@@ -92,6 +92,7 @@ async def process_loop(promote=True):
             while True:
                 inp = input()
                 if inp.strip() == "": break
+                if inp.strip() == "<cr>": inp = ""
                 inputs.append(inp)
         except:
             # EOF, Exit this subprocess.
