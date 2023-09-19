@@ -32,6 +32,7 @@ class YiyanResponsePostProcessor:
             def __init__(self, code, language):
                 self.code = code
                 self.language = language
+
         start = False
         code = []
         lang = None
@@ -191,7 +192,6 @@ def yiyan_converse(query, query_process_fn=None, return_process_fn=None, accept_
 @vim_register(command="Yiyan", with_args=True)
 def yiyan_query(args):
     assert len(args) > 0
-    args = [ '\n' if i.strip() == "<cr>" else i for i in args ]
     query = "".join(args)
     def context_filter(package):
         return "\n".join(package.get_outputs()), "yiyan"
@@ -209,15 +209,18 @@ def yiyan_code(args):
         return "\n".join(code.code), code.language
     yiyan_converse(query, None, code_filter)
 
+def guess_indent(lines):
+    if len(lines) == 0: return 0
+    return len(lines[0]) - len(lines[0].lstrip())
 
 @vim_register(command="YiyanRewrite", with_args=True)
 def yiyan_code_rewrite(args):
     word = vim_utils.GetVisualWords()
-    word = word.strip()
+    word = word.rstrip()
     lines = word.split("\n")
     lines = [ "<cr>" if line=="" else line for line in lines ]
+    indent = guess_indent(lines)
     word = "\n".join(lines)
-    print (word)
     assert len(args) > 0
     query = "".join(args)
     query = query.strip()
@@ -226,7 +229,9 @@ def yiyan_code_rewrite(args):
     def code_filter(package):
         return "\n".join(package.get_outputs()), "yiyan"
     def accept_fn(package):
-        code = "\n".join(package.get_first_code().code) + "\n"
+        code = package.get_first_code().code
+        code = [ " " * indent + line for line in code ]
+        code = "\n".join(code)+"\n"
         vim.command("normal gvd`<")
         vim_utils.insert_text(code)
     yiyan_converse(query, None, code_filter, accept_fn)
@@ -242,3 +247,4 @@ def yiyan_code_accept(args):
         accept_fn(package)
     MessageWindow().hide()
     vim.command("set mouse=")
+

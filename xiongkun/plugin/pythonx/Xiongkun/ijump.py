@@ -159,11 +159,16 @@ def Replay(args):
 def IdentifierRename(args):
     """ Rename old_name new_name
     """
-    if len(args) != 2: 
-        print("Rename old_name new_name")
-        print("Example: 对老的名字重命名，改为新的名字")
+    args = " ".join(args)
+    args = args.lstrip()
+    spliter = args[0]
+    args = args[1:]
+    names = args.split(spliter)
+    if len(names) != 2: 
+        print("Rename #old_name#new_name")
+        print("Example: 对老的名字重命名，改为新的名字，使用 # 重命名")
         return 
-    old, new = args
+    old, new = names
     from .windows import GPW
     preview_items = GPW.get_locs()
     GPW.hide()
