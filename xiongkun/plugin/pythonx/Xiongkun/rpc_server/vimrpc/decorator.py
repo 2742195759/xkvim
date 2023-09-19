@@ -59,9 +59,8 @@ def process_function(this, funcname, func):
 def stream_decorator(this, funcname, func):
     def wrapper(*args):
         def worker(*args):
-            print (*args)
             output = func(*args)
-            this.queue.put((id, True, output))
+            this.queue.put((args[0], True, output))
         this.ppool.terminal(this, funcname)
         this.ppool.start_process(this, funcname, target=worker, args=args)
         return InQueue()
