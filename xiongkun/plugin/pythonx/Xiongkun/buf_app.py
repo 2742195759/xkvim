@@ -1177,10 +1177,10 @@ class BufferFinderBuffer(FuzzyList):
             print (f"Not found buffer for name: {buffer}")
 
 class FileFinderBuffer(FuzzyList):
+    default_directory = FileSystem().cwd
+
     def __init__(self, directory=None, name="FileFinder", history=None, options={}):
-        if directory is None:
-            directory = FileSystem().cwd
-        self.directory = directory
+        self.directory = directory if directory is not None else self.default_directory
         self.directory = self.directory.rstrip("/")  # remove the / in directory
         files = self.set_root(self.directory)
         name = f"FileFinder [{self.directory}]"
@@ -1242,6 +1242,7 @@ def FileFinderReflesh(args):
     directory = FileSystem().cwd
     if len(args) == 1: 
         directory = args[0]
+    FileFinderBuffer.default_directory = directory
     rpc_call("filefinder.set_root", None, directory, True)
 
 @vim_register(command="FF", with_args=True, command_completer="file", keymap="<space>f")
@@ -1254,7 +1255,7 @@ def FileFinder(args):
         3. normal files
         4. with build / build_svd
     """
-    directory = None if FileFinderPGlobalInfo.directory is None else FileFinderPGlobalInfo.directory
+    directory = None
     if len(args) == 1: 
         directory = args[0]
     ff = FileFinderBuffer(directory=directory)
