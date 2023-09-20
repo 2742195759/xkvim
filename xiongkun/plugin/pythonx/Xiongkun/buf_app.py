@@ -1181,6 +1181,7 @@ class FileFinderBuffer(FuzzyList):
         if directory is None:
             directory = FileSystem().cwd
         self.directory = directory
+        self.directory = self.directory.rstrip("/")  # remove the / in directory
         files = self.set_root(self.directory)
         name = f"FileFinder [{self.directory}]"
         super().__init__(self.file_type, files, name, history, options)
@@ -1220,7 +1221,7 @@ class FileFinderBuffer(FuzzyList):
     def goto(self, filepath, cmd=None):
         self.close()
         if filepath:
-            #FileFinderPGlobalInfo.update_mru(filepath)
+            filepath = os.path.join(self.directory, filepath)
             loc = remote_fs.Location(filepath)
             if cmd is None: cmd = '.'
             GoToLocation(loc, cmd)
