@@ -126,7 +126,7 @@ vim_utils.commands(f"""
 augroup LSPDiagManagerAuto
     autocmd!
     autocmd CursorMoved {",".join(auto_files)} call Py_diag_trigger([]) 
-    autocmd InsertEnter {",".join(auto_files)} call Py_diag_trigger([]) 
+    autocmd InsertEnter {",".join(auto_files)} py3 Xiongkun.LSPDiagMessageWindow().hide()
 augroup END
 """)
 
