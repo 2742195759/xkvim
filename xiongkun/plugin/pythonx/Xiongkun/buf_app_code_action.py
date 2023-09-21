@@ -87,7 +87,7 @@ def CreateTmpfile(args):
     """
     FileSystem().edit_temp_file(args[0])
 
-@vim_register(command="ChangeDirectory", with_args=True, command_completer="file")
+@vim_register(command="ChangeDirectory", with_args=True, command_completer="customlist,RemoteFileCommandComplete")
 def ChangeDirectoryCommand(args):
     """ 
     `ChangeDirectoryCommand <new-directory>`: change search directory and filefinder directory.
@@ -96,10 +96,12 @@ def ChangeDirectoryCommand(args):
     更换当前的目录，包含两者：search directory 和 filefinder directory
     但是不包含NERDTree 和 vim 的根目录.
     """
-    assert len(args) == 1 and os.path.isdir(args[0]), "Please input a directory."
-    directory_path = args[0]
+    if len(args) == 0: 
+        directory_path = FileSystem().cwd
+    else: 
+        directory_path = args[0]
     vim.command(f"FR {directory_path}")
-    vim.command(f"ChangeSearchDirectory {args[0]}")
+    vim.command(f"ChangeSearchDirectory {directory_path}")
 
 last_searched_directory = ""
 @vim_register(command="UniverseSearchWithPath")

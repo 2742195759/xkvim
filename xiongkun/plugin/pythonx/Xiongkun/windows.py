@@ -899,6 +899,7 @@ def filter_by_definition(search_text, items):
 USEngine = None
 
 class UniverseSearchEngine(Searcher):# {{{
+    default_directory = FileSystem().cwd
     def __init__(self, opts):
         self.opts = opts
         self.pcm = None
@@ -1052,12 +1053,10 @@ class UniverseSearchEngine(Searcher):# {{{
 @vim_register(with_args=True, command_completer="file", command="ChangeSearchDirectory")
 def ChangeSearchGlobal(args): 
     assert len(args) <= 1
-    directory = vim.eval("getcwd()")
+    directory = FileSystem().cwd
     if len(args) == 1:
         directory = args[0]
-    log("Director:", directory)
-    directory = vim.eval(f'expand("{directory}")')
-    vim.command(f'let g:nerd_search_path="{directory}"')
+    UniverseSearchEngine.default_directory = directory
 
 #======  unit test of search and windows.
 

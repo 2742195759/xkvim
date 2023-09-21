@@ -539,7 +539,7 @@ endfunction
 
 function! UniverseSearch()
     echoh Question
-    let search_path = pyxeval("Xiongkun.FileSystem().getcwd()")
+    let search_path = pyxeval("Xiongkun.UniverseSearchEngine.default_directory")
     echom "Search path : " . search_path . "    use `S` in nerdtree to change path"
     echoh None
     let input_text = trim(input("US>>>"))

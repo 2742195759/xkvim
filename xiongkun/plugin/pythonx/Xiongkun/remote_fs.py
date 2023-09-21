@@ -225,6 +225,9 @@ endfunction
 @vim_utils.Singleton
 class FileSystem:
     def __init__(self):
+        self.remount()
+
+    def remount(self):
         self._last_error = ""
         self._is_remote = None
         self.cwd = None

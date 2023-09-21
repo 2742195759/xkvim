@@ -115,6 +115,8 @@ def SetRPCServer(args):
     from .clangd_client import set_remote_lsp
     set_remote_project(args[0])
     set_remote_lsp(args[0])
+    FileSystem().remount()
+    vim.command("ChangeDirectory")
     vim.command("wincmd o")
 
 @vim_register(keymap="<c-l>")
