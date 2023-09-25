@@ -18,17 +18,6 @@ search_config: [
 ]
 
 terminal_abbreviate: [
-    ["PYTHONPATH", 'PYTHONPATH=/home/data/Paddle/build/python'], 
-    ["xkpdb", "breakpoint()"], 
-    ["proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\nexport no_proxy=localhost,bj.bcebos.com,su.bcebos.com,paddle-wheel.bj.bcebos.com\n"], 
-    ["noproxy", "unset http_proxy\nunset https_proxy\n"], 
-    ["CUDA_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES=2"], 
-    ["copy_file.sh", "/home/data/web/scripts/copy_file.sh"],
-    ["main_program", "paddle.static.default_main_program()"],
-    ["FLAGS_cudnn_deterministic", "FLAGS_cudnn_deterministic=True"],
-    ["upload file", "python ~/xkvim/cmd_script/upload.py --file "],
-    ["reinstall paddle", "wget http://10.255.125.22:8082/paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl -O paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl && pip uninstall -y paddlepaddle_gpu && pip install paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl\n"],
-    ["nsys", "/opt/nvidia/nsight-systems/2022.4.1/bin/nsys profile -t cuda,nvtx --cpuctxsw=process-tree -o my_report --capture-range=cudaProfilerApi --force-overwrite true python /tmp/xxxx.py"],
 ]
 
 # mac | pc is supported

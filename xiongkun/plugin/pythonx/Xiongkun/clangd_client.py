@@ -92,8 +92,12 @@ class LSPDiagMessageWindow(DocPreviewBuffer):
             'posinvert': 1,
         }
 
+    def post_show(self):
+        self.execute(f'setlocal wrap')
+        self.execute(f'setlocal nu')
+
     def _set_syntax(self):
-        self.execute(f'set syntax=txt')
+        self.execute(f'set syntax=yaml')
 
 @vim_register(name="Py_diag_trigger")
 def diag_trigger(args):

@@ -113,9 +113,9 @@ def YankLine(args):
 def SetRPCServer(args):
     from .rpc import set_remote_project
     from .clangd_client import set_remote_lsp
-    vim.command("ChangeDirectory")
     set_remote_project(args[0])
     FileSystem().remount()
+    vim.command("ChangeDirectory")
     set_remote_lsp(args[0])
     vim.command("wincmd o")
 
