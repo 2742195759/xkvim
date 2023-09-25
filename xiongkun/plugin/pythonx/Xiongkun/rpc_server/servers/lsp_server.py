@@ -410,7 +410,8 @@ class ConfigurableServer(LanguageServer):
 
     def has_complete_resolve(self):
         try:
-            return self.init_result['result']['capabilities']['completionProvider']['resolveSupport']
+            return self.init_result['result']['capabilities']['completionProvider']['resolveProvider']
+            #return self.init_result['result']['capabilities']['completionProvider']['resolveSupport']
         except KeyError:
             return False
 
