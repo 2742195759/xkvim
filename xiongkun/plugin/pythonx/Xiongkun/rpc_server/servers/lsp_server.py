@@ -102,7 +102,7 @@ def uri_file(file):
 
 class LSPProxy:
     def __init__(self, queue):
-        self.server_candidate = [JediServer(), ClangdServer(), HaskellServer(), CMakeServer()]
+        self.server_candidate = []
         self.version_map = {}
         self.disable_filetype = []
         self.rootUri = ""
@@ -135,6 +135,8 @@ class LSPProxy:
         return self.version_map[filepath][0]
 
     def complete_resolve(self, id, filepath, complete_item):
+        if not self.get_server(filepath).has_complete_resolve(): 
+            raise DisableException()
         json = {
             "jsonrpc": "2.0",
             "id": id,
@@ -144,8 +146,12 @@ class LSPProxy:
         self.pending(filepath, json)
 
     # @interface
-    def init(self, id, rootUri):
-        self.rootUri = rootUri
+    def init(self, id, json_config):
+        self.config = json_config
+        self.rootUri = self.config["rootUri"]
+        for name, server_config in self.config['servers'].items():
+            print ("Append: ", name, server_config)
+            self.server_candidate.append(ConfigurableServer(name, server_config))
         self.is_init = True
 
     # @interface
@@ -191,6 +197,8 @@ class LSPProxy:
         
     #@interface
     def goto(self, id, filepath, method="definition", pos=(0,0)):
+        if not self.get_server(filepath).has_definition_provider(): 
+            raise DisableException()
         self.check_disable(filepath)
         if not self.file_exist(filepath): 
             self.add_document(-1, filepath)
@@ -214,6 +222,8 @@ class LSPProxy:
 
     #@interface
     def signature_help(self, id, filepath, pos=(0,0)):
+        if not self.get_server(filepath).has_signature_help(): 
+            raise DisableException()
         self.check_disable(filepath)
         json = {
             "jsonrpc": "2.0",
@@ -355,10 +365,15 @@ class LanguageServer:
     def kill(self):
         self.server.kill()
 
+    def do_install(self):
+        pass
+
     def start(self, rootUri):
         import subprocess
         if not self.is_installed(): 
-            raise RuntimeError(f"{self.__class__} is not installed")
+            self.do_install()
+            if not self.is_installed(): 
+                raise RuntimeError(f"{self.__class__} is not installed")
         self.rootUri = rootUri
         cmd = self.get_command()
         print("lsp server start cmd: ", cmd)
@@ -366,6 +381,7 @@ class LanguageServer:
         server.stdin.write(pack(self.initialize(rootUri)))
         server.stdin.flush()
         init_result = receive_package(server.stdout)
+        self.init_result = init_result
         server.stdin.write(pack(Protocal.InitializedNotification()))
         server.stdin.flush()
         self.set_process(server)
@@ -379,6 +395,104 @@ class LanguageServer:
     def get_output_fd(self):
         if not self.is_init: return None
         return self.server.stdout
+
+class ConfigurableServer(LanguageServer):
+    def __init__(self, name, config):
+        super().__init__()
+        self.config = config
+        self.name = name
+
+    def has_definition_provider(self):
+        try:
+            return self.init_result['result']['capabilities']['definitionProvider']
+        except KeyError:
+            return False
+
+    def has_complete_resolve(self):
+        try:
+            return self.init_result['result']['capabilities']['completionProvider']['resolveSupport']
+        except KeyError:
+            return False
+
+    def has_signature_help(self):
+        try:
+            return self.init_result['result']['capabilities']['signatureHelpProvider']
+        except KeyError:
+            return False
+
+    def initialize(self, rootUri):
+        init = '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"dynamicRegistration":true,"contentFormat":["plaintext","markdown"]},"synchronization":{"dynamicRegistration":true,"willSave":false,"didSave":false,"willSaveWaitUntil":false},"completion":{"dynamicRegistration":true,"completionItem":{"snippetSupport":false,"commitCharactersSupport":true,"documentationFormat":["plaintext","markdown"],"deprecatedSupport":false,"preselectSupport":false},"contextSupport":false},"signatureHelp":{"dynamicRegistration":true,"signatureInformation":{"documentationFormat":["plaintext","markdown"]}},"declaration":{"dynamicRegistration":true,"linkSupport":true},"definition":{"dynamicRegistration":true,"linkSupport":true},"typeDefinition":{"dynamicRegistration":true,"linkSupport":true},"implementation":{"dynamicRegistration":true,"linkSupport":true}},"workspace":{"didChangeConfiguration":{"dynamicRegistration":true}}},"initializationOptions":null,"processId":null,"rootUri":"file:///home/ubuntu/artifacts/","workspaceFolders":null}}'
+        init = json.loads(init)
+        init['params']['rootUri'] = uri_file(rootUri)
+        init_options = self.config.get("initializationOptions", None)
+        if init_options is not None: 
+            init_options = {
+                k: self.dequote(v) 
+                for k, v in init_options.items() if isinstance(v, str)
+            }
+        init['params']['initializationOptions']  = init_options
+        return init
+
+    def match_suffix(self, suf):
+        filetypes = self.config.get("filetype", [])
+        print (self.config)
+        print (filetypes, suf)
+        for ft in filetypes: 
+            if suf == ft: return True
+        return False
+
+    def do_install(self):
+        install_cmd = self.config.get("install", None)
+        if install_cmd is None: raise RuntimeError(f"can't install {self.name}, because not config `install`")
+        install_cmd = self.dequote(install_cmd)
+        os.system(install_cmd)
+
+    def getLanguageId(self):
+        lid = self.config.get("languageId", None)
+        if lid is None: raise RuntimeError("Please set languageId in config")
+        return lid
+
+    def executable(self):
+        executable = self.config.get("executable", None)
+        if executable is None: raise RuntimeError("Please set executable in config")
+        return executable
+
+    def dequote(self, abbre):
+        assert isinstance(abbre, str)
+        idx = 0
+        result = []
+        while idx < len(abbre): 
+            # 分割字符串 abbre 中的 {和 }两个字符中间的部分，使用python执行
+            # 例如： abbre = "print({a})"
+            python_stmt = []
+            while idx < len(abbre) and abbre[idx] != "{":
+                if idx + 1 < len(abbre) and abbre[idx:idx+2] == "}}":
+                    result.append('}')
+                    idx += 2
+                    continue
+                result.append(abbre[idx])
+                idx += 1
+            if idx + 1 < len(abbre) and abbre[idx+1] == "{":
+                result.append('{')
+                idx += 2
+                continue
+            if idx >= len(abbre): continue
+            start_stmt = idx
+            while idx < len(abbre) and abbre[idx] != "}": 
+                idx += 1
+            if idx >= len(abbre): raise RuntimeError("{stmt} not match.")
+            python_stmt = abbre[start_stmt+1:idx]
+            idx += 1 # skip the }
+            result.extend(getattr(self, python_stmt))
+            #result.extend(f"!!python_stmt: {python_stmt}!!")
+        return "".join(result)
+
+    def get_command(self):
+        command = self.config.get("command", None)
+        if command is None: raise RuntimeError("Please set command in config")
+        command = self.dequote(command)
+        cmd = [f'cd {self.rootUri} && {command}']
+        return cmd
 
 class JediServer(LanguageServer): 
     def __init__(self):

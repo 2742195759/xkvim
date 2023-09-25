@@ -314,7 +314,16 @@ class LSPServer(RPCServer):
         self.version_checker = VersionChecker()
         self.file_manager = FileSyncManager(self)
         self.id = 0
-        self.notification("init", FileSystem().getcwd())
+        self.lsp_config = {}
+        self.lsp_config['rootUri'] = FileSystem().getcwd()
+        import importlib.util
+        module_path = f'{vim_utils.getHomeDirectory()}/xkvim/lsp_config.py'
+        module_name = 'lsp_config'
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        lsp_config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(lsp_config)
+        self.lsp_config.update(lsp_config.configuration)
+        self.notification("init", self.lsp_config)
         self.hooker = {}
         self.hooker_identifier = 0
         self.register_default_publishdiagnostics()
@@ -633,7 +642,10 @@ def complete_select(cur_item, window_pos):
                     content.append("")
                 if 'documentation' in rsp: 
                     content.append("===========Documentation=========")
-                    content.extend(rsp['documentation']['value'].split("\n"))
+                    if isinstance(rsp['documentation'], dict):
+                        content.extend(rsp['documentation']['value'].split("\n"))
+                    elif isinstance(rsp['documentation'], str):
+                        content.extend(rsp['documentation'].split("\n"))
                 return content
             if id(InsertWindow().current_item()) != id(cur_item):  # closed.
                 return
