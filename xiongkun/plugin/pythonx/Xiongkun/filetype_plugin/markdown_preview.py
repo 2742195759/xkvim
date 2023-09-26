@@ -51,3 +51,28 @@ def SendCursor(args):
     else: 
         raise NotImplementedError("Only support mac currently.")
     RemoteConfig().get_machine().execute(f"node {set_cursor_file} {line-1} {1000}", block=False)
+
+@vim_register(command="PaddleAutoSyncMode", action_tag="paddle auto sync")
+def PaddleAutoSync(args):
+    """
+    `PaddleAutoSync`: start auto sync paddle python file between build and local.
+    -----------------------------------------------------------------
+    Usage:
+    >>> PaddleAutoSyncMode
+    """
+    commands(""" 
+augroup PaddleAutoSync
+    autocmd!
+    autocmd BufWriteCmd *.py SyncBuild
+augroup END
+    """)
+    #autocmd CursorMoved *.md,*.markdown MarkdownSetCursor
+
+@vim_register(command="EndPaddleAutoSyncMode", action_tag="end paddle auto sync")
+def EndPaddleAutoSync(args):
+    commands(""" 
+augroup PaddleAutoSync
+    autocmd!
+augroup END
+    """)
+

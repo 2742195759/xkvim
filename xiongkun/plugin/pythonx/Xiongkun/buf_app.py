@@ -288,7 +288,8 @@ class Buffer:
         pass
 
     def _create_buffer(self):
-        self.bufnr = vim.eval(f"bufadd('{self.name}')")
+        with VimVariableGuard(self.name) as name:
+            self.bufnr = vim.eval(f"bufadd({name})")
         vim.command(f"silent! bufload({self.bufnr})")
 
     def close(self):
@@ -1179,7 +1180,7 @@ class BufferFinderBuffer(FuzzyList):
 class FileFinderBuffer(FuzzyList):
     default_directory = FileSystem().cwd
 
-    def __init__(self, directory=None, name="FileFinder", history=None, options={}):
+    def __init__(self, directory=None, name="FileFinder", history=None, options={}, on_enter=None):
         self.directory = directory if directory is not None else self.default_directory
         self.directory = self.directory.rstrip("/")  # remove the / in directory
         files = self.set_root(self.directory)
@@ -1187,6 +1188,7 @@ class FileFinderBuffer(FuzzyList):
         super().__init__(self.file_type, files, name, history, options)
         self.last_window_id = vim.eval("win_getid()")
         self.saved_cursor = GetCursorXY()
+        self.on_enter_fn = on_enter
 
     def on_exit(self):
         SetCursorXY(*self.saved_cursor)
@@ -1210,9 +1212,12 @@ class FileFinderBuffer(FuzzyList):
         vim.command('set filetype=filefinder')
 
     def on_enter(self, cmd):
-        item = self.widgets['result'].cur_item()
-        log(f"[FileFinder] start goto. item {item} with cmd: {cmd}")
-        self.goto(item, cmd)
+        if self.on_enter_fn is not None:
+            self.on_enter_fn(self, cmd)
+        else:
+            item = self.widgets['result'].cur_item()
+            log(f"[FileFinder] start goto. item {item} with cmd: {cmd}")
+            self.goto(item, cmd)
 
     @property
     def file_type(self):
@@ -1259,6 +1264,17 @@ def FileFinder(args):
     if len(args) == 1: 
         directory = args[0]
     ff = FileFinderBuffer(directory=directory)
+    ff.start()
+
+@vim_register(command="InsertFilePath")
+def InsertFilePath(args):
+    def on_enter_fn(self, cmd):
+        item = self.widgets['result'].cur_item()
+        self.close()
+        if item:
+            filepath = os.path.join(self.directory, item)
+            vim.eval(f'feedkeys("{filepath}")')
+    ff = FileFinderBuffer(on_enter=on_enter_fn)
     ff.start()
 
 @vim_register(command="B", with_args=True, command_completer="buffer", keymap="<space>b>")

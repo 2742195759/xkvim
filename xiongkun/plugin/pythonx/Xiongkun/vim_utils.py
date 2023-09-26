@@ -1073,3 +1073,49 @@ def win_eval(wid, expr):
     win_execute(wid, f"let g:filetree_line_number={expr}")
     return vim.eval("g:filetree_line_number")
 
+def dequote(abbre, eval_fn):
+    assert isinstance(abbre, str)
+    idx = 0
+    result = []
+    while idx < len(abbre): 
+        # 分割字符串 abbre 中的 {和 }两个字符中间的部分，使用python执行
+        # 例如： abbre = "print({a})"
+        python_stmt = []
+        while idx < len(abbre) and abbre[idx] != "{":
+            if idx + 1 < len(abbre) and abbre[idx:idx+2] == "}}":
+                result.append('}')
+                idx += 2
+                continue
+            result.append(abbre[idx])
+            idx += 1
+        if idx + 1 < len(abbre) and abbre[idx+1] == "{":
+            result.append('{')
+            idx += 2
+            continue
+        if idx >= len(abbre): continue
+        start_stmt = idx
+        while idx < len(abbre) and abbre[idx] != "}": 
+            idx += 1
+        if idx >= len(abbre): raise RuntimeError("{stmt} not match.")
+        python_stmt = abbre[start_stmt+1:idx]
+        idx += 1 # skip the }
+        result.extend(eval_fn(python_stmt))
+    for i in result:
+        assert isinstance(i, str), "must be [string]"
+    return "".join(result)
+
+def python_eval_fn(stmt):
+    return vim.eval(f'py3eval("{stmt}")')
+
+def special_path_eval(stmt):
+    paths = GetConfigByKey("special_paths", f"{HOME_PREFIX}/xkvim/")
+    names = [p['name'] for p in paths]
+    for path in paths:
+        if path['name'] != stmt: 
+            continue
+        elif path.get('remote', False) is True:
+            command = path['command']
+            from .remote_fs import FileSystem
+            result = "\n".join(FileSystem().eval(command)).strip()
+            return result
+    raise RuntimeError(f"not found {stmt} in {names}")

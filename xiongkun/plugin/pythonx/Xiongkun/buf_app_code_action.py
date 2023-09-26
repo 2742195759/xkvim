@@ -1,6 +1,6 @@
 from .buf_app import WidgetBufferWithInputs, WidgetList, TextWidget, SimpleInput, CommandList, BufferHistory
 from .func_register import vim_register, get_all_action
-from .vim_utils import SetVimRegister, input_no_throw
+from .vim_utils import SetVimRegister, input_no_throw, dequote, special_path_eval
 from .remote_fs import FileSystem
 from .windows import MessageWindow
 import vim
@@ -12,6 +12,7 @@ code_action_dict = {
     "abbre             |  缩写插入模式  |": "TerminalAbbre",
     "git committer     |  开始git提交   |": "GitCommit",
     "file tree         |  远程的文件树  |": "FileTree",
+    "insert filepath   |  插入文件路径  |": "InsertFilePath",
     "tag list          |  展示代码结构  |": "TagList",
     "file finder       |  文件模糊查找  |": "FF",
     "buffer finder     | Buffer模糊查找 |": "B",
@@ -100,6 +101,8 @@ def ChangeDirectoryCommand(args):
         directory_path = FileSystem().cwd
     else: 
         directory_path = args[0]
+        directory_path = dequote(directory_path, special_path_eval)
+    print (f"Changing directory: {directory_path}")
     vim.command(f"FR {directory_path}")
     vim.command(f"ChangeSearchDirectory {directory_path}")
 

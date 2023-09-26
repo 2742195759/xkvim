@@ -48,3 +48,14 @@ default_remote: mac
 
 # Run command <F9>
 #default_run: ""
+
+# used by special_path_eval
+special_paths: 
+  - name: sot
+    remote: true
+    type: bash
+    command: python3.8 -c "import sot; print(sot.__path__[0])"
+  - name: paddle
+    remote: true
+    type: bash
+    command: python3.8 -c "import paddle; print(paddle.__path__[0])"

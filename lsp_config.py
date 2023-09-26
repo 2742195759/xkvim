@@ -1,7 +1,7 @@
 configuration = {
     "servers": {
         "clangd": {
-            "filetype": ["c", "cpp", "objc", "objcpp", "cc"],
+            "filetype": ["c", "cpp", "objc", "objcpp", "cc", "h", "hpp"],
             "rootPatterns": [".git"],
             "initializationOptions": None,
             "languageId": "cpp",

@@ -436,8 +436,6 @@ class ConfigurableServer(LanguageServer):
 
     def match_suffix(self, suf):
         filetypes = self.config.get("filetype", [])
-        print (self.config)
-        print (filetypes, suf)
         for ft in filetypes: 
             if suf == ft: return True
         return False

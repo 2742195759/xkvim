@@ -119,36 +119,6 @@ def TerminalWriteFile(args):
         time.sleep(1.0)
         vim.command(f"read {tmpfile}")
 
-def dequote(abbre):
-    assert isinstance(abbre, str)
-    idx = 0
-    result = []
-    while idx < len(abbre): 
-        # 分割字符串 abbre 中的 {和 }两个字符中间的部分，使用python执行
-        # 例如： abbre = "print({a})"
-        python_stmt = []
-        while idx < len(abbre) and abbre[idx] != "{":
-            if idx + 1 < len(abbre) and abbre[idx:idx+2] == "}}":
-                result.append('}')
-                idx += 2
-                continue
-            result.append(abbre[idx])
-            idx += 1
-        if idx + 1 < len(abbre) and abbre[idx+1] == "{":
-            result.append('{')
-            idx += 2
-            continue
-        if idx >= len(abbre): continue
-        start_stmt = idx
-        while idx < len(abbre) and abbre[idx] != "}": 
-            idx += 1
-        if idx >= len(abbre): raise RuntimeError("{stmt} not match.")
-        python_stmt = abbre[start_stmt+1:idx]
-        idx += 1 # skip the }
-        result.extend(vim.eval(f'py3eval("{python_stmt}")'))
-        #result.extend(f"!!python_stmt: {python_stmt}!!")
-    return "".join(result)
-
 def get_abbreviate_list(bufnr): 
     from .remote_fs import FileSystem
     from .rpc import rpc_wait
@@ -160,7 +130,7 @@ def get_abbreviate_list(bufnr):
     for item in terminal_abbreviate :
         key, val = item
         if key in unique_set: continue
-        val = dequote(val)
+        val = dequote(val, python_eval_fn)
         unique_set.add(key)
         if val.startswith(':'): 
             new_item = [key, f"{val[1:]}"]

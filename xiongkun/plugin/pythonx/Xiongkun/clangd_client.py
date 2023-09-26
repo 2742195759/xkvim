@@ -685,6 +685,8 @@ def LSPGetDiags(args):
     def handler(package):
         #show_diagnostics_in_quickfix(package)
         show_diagnostics_only_by_sign(package)
+    file = vim.eval("bufname()")
+    LSPDiagManager().clear(file)
     did_change([True])
     lsp_server().register_once("textDocument/publishDiagnostics", handler)
 

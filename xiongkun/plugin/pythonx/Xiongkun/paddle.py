@@ -42,20 +42,8 @@ def SyncFilesBetweenBuild(args):
     elif "Paddle/" in path:
         new_path = path.replace("Paddle/", "Paddle/build/")
     else: 
-        print("Do Nothing.")
         new_path = path
     if FileSystem().command(f"cp {path} {new_path}"): 
-        print (f"Successful sync {path} -> {new_path}")
-
-@vim_register(command="AutoSyncBuild")
-def StartAutoSyncBuild(args):
-    """
-    Sync between build and non build directory in paddle.
-    """
-    commands(""" 
-augroup PaddleAutoSyncBuild
-    autocmd!
-    autocmd BufWriteCmd *.py SyncBuild
-augroup END
-    """)
-
+        print ("Successful Sync!")
+    else:
+        print ("Failed Sync!")
