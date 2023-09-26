@@ -569,6 +569,7 @@ def signature_help(args):
             SignatureWindow().hide()
             return
         result = rsp['result']
+        if not result: return 
         sigs = result['signatures']
         if not len(sigs): return 
         sig = result['signatures'][result['activeSignature']]

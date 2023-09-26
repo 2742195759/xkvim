@@ -9,14 +9,23 @@ configuration = {
             "command": "clangd --background-index=0 --compile-commands-dir={rootUri} -j=10 2>clangd.log",
             "install": None
         }, 
-        "jedi": {
+        #"jedi": {
+            #"filetype": ["py"],
+            #"initializationOptions": None,
+            #"rootPatterns": [".git"],
+            #"languageId": "python",
+            #"executable": "jedi-language-server",
+            #"command": "jedi-language-server 2>jedi.log",
+            #"install": None
+        #},
+        "pylsp": {
             "filetype": ["py"],
             "initializationOptions": None,
             "rootPatterns": [".git"],
             "languageId": "python",
-            "executable": "jedi-language-server",
-            "command": "jedi-language-server 2>jedi.log",
-            "install": None
+            "executable": "pylsp",
+            "command": "pylsp 2>pylsp.log",
+            "install": 'pip install "python-lsp-server[all]"'
         },
         "haskell": {
             "filetype": ["hs"],
