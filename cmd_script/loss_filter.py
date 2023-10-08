@@ -76,7 +76,12 @@ def main():
     for idx, line in enumerate(sys.stdin):
         line = line.strip()
         if is_valid(line, args.valid_expr): 
-            ret = extract(line, args.extract_expr)
+            exprs = args.extract_expr.split("|")
+            ret = None
+            reason = []
+            for expr in exprs:
+                ret = extract(line, expr)
+                if ret is not None: break
             if ret: 
                 tuple_list.append(ret)
                 lno_list.append(idx)
@@ -84,3 +89,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
