@@ -105,15 +105,27 @@ child_pid = []
 class ThreadedTCPServer(socketserver.TCPServer):
     pass
 
+def read_single_char(socket, timeout=5):
+    ready = select.select([socket], [], [], timeout)
+    if ready[0]:
+        data = socket.recv(1)
+    else: 
+        raise TimeoutError("timeout when socket.recv(1)")
+    return data
+
 def connection_handle(socket):
     # override the main process signal handler.
     global child_pid
     print("=== socket opened ===")
     mode = b""
-    c = socket.recv(1)
-    while c != b'\n': # read just one line and don't buffer.
-        mode += c
-        c = socket.recv(1)
+    try:
+        c = read_single_char(socket)
+        while c != b'\n': # read just one line and don't buffer.
+            mode += c
+            c = read_single_char(socket)
+    except TimeoutError:
+        print ("[TCPServer] Timeout when receiving: ", mode)
+        return
     print ("[TCPServer] receive: ", mode)
     mode = mode.strip()
     if mode == b"bash": 
