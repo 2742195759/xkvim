@@ -44,9 +44,9 @@ except ImportError:
     # Python 2
     import SocketServer as socketserver
 
-def vim_rpc_loop(socket, services_cluster_cls):
-    rfile = socket.makefile('rb', 10240)
-    wfile = socket.makefile('wb', 10240)
+def vim_rpc_loop(sock, services_cluster_cls):
+    rfile = sock.makefile('rb', 10240)
+    wfile = sock.makefile('wb', 10240)
     print ("===== start a vim rpc server ======")
     def send(obj):
         encoded = json.dumps(obj) + "\n"
@@ -63,7 +63,7 @@ def vim_rpc_loop(socket, services_cluster_cls):
         sys.stderr.flush()
         if rfile.fileno() in rs:
             try:
-                bytes = socket.recv(10240)
+                bytes = sock.recv(10240)
             except socket.error:
                 print("=== socket error ===")
                 break
@@ -97,7 +97,7 @@ def vim_rpc_loop(socket, services_cluster_cls):
                         send(output)
     print ("stop handle, closing...")
     servers.stop()
-    socket.close()
+    sock.close()
     print ("===== stop a vim rpc server ======")
 
 child_pid = []
