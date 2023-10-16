@@ -44,9 +44,9 @@ except ImportError:
     # Python 2
     import SocketServer as socketserver
 
-def vim_rpc_loop(socket, services_cluster_cls):
-    rfile = socket.makefile('rb', 10240)
-    wfile = socket.makefile('wb', 10240)
+def vim_rpc_loop(sock, services_cluster_cls):
+    rfile = sock.makefile('rb', 10240)
+    wfile = sock.makefile('wb', 10240)
     print ("===== start a vim rpc server ======")
     def send(obj):
         encoded = json.dumps(obj) + "\n"
@@ -63,7 +63,7 @@ def vim_rpc_loop(socket, services_cluster_cls):
         sys.stderr.flush()
         if rfile.fileno() in rs:
             try:
-                bytes = socket.recv(10240)
+                bytes = sock.recv(10240)
             except socket.error:
                 print("=== socket error ===")
                 break
@@ -97,7 +97,7 @@ def vim_rpc_loop(socket, services_cluster_cls):
                         send(output)
     print ("stop handle, closing...")
     servers.stop()
-    socket.close()
+    sock.close()
     print ("===== stop a vim rpc server ======")
 
 child_pid = []
@@ -105,15 +105,27 @@ child_pid = []
 class ThreadedTCPServer(socketserver.TCPServer):
     pass
 
+def read_single_char(socket, timeout=5):
+    ready = select.select([socket], [], [], timeout)
+    if ready[0]:
+        data = socket.recv(1)
+    else: 
+        raise TimeoutError("timeout when socket.recv(1)")
+    return data
+
 def connection_handle(socket):
     # override the main process signal handler.
     global child_pid
     print("=== socket opened ===")
     mode = b""
-    c = socket.recv(1)
-    while c != b'\n': # read just one line and don't buffer.
-        mode += c
-        c = socket.recv(1)
+    try:
+        c = read_single_char(socket)
+        while c != b'\n': # read just one line and don't buffer.
+            mode += c
+            c = read_single_char(socket)
+    except TimeoutError:
+        print ("[TCPServer] Timeout when receiving: ", mode)
+        return
     print ("[TCPServer] receive: ", mode)
     mode = mode.strip()
     if mode == b"bash": 

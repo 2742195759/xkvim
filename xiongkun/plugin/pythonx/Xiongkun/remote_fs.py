@@ -13,6 +13,7 @@ import os.path as osp
 from .rpc import rpc_call, rpc_wait, rpc_server
 from .vim_utils import vimcommand, IsBufferExist
 import os
+import codecs
 
 def is_buf_remote():
     remote = vim.eval("getbufvar(bufnr(), 'remote')")
@@ -280,8 +281,9 @@ class FileSystem:
         filepath = self.abspath(filepath)
         def do_open(content): 
             tmp_file = vim_utils.TmpName()
-            with open(tmp_file, "w") as f: 
-                f.write(content)
+            file = codecs.open(tmp_file, "w", "utf-8")
+            file.write(content)
+            file.close()
             bufnr = vim.eval(f'bufadd("{filepath}")')
             with vim_utils.CurrentBufferGuard():
                 #vim.eval(f"setbufvar({bufnr}, '&buftype', 'acwrite')") # this option will make quickfix bugs.
