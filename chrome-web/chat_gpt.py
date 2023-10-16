@@ -35,7 +35,10 @@ async def wait_output(page):
     loop_time = 0.3
     for i in range(int(tot_time / loop_time)):
         time.sleep(loop_time)
+        #await page.screenshot({'path': 'wait.png'})
         element = await page.querySelector("button[data-testid='send-button']")
+        if element is None: 
+            continue # sending...
         element = await element.querySelector("span[data-state='closed']")
         if element != "none" and element is not None: 
             return True
@@ -74,7 +77,7 @@ async def process_loop(promote=True):
 
     await page.goto('https://chat.openai.com')
     #print ("HideState: ", await page.evaluate('document.visibilityState', force_expr=True))
-    time.sleep(5.0)
+    time.sleep(6.0)
     buttons = await page.JJ("button.btn-primary")
     for button in buttons:
         text = await page.evaluate('(element) => element.textContent', button)
@@ -83,6 +86,7 @@ async def process_loop(promote=True):
     time.sleep(1.0)
     pages = await browser.pages()
     # input the text and query yiyan.
+    await page.screenshot({'path': 'example.png'})
     while True:
         if promote: 
             await page.screenshot({'path': 'example.png'})

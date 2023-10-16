@@ -414,6 +414,12 @@ def print_table(table):
         outs.append(row_format.format(*row))
     return outs
 
+def error(string):
+    with VimVariableGuard(string) as msg:
+        vim.command(f"echohl Error")
+        vim.command(f"echo {msg}")
+        vim.command(f"echohl")
+
 """
 while in py3: see example:  
     UniverseCtrl 
@@ -1078,7 +1084,7 @@ def dequote(abbre, eval_fn):
     idx = 0
     result = []
     while idx < len(abbre): 
-        # 分割字符串 abbre 中的 {和 }两个字符中间的部分，使用python执行
+        # 分割字符串 abbre 中的 { 和 }两个字符中间的部分，使用python执行
         # 例如： abbre = "print({a})"
         python_stmt = []
         while idx < len(abbre) and abbre[idx] != "{":
@@ -1088,24 +1094,53 @@ def dequote(abbre, eval_fn):
                 continue
             result.append(abbre[idx])
             idx += 1
-        if idx + 1 < len(abbre) and abbre[idx+1] == "{":
+        if abbre[idx:idx+2] == "{{":
             result.append('{')
             idx += 2
             continue
         if idx >= len(abbre): continue
+        # find single '{' in statement.
         start_stmt = idx
-        while idx < len(abbre) and abbre[idx] != "}": 
+        # find the next not matched '}' in statement.
+        stack = []
+        while idx < len(abbre):
+            if abbre[idx:idx+2] in ["}}", "{{"]: 
+                idx += 2
+                continue
+            elif abbre[idx] == "}": 
+                if len(stack) == 1: break
+                else: stack.pop()
+            elif abbre[idx] == "{":
+                stack.append("{")
             idx += 1
-        if idx >= len(abbre): raise RuntimeError("{stmt} not match.")
-        python_stmt = abbre[start_stmt+1:idx]
+        if idx >= len(abbre): raise RuntimeError(f"{stmt} not match.")
+        dequoted_str = dequote(abbre[start_stmt+1: idx], eval_fn)
+        result.extend(eval_fn(dequoted_str))
         idx += 1 # skip the }
-        result.extend(eval_fn(python_stmt))
     for i in result:
         assert isinstance(i, str), "must be [string]"
     return "".join(result)
 
-def python_eval_fn(stmt):
-    return vim.eval(f'py3eval("{stmt}")')
+def script_eval_fn(stmt):
+    if stmt.startswith("p:"):
+        stmt = ":".join(stmt.split(':')[1:])
+        return vim.eval(f'py3eval("{stmt}")')
+    elif stmt.startswith("v:"):
+        stmt = ":".join(stmt.split(':')[1:])
+        return vim.eval(f"{stmt}")
+    elif stmt.startswith("b:"):
+        stmt = ":".join(stmt.split(':')[1:])
+        from .remote_fs import FileSystem
+        result = FileSystem().eval(stmt)
+        assert len(result) == 1, "must have length 1."
+        return result[0]
+    elif stmt.startswith("sb:"): # silent bash do...
+        stmt = ":".join(stmt.split(':')[1:])
+        print ("start execute: ", stmt)
+        from .remote_fs import FileSystem
+        FileSystem().eval(stmt, block=False)
+        return ""
+    return stmt
 
 def special_path_eval(stmt):
     paths = GetConfigByKey("special_paths", f"{HOME_PREFIX}/xkvim/")
