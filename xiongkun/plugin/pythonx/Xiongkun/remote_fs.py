@@ -243,6 +243,8 @@ class FileSystem:
             self.prefix = ""
             self.cwd = vim.eval("getcwd()")
             self._is_remote = False
+        if hasattr(self, "cached_tree"): 
+            delattr(self, "cached_tree")
 
     def is_remote(self):
         return self._is_remote

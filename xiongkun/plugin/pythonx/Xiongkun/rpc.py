@@ -285,8 +285,9 @@ class RemoteProject:
         self.rpc = RPCServer(remote_server=self.host)
         print (self.root_directory, self.host)
 
-    def effected_command(self):
-        return "FF"
+    def change_directory(self, work_directory):
+        self.root_directory = work_directory
+        print (f"Change Remote Project to: {self.host}/{self.root_directory}")
 
 def get_address(): 
     host, port = remote_project.host.split(":")

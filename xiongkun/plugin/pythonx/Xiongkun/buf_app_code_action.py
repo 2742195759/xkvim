@@ -105,6 +105,9 @@ def ChangeDirectoryCommand(args):
     print (f"Changing directory: {directory_path}")
     vim.command(f"FR {directory_path}")
     vim.command(f"ChangeSearchDirectory {directory_path}")
+    from .rpc import remote_project
+    remote_project.change_directory(directory_path)
+    FileSystem().remount()
 
 last_searched_directory = ""
 @vim_register(command="UniverseSearchWithPath")

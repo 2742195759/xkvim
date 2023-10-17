@@ -7,7 +7,7 @@ configuration = {
             "languageId": "cpp",
             "executable": "clangd",
             "command": "clangd --background-index=0 --compile-commands-dir={rootUri} -j=10 2>clangd.log",
-            "install": None
+            "install": "bash /root/xkvim/install_sh/install_clangd.sh"
         }, 
         #"jedi": {
             #"filetype": ["py"],

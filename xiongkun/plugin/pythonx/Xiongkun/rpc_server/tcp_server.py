@@ -128,6 +128,7 @@ def connection_handle(socket):
         return
     print ("[TCPServer] receive: ", mode)
     mode = mode.strip()
+    proc = None
     if mode == b"bash": 
         proc = mp.Process(target=bash_server, args=(socket, ))
     elif mode == b"vimrpc":
@@ -138,9 +139,10 @@ def connection_handle(socket):
         proc = mp.Process(target=lsp_server, args=(socket, ))
     else: 
         print (f"Unknow command. {mode}")
-    proc.daemon=False
-    proc.start()
-    child_pid.append(proc)
+    if proc: 
+        proc.daemon=False
+        proc.start()
+        child_pid.append(proc)
     sys.stdout.flush()
 
 def server_tcp_main(HOST, PORT):
