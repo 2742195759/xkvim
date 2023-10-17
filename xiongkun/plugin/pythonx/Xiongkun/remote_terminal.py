@@ -124,13 +124,13 @@ def get_abbreviate_list(bufnr):
     from .rpc import rpc_wait
     project_abbreviate = rpc_wait("config.get_config_by_key", "terminal_abbreviate", FileSystem().getcwd())
     global_abbreviate = GetConfigByKey("terminal_abbreviate", directory=os.path.join(getHomeDirectory(), "xkvim"))
-    terminal_abbreviate = global_abbreviate + project_abbreviate
+    terminal_abbreviate = project_abbreviate + global_abbreviate
     results = []
     unique_set = set()
     for item in terminal_abbreviate :
         key, val = item
         if key in unique_set: continue
-        val = dequote(val, python_eval_fn)
+        #val = dequote(val, script_eval_fn)
         unique_set.add(key)
         if val.startswith(':'): 
             new_item = [key, f"{val[1:]}"]

@@ -1127,6 +1127,11 @@ class CommandList(FuzzyList):
         self.close()
         if cur_name is not None: 
             cmd = self.name2cmd[cur_name]
+            try: 
+                cmd = dequote(cmd, script_eval_fn)
+            except:
+                error ("Canceled by exception.")
+                return
             CommandList.run_command(cmd)
 
     @staticmethod
@@ -1154,7 +1159,6 @@ class CommandList(FuzzyList):
     def oninit(self):
         super().oninit()
         vim.command("set syntax=commandlist")
-
 
 class BufferFinderBuffer(FuzzyList):
     def __init__(self, name="BufferFinder", history=None, options={}):

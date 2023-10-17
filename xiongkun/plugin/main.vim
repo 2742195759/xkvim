@@ -282,6 +282,7 @@ nnoremap <silent> <m-w> <Cmd>WindowJump<cr>
 tnoremap <silent> <m-w> <Cmd>WindowJump<cr>
 vnoremap <silent> s <Cmd>BufferJump<cr>
 inoremap <silent> <m-s> <Cmd>QuickPeek<cr>
+"cnoremap <silent> ? <Cmd>DocPreviewUpdate<cr>
 
 """ conflict with surrounding: cs ds ys
 """ the conflict make the bugs is very hard to find. so i should install less

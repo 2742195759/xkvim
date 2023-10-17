@@ -120,10 +120,10 @@ def DocPreviewHide(args):
     if cmd_type == ':': CommandDocPreview().hide()
 
 # AutoCmd for DocPreview
-#commands("""
-#augroup DocPreviewGroup
-    #autocmd!
-    #autocmd CmdlineChanged * DocPreviewUpdate
-    #autocmd CmdlineLeave * DocPreviewHide
-#augroup END
-#""")
+commands("""
+augroup DocPreviewGroup
+    autocmd!
+    autocmd CmdlineChanged * DocPreviewUpdate
+    autocmd CmdlineLeave * DocPreviewHide
+augroup END
+""")
