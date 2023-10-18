@@ -37,8 +37,8 @@ async def wait_output(page):
         time.sleep(loop_time)
         #await page.screenshot({'path': 'wait.png'})
         element = await page.querySelector("button[data-testid='send-button']")
-        if element is None: 
-            continue # sending...
+        if element is None:
+            continue
         element = await element.querySelector("span[data-state='closed']")
         if element != "none" and element is not None: 
             return True
