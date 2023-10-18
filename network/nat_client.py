@@ -43,7 +43,9 @@ def start_new_nat_connect():
 
 def main():
     nat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    nat_server.connect(string2address(args.input))
+    host, port = string2address(args.input)
+    port += 1
+    nat_server.connect((host, port))
     pairs = []
     need_exit = False
     while not need_exit:
@@ -53,6 +55,7 @@ def main():
             if r == nat_server:
                 print ("    接受到新请求：开始发起链接...")
                 bytes = os.read(r.fileno(), 28)
+                print ("receive: ", bytes)
                 assert bytes.decode("utf-8").split(" ")[0].strip() == "connect"
                 new_conn = start_new_client_connect()
                 new_nat = start_new_nat_connect()
