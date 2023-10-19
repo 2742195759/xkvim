@@ -687,7 +687,7 @@ def lsp_server(socket):
     socket.close()
 
     # exit bash or killed.
-    print ("[LSP] exit bash server.")
+    print ("[LSP] exit lsp server.")
     print("=== socket closed ===")
 
 if __name__ == "__main__":

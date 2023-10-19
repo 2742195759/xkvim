@@ -79,14 +79,16 @@ def BashStart(args=[]):
     if not FileSystem().is_remote(): 
         print ("Bash only support remote mode! :terminal is suit for local mode.")
         return
+    bash_name_config = ""
     if len(args) == 1: 
+        bash_name_config = "--name " + args[0]
         name = "bash://" + args[0]
     else: 
         name = "bash://remote"
     host, port = get_address()
     print (get_address())
     configs = '{"term_name": "%s"}' % name
-    vimeval(f'term_start("python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port}", {configs})')
+    vimeval(f'term_start("python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port} {bash_name_config}", {configs})')
     vimcommand("setlocal foldcolumn=0")
     vimcommand("setlocal signcolumn=no")
     bufnr = vim.eval("bufnr()")

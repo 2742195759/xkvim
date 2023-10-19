@@ -26,6 +26,7 @@ from threading import Thread
 from server_cluster import ServerCluster, YiyanServerCluster
 from vimrpc.decorator import InQueue
 from servers.bash_server import bash_server
+from servers.bash_server_pool import reconnect_bash, NamedBashPool
 from servers.lsp_server import lsp_server
 import select
 from socket_stream import SockStream
@@ -113,24 +114,37 @@ def read_single_char(socket, timeout=5):
         raise TimeoutError("timeout when socket.recv(1)")
     return data
 
+def read_line(socket, timeout=5):
+    received = b""
+    c = read_single_char(socket)
+    while c != b'\n': # read just one line and don't buffer.
+        received += c
+        c = read_single_char(socket)
+    return received
+
 def connection_handle(socket):
     # override the main process signal handler.
     global child_pid
     print("=== socket opened ===")
-    mode = b""
     try:
-        c = read_single_char(socket)
-        while c != b'\n': # read just one line and don't buffer.
-            mode += c
-            c = read_single_char(socket)
+        mode = read_line(socket)
     except TimeoutError:
-        print ("[TCPServer] Timeout when receiving: ", mode)
+        print ("[TCPServer] Timeout when receiving... exiting.")
         return
+
     print ("[TCPServer] receive: ", mode)
     mode = mode.strip()
     proc = None
     if mode == b"bash": 
-        proc = mp.Process(target=bash_server, args=(socket, ))
+        bash_name = read_line(socket).strip()
+        if bash_name == b"": 
+            print ("create session local bash...")
+            proc = mp.Process(target=bash_server, args=(socket, ))
+        else: 
+            print ("[BashPool] reconnect bash... : ", bash_name)
+            bash_proc, master_fd = bash_pool.get_bash_worker(bash_name)
+            print (f"[BashPool] slave_process state is {bash_proc.poll()}")
+            proc = mp.Process(target=reconnect_bash, args=(socket, master_fd))
     elif mode == b"vimrpc":
         proc = mp.Process(target=vim_rpc_loop, args=(socket, ServerCluster))
     elif mode == b"yiyan":
@@ -191,5 +205,7 @@ def parameter_parser():
 if __name__ == "__main__":
     mp.set_start_method("fork")
     mp_manager = mp.Manager()
+    bash_pool = NamedBashPool()
     args = parameter_parser()
     server_tcp_main(args.host, int(args.port))
+

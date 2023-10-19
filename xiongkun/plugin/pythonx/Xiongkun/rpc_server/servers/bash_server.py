@@ -11,10 +11,12 @@ from collections import namedtuple
 
 command = 'bash'
 
-def start_config(handle):
-    config = json.loads(handle.rfile.readline().strip())
-    #config['pwd']
-    #return "PWD={} bash"
+# Created in Main Process: 
+#   session_id -> [ BashProc1, BashProc2, ... ] # GlobalProcess
+# 
+# Created in Bash Server: 
+#   bash_server ( ctl_socket, bash_process )
+#   we just create a pipeline between them.
 
 def bash_server(socket):
     Handle = namedtuple("Handle", ['wfile', 'rfile', 'request'])

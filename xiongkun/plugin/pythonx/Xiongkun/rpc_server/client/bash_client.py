@@ -14,6 +14,7 @@ def parameter_parser():
     parser = argparse.ArgumentParser(description="Support Args:")
     parser.add_argument("--host",                 type=str,   help="data path")
     parser.add_argument("--port",                 type=int,   help="data path")
+    parser.add_argument("--name",                 type=str,   default="", help="name of persistable bash.")
     return parser.parse_args()
 
 args = parameter_parser()
@@ -21,6 +22,7 @@ ip_port = (args.host, args.port)
 sock = socket.socket()
 sock.connect(ip_port)
 sock.send(b"bash\n") # send bash to start bash serve mode.
+sock.send(f"{args.name}\n".encode("utf-8"))
 
 def create_package(body):
     package = {}
