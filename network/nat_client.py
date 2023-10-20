@@ -35,13 +35,17 @@ def start_new_client_connect():
     return sock
 
 def start_new_nat_connect():
+    host, port = string2address(args.input)
+    port += 1
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(string2address(args.input))
+    sock.connect((host, port))
     return sock
 
 def main():
     nat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    nat_server.connect(string2address(args.input))
+    host, port = string2address(args.input)
+    port += 1
+    nat_server.connect((host, port))
     pairs = []
     need_exit = False
     while not need_exit:
@@ -50,10 +54,12 @@ def main():
         for r in rs:
             if r == nat_server:
                 print ("    接受到新请求：开始发起链接...")
-                bytes = os.read(r.fileno(), 7)
-                assert bytes == b"connect"
+                bytes = os.read(r.fileno(), 28)
+                print ("receive: ", bytes)
+                assert bytes.decode("utf-8").split(" ")[0].strip() == "connect"
                 new_conn = start_new_client_connect()
                 new_nat = start_new_nat_connect()
+                os.write(new_nat.fileno(), bytes)
                 pairs.append((new_conn, new_nat))
                 pairs.append((new_nat, new_conn))
             else:
