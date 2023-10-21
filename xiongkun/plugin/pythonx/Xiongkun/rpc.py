@@ -280,6 +280,7 @@ class RemoteProject:
             return
         with open(config_file, 'r') as f:  
             data = yaml.safe_load(f)  
+        self.config_file = config_file
         self.root_directory = data['root']
         self.host = data['host']
         self.rpc = RPCServer(remote_server=self.host)

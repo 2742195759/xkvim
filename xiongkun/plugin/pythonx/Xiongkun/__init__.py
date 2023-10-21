@@ -108,6 +108,7 @@ def YankLine(args):
     word = vim_utils.GetVisualWords()
     word = word.replace("\n", "")
     vim_utils.SetVimRegister('"', word)
+    return word
 
 @vim_register(command="SetRPCProject", with_args=True, command_completer="file")
 def SetRPCServer(args):
@@ -118,6 +119,14 @@ def SetRPCServer(args):
     vim.command("ChangeDirectory")
     set_remote_lsp(args[0])
     vim.command("wincmd o")
+
+@vim_register(keymap="Reconnect")
+def RPCServerReconnect(args):
+    XKVIM_reflesh_screen([])
+    from .rpc import remote_project
+    # reconnect the rpc server
+    SetRPCServer([remote_project.config_file])
+    # reconnect the named bash
 
 @vim_register(keymap="<c-l>")
 def XKVIM_reflesh_screen(args):

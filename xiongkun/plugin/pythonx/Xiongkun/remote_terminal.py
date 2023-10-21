@@ -153,3 +153,15 @@ def TerminalAbbre(args):
     abbres = get_abbreviate_list(bufnr)
     from .buf_app import CommandList
     CommandList("terminal_abbreviates", [n[0] for n in abbres], [n[1] for n in abbres], options={'local': 1}).start()
+
+@vim_register(command="AddTerminalAbbre")
+def AddTerminalAbbre(args):
+    """
+    add terminal abbreviate for *current project*.
+    after add, you can use <M-a> to trigger it.
+    """
+    key = input_no_throw("abbreviate key: ")
+    if not key : return
+    from Xiongkun import YankLine
+    yanked_line = YankLine()
+    rpc_wait("config.set_config_by_key", FileSystem().getcwd(), key, yanked_line)

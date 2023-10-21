@@ -16,6 +16,25 @@ def GetConfigByKey(key, directory='./'):
     if (not data) or (key not in data): return []
     return data[key]
 
+def AddAbbreviate(key, val, directory='./'):
+    import yaml  
+    # 打开 YAML 文件  
+    path = os.path.join(directory, ".vim_config.yaml")
+    if not os.path.exists(path): 
+        raise RuntimeError(f"not found {path}")
+
+    with open(path, 'r') as f:  
+        # 读取文件内容  
+        data = yaml.safe_load(f)  
+    # 输出解析结果  
+    abbreviates = data.get('terminal_abbreviate', [])
+    if 'terminal_abbreviate' not in data: 
+        data['terminal_abbreviate'] = abbreviates
+    exist_keys, exist_vals = zip(*abbreviates)
+    if key in exist_keys: 
+        raise RuntimeError(f"key `{key}` already exists.")
+    abbreviates.append([key, val])
+    yaml.dump(data, open(path, 'w'))
 
 def GetSearchConfig(directory):
     config_lines = GetConfigByKey("search_config", directory)
