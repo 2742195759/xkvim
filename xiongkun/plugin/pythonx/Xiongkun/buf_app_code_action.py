@@ -97,15 +97,18 @@ def ChangeDirectoryCommand(args):
     更换当前的目录，包含两者：search directory 和 filefinder directory
     但是不包含NERDTree 和 vim 的根目录.
     """
+    from .rpc import remote_project
     if len(args) == 0: 
-        directory_path = FileSystem().cwd
+        directory_path = remote_project.origin_directory
     else: 
-        directory_path = args[0]
-        directory_path = dequote(directory_path, special_path_eval)
+        if args[0] == '-': 
+            directory_path = remote_project.last_directory
+        else: 
+            directory_path = args[0]
+            directory_path = dequote(directory_path, special_path_eval)
     print (f"Changing directory: {directory_path}")
     vim.command(f"FR {directory_path}")
     vim.command(f"ChangeSearchDirectory {directory_path}")
-    from .rpc import remote_project
     remote_project.change_directory(directory_path)
     FileSystem().remount()
 

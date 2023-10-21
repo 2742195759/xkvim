@@ -27,23 +27,31 @@ def OpenPR(pr_str):#{{{
     RemoteConfig().get_machine().chrome(url) #}}}
 
 def _ParsePR(filepath, line_nr):#{{{
-    commit_id, info, content, comment = GetGitComment(filepath, line_nr)
+    blames = GetGitComment(filepath, line_nr)
+    commit_id, info, content, comment = blames[0]
     import re
-    return re.search("\(#(\d+)\)", comment).group(1)#}}}
+    searched = re.search("\(#(\d+)\)", "".join(comment))
+    if searched is not None: 
+        return searched.group(1)
+    raise Exception("Not found PR information")
+    #}}}
 
 def GetGitComment(filepath, line_nr):#{{{
     """GetGitComment from filepath and line number
     """
-    lines = FileSystem().eval('git blame -- ' + filepath)
-    line = lines[line_nr-1]
-    commit_id = line.split('(')[0].strip()
-    if commit_id[0] == '^': commit_id = commit_id[1:]
-    commit_id = commit_id.split(' ')[0].strip()
-    others = '('.join(line.split('(')[1:])
-    info = others.split(')')[0]
-    content = ')'.join(others.split(')')[1:])
-    comment = FileSystem().eval("git show -q %s " % commit_id)
-    return commit_id, info, content, comment#}}}
+    lines = FileSystem().eval(f'git blame -L{line_nr},{line_nr} -- {filepath}')
+    blames = []
+    for line in lines:
+        commit_id = line.split('(')[0].strip()
+        if commit_id[0] == '^': commit_id = commit_id[1:]
+        commit_id = commit_id.split(' ')[0].strip()
+        others = '('.join(line.split('(')[1:])
+        info = others.split(')')[0]
+        content = ')'.join(others.split(')')[1:])
+        comment = FileSystem().eval("git show -q %s " % commit_id)
+        blames.append([commit_id, info, content, comment])
+    return blames
+    #}}}
 
 @vim_register(command="GG", action_tag="git blame")
 def ShowGitComment(args):#{{{
@@ -54,12 +62,14 @@ def ShowGitComment(args):#{{{
     try:
         filepath = CurrentEditFile()
         line_nr = GetCursorXY()[0]
-        commit_id, info, content, comment = GetGitComment(filepath, line_nr)
-        for line in comment:
-            line = escape(line, "\"")
-            vim.command('echom "' + line + '"')
-    except:
-        vim.command('echoerr ' + '"Not Commit Yet"')#}}}
+        blames =  GetGitComment(filepath, line_nr)
+        for commit_id, info, content, comment in blames:
+            for line in comment:
+                line = escape(line, "\"")
+                vim.command('echom "' + line + '"')
+    except Exception as e:
+        print (f"Error : {e}")
+        #vim.command('echoerr ' + '"Not Commit Yet"')#}}}
 
 @vim_register(command="GO")
 def GitOpenInBrowser(args):#{{{
@@ -68,8 +78,8 @@ def GitOpenInBrowser(args):#{{{
         line_nr = GetCursorXY()[0]
         pr_str = _ParsePR(filepath, line_nr)
         OpenPR(pr_str)
-    except:
-        vim.command('echoerr ' + '"Not Commit Yet"')#}}}
+    except Exception as e:
+        print (f"Error : {e}")
 
 def GitDiffFiles(commit_id=None, filename=None):
     """ if args is None: diff current file with HEAD

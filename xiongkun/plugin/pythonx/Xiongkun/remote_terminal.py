@@ -163,5 +163,6 @@ def AddTerminalAbbre(args):
     key = input_no_throw("abbreviate key: ")
     if not key : return
     from Xiongkun import YankLine
-    yanked_line = YankLine()
+    yanked_line = YankLine([])
+    from .rpc import rpc_wait
     rpc_wait("config.set_config_by_key", FileSystem().getcwd(), key, yanked_line)

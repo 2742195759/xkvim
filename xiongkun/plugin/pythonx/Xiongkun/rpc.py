@@ -282,11 +282,14 @@ class RemoteProject:
             data = yaml.safe_load(f)  
         self.config_file = config_file
         self.root_directory = data['root']
+        self.origin_directory = self.root_directory
+        self.last_directory = self.origin_directory
         self.host = data['host']
         self.rpc = RPCServer(remote_server=self.host)
         print (self.root_directory, self.host)
 
     def change_directory(self, work_directory):
+        self.last_directory = self.root_directory
         self.root_directory = work_directory
         print (f"Change Remote Project to: {self.host}/{self.root_directory}")
 
