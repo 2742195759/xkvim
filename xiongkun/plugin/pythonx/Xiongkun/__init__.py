@@ -120,7 +120,7 @@ def SetRPCServer(args):
     set_remote_lsp(args[0])
     vim.command("wincmd o")
 
-@vim_register(keymap="Reconnect")
+@vim_register(command="Reconnect")
 def RPCServerReconnect(args):
     XKVIM_reflesh_screen([])
     from .rpc import remote_project

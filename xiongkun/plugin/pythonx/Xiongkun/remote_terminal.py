@@ -83,8 +83,10 @@ def BashStart(args=[]):
     if len(args) == 1: 
         bash_name_config = "--name " + args[0]
         name = "bash://" + args[0]
+        origin_name = args[0]
     else: 
         name = "bash://remote"
+        origin_name = ""
     existed_names = remote_bash_list()
     host, port = get_address()
     print (get_address())
@@ -93,7 +95,7 @@ def BashStart(args=[]):
     vimcommand("setlocal foldcolumn=0")
     vimcommand("setlocal signcolumn=no")
     bufnr = vim.eval("bufnr()")
-    if name not in existed_names: 
+    if origin_name not in existed_names: 
         # newly created bash, we add some command here.
         PythonFunctionTimer().do_later(0.1, send_keys, [bufnr, f"cd {FileSystem().cwd}\n"])
         PythonFunctionTimer().do_later(0.2, send_keys, [bufnr, f"resize\n"])
@@ -105,6 +107,8 @@ def remote_bash_list():
     child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
     child.stdin.close()
     outputs = child.stdout.readlines()
+    outputs = [ s.strip() for s in outputs]
+    outputs = [ s.decode("utf-8") if isinstance(s, bytes) else s for s in outputs]
     return outputs
 
 @vim_register(command="Blist", with_args=True)

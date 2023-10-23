@@ -84,6 +84,7 @@ class State:
     def restore_mapping(self):
         for left, mode, item in self.mapping: 
             # must exist
+            #print ("unmap: ", left)
             vim.command(f"{mode}unmap <buffer> {left}")
             if item != {}: 
                 with vim_utils.VimVariableGuard(item) as obj:
@@ -129,34 +130,31 @@ class TypingState(State):
     def enter(self):
         self.body.show(self.start_point)
         self.fire_item_select()
-        self.save_and_remove_mapping([
-            ['<c-n>', 'i'],
-            ['<c-p>', 'i'],
-            ['<enter>', 'i'],
-            ['<tab>', 'i'],
-            ['<bs>', 'i'],
-            ['<c-w>', 'i'],
-            ['<c-u>', 'i'],
-            ['<up>', 'i'],
-            ['<down>', 'i'],
-            ['<space>', 'i'],
-            ['.', 'i'],
-            ['<c-k>', 'i'],
-        ])
-        vim_utils.commands("""
+        keymap_register_commands = ("""
         inoremap <buffer> <C-n> <Cmd>py3 Xiongkun.InsertWindow().state.next()<cr>
         inoremap <buffer> <C-p> <Cmd>py3 Xiongkun.InsertWindow().state.previous()<cr>
         inoremap <buffer> <up> <Cmd>py3 Xiongkun.InsertWindow().state.previous()<cr>
-        inoremap <buffer> <down> <Cmd>py3 Xiongkun.InsertWindow().state.previous()<cr>
+        inoremap <buffer> <down> <Cmd>py3 Xiongkun.InsertWindow().state.next()<cr>
         inoremap <buffer> <enter> <Cmd>py3 Xiongkun.InsertWindow().state.type_enter()<cr>
-        inoremap <buffer> <tab> <Cmd>py3 Xiongkun.InsertWindow().state.type_tab()<cr>
         inoremap <buffer> <bs> <Cmd>py3 Xiongkun.InsertWindow().state.type_backspace()<cr>
         inoremap <buffer> <C-w> <Cmd>py3 Xiongkun.InsertWindow().state.delete_word()<cr>
         inoremap <buffer> <space> <Cmd>py3 Xiongkun.InsertWindow().state.type_space()<cr>
         inoremap <buffer> . <Cmd>py3 Xiongkun.InsertWindow().state.type_dot()<cr>
         inoremap <buffer> <C-u> <Cmd>py3 Xiongkun.InsertWindow().state.delete_all()<cr>
-        inoremap <buffer> <C-k> <Cmd>py3 Xiongkun.InsertWindow().state.stop()<cr>
+        inoremap <buffer> <C-l> <Cmd>py3 Xiongkun.InsertWindow().state.stop()<cr>
         """)
+        for exit_key in ['<tab>', '<c-j>', '<c-x>', '<c-v>', '<c-z>']:
+            exit_command = """inoremap <buffer> {exit_key} <Cmd>py3 Xiongkun.InsertWindow().state.stop("{exit_key}")<cr>\n"""
+            keymap_register_commands += (exit_command.format(exit_key=exit_key))
+        # get all registered keys
+        registered_keys = []
+        for line in keymap_register_commands.split("\n"): 
+            if line.strip():
+                registered_keys.append([line.strip().split(" ")[2], 'i'])
+        # restore old mapping
+        self.save_and_remove_mapping(registered_keys)
+        # register new mapping
+        vim_utils.commands(keymap_register_commands)
         vim_utils.commands("""
         augroup InsertComplete
             autocmd InsertLeave * py3 Xiongkun.InsertWindow().goto_state(Xiongkun.CloseState(Xiongkun.InsertWindow()))
@@ -173,8 +171,11 @@ class TypingState(State):
         backspace_num = cur_col - self.start_point + 1
         return "\x08"*backspace_num + cur_item['word']
 
-    def stop(self):
+    def stop(self, append_key=None):
         self.body.close()
+        if append_key is not None: 
+            if append_key.startswith("<"): append_key = "\\" + append_key
+            vim.eval(f'feedkeys("{append_key}")')
 
     def type_enter(self):
         ret = self.select_string()
@@ -262,6 +263,9 @@ class InsertWindow:
         self.buf.create()
         self.state = None
         self.close()
+
+    def force_reset(self):
+        self.__init__()
 
     #@interface
     def complete(self, items, start_point, complete_change=None, complete_done=None):

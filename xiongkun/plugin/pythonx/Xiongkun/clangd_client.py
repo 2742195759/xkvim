@@ -101,6 +101,9 @@ class LSPDiagMessageWindow(DocPreviewBuffer):
 
 @vim_register(name="Py_diag_trigger")
 def diag_trigger(args):
+    # do nothing when in visual mode
+    if vim.eval("mode()").lower().startswith("v"): 
+        return
     filepath = FileSystem().abspath(vim_utils.CurrentEditFile(True))
     line = vim_utils.GetCursorXY()[0]
     message_str = LSPDiagManager().get_message(filepath, line)
@@ -193,6 +196,7 @@ class LSPDiagManager:
         config = { 'bufnr': file, 'type': 'lsp_message', 'all': 1 }
         vim.eval(f"prop_remove({json.dumps(config)})")
         self.messages[file] = {}
+        LSPDiagMessageWindow().hide()
 
 class FileSyncManager:
     """
@@ -301,7 +305,6 @@ def show_diagnostics_in_quickfix(package):
     for diag in diags:
         line = diag['range']['start']['line'] + 1
         qflist.append({
-            #'bufnr': bufnr,
             'filename': file,
             'lnum': line,
             'text': diag['message'],
@@ -476,6 +479,7 @@ def lsp_complete_items(rsp):
 
 vim.command("""
 inoremap <m-n> <cmd>call Py_complete (["force"])<cr>
+inoremap <c-x><c-s> <cmd>call Py_complete_snippet([])<cr>
 inoremap <m-d> <cmd>call Py_signature_help([])<cr>
 """
 )
@@ -511,6 +515,15 @@ def complete(args):
     position = position[0]-1, position[1]-1
     did_change([False])
     lsp_server().call("complete", handle, cur_file, position)
+
+@vim_register(name="Py_complete_snippet")
+def complete_snippet_only(args):
+    if not InsertWindow().is_ready():  # already complete.
+        return 
+    ultisnip_items = ultisnip_complete_items()
+    start_pos = vim_utils.GetCursorXY()[1]
+    # set complete list by snippet.
+    InsertWindow().complete(ultisnip_items, start_pos, complete_change=complete_select, complete_done=complete_done)
 
 @vim_register(name="GoToDefinition", command="Def")
 def py_goto_definition(args):
