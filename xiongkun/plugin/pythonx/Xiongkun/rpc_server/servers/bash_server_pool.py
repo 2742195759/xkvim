@@ -25,6 +25,17 @@ class NamedBashPool:
     def clear(self):
         pass
 
+    def delete(self, name):
+        if name not in self.pool:
+            return
+        (slave_process, master_fd) = self.pool[name] 
+        slave_process.kill()
+        slave_process.wait()
+        del self.pool[name]
+
+    def names(self):
+        return list(self.pool.keys())
+
     def get_bash_worker(self, name):
         if name not in self.pool:
             master_fd, slave_fd = pty.openpty()

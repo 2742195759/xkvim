@@ -45,6 +45,42 @@ except ImportError:
     # Python 2
     import SocketServer as socketserver
 
+def bash_manager(socket):
+    # 3 command to execute: 
+    # connect name
+    # delete name
+    # list
+    try:
+        command = read_line(socket).strip()
+    except TimeoutError:
+        print ("[TCPServer] Timeout when receiving... exiting.")
+        return
+    print ("Bash Command: ", command)
+    if command.startswith(b"list"):
+        names = bash_pool.names()
+        socket.sendall(b"\n".join(names))
+        print (b"\n".join(names))
+        return
+    elif command.startswith(b"connect"):
+        if len(command.split(b" ")) == 1:
+            # connect a new bash.
+            print ("create session local bash...")
+            proc = mp.Process(target=bash_server, args=(socket, ))
+            return proc
+        else: 
+            name = command.split(b" ")[1]
+            print ("[BashPool] reconnect bash... : ", name)
+            bash_proc, master_fd = bash_pool.get_bash_worker(name)
+            print (f"[BashPool] slave_process state is {bash_proc.poll()}")
+            proc = mp.Process(target=reconnect_bash, args=(socket, master_fd))
+            return proc
+    elif command.startswith(b"delete"):
+        if len(command.split(b" ")) == 1: 
+            print ("Not found name to delete.")
+            return
+        name = command.split(b" ")[1]
+        bash_pool.delete(name)
+
 def vim_rpc_loop(sock, services_cluster_cls):
     rfile = sock.makefile('rb', 10240)
     wfile = sock.makefile('wb', 10240)
@@ -136,15 +172,7 @@ def connection_handle(socket):
     mode = mode.strip()
     proc = None
     if mode == b"bash": 
-        bash_name = read_line(socket).strip()
-        if bash_name == b"": 
-            print ("create session local bash...")
-            proc = mp.Process(target=bash_server, args=(socket, ))
-        else: 
-            print ("[BashPool] reconnect bash... : ", bash_name)
-            bash_proc, master_fd = bash_pool.get_bash_worker(bash_name)
-            print (f"[BashPool] slave_process state is {bash_proc.poll()}")
-            proc = mp.Process(target=reconnect_bash, args=(socket, master_fd))
+        proc = bash_manager(socket)
     elif mode == b"vimrpc":
         proc = mp.Process(target=vim_rpc_loop, args=(socket, ServerCluster))
     elif mode == b"yiyan":

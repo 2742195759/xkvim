@@ -85,6 +85,7 @@ def BashStart(args=[]):
         name = "bash://" + args[0]
     else: 
         name = "bash://remote"
+    existed_names = remote_bash_list()
     host, port = get_address()
     print (get_address())
     configs = '{"term_name": "%s"}' % name
@@ -92,8 +93,55 @@ def BashStart(args=[]):
     vimcommand("setlocal foldcolumn=0")
     vimcommand("setlocal signcolumn=no")
     bufnr = vim.eval("bufnr()")
-    PythonFunctionTimer().do_later(0.1, send_keys, [bufnr, f"cd {FileSystem().cwd}\n"])
-    PythonFunctionTimer().do_later(0.2, send_keys, [bufnr, f"resize\n"])
+    if name not in existed_names: 
+        # newly created bash, we add some command here.
+        PythonFunctionTimer().do_later(0.1, send_keys, [bufnr, f"cd {FileSystem().cwd}\n"])
+        PythonFunctionTimer().do_later(0.2, send_keys, [bufnr, f"resize\n"])
+
+def remote_bash_list():
+    host, port = get_address()
+    import subprocess
+    cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port} --action list"
+    child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+    child.stdin.close()
+    outputs = child.stdout.readlines()
+    return outputs
+
+@vim_register(command="Blist", with_args=True)
+def BashList(args=[]):
+    if not FileSystem().is_remote(): 
+        print ("Bash only support remote mode! :terminal is suit for local mode.")
+        return
+    print ("Activate Bash Names: ")
+    for line in remote_bash_list():
+        print (line)
+
+@vim_register(command="Bdelete", with_args=True)
+def BashDelete(args):
+    if not FileSystem().is_remote(): 
+        print ("Bash only support remote mode! :terminal is suit for local mode.")
+        return
+    assert len(args) == 1, "Bdelete need a name to delete."
+    name = args[0]
+    host, port = get_address()
+    import subprocess
+    cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/client/bash_client.py --host {host} --port {port} --action delete --name {name}"
+    child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+    child.stdin.close()
+    outputs = child.stdout.readlines()
+    print (outputs)
+
+@vim_register(command="Bexit", with_args=True)
+def BashExit(args):
+    if not FileSystem().is_remote(): 
+        print ("Bash only support remote mode! :terminal is suit for local mode.")
+        return
+    # exit current bash terminal.
+    bufnr = vim.eval("bufnr()")
+    name = vim.eval("bufname()")[7:].strip()
+    if name: 
+        BashDelete([name])
+    vim.command("bwipeout!")
 
 @vim_register(command="BashHelp", with_args=True)
 def TerminalHelper(args):
@@ -164,5 +212,4 @@ def AddTerminalAbbre(args):
     if not key : return
     from Xiongkun import YankLine
     yanked_line = YankLine([])
-    from .rpc import rpc_wait
     rpc_wait("config.set_config_by_key", FileSystem().getcwd(), key, yanked_line)

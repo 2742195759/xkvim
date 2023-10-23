@@ -15,6 +15,7 @@ def parameter_parser():
     parser.add_argument("--host",                 type=str,   help="data path")
     parser.add_argument("--port",                 type=int,   help="data path")
     parser.add_argument("--name",                 type=str,   default="", help="name of persistable bash.")
+    parser.add_argument("--action",               type=str,   default="connect", help="[ connect | list | delete ]")
     return parser.parse_args()
 
 args = parameter_parser()
@@ -22,7 +23,19 @@ ip_port = (args.host, args.port)
 sock = socket.socket()
 sock.connect(ip_port)
 sock.send(b"bash\n") # send bash to start bash serve mode.
-sock.send(f"{args.name}\n".encode("utf-8"))
+assert args.action in ['list', 'connect', 'delete']
+if args.action == "list":
+    sock.send(f"list\n".encode("utf-8"))
+    names = sock.recv(10240)
+    print (names.decode("utf-8"))
+    sock.close()
+    sys.exit(0)
+elif args.action == "delete": 
+    sock.send(f"delete {args.name}\n".encode("utf-8"))
+    sock.close()
+    sys.exit(0)
+else:
+    sock.send(f"connect {args.name}\n".encode("utf-8"))
 
 def create_package(body):
     package = {}
