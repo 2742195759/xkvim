@@ -2,6 +2,7 @@ from ..vim_utils import *
 from ..func_register import vim_register
 from ..remote_machine import remote_machine_guard, RemoteConfig
 from ..log import debug
+import os
 
 @vim_register(command="XelatexMode", action_tag="xelatex mode")
 def XelatexEditMode(args):
@@ -33,5 +34,14 @@ augroup END
 
 @vim_register(command="SwitchInputMethod", with_args=True)
 def SwitchInputMethod(args):
-    remote_machine_guard("mac")
     RemoteConfig().get_machine().execute(f"/opt/homebrew/Cellar/im-select/1.0.1/bin/im-select {args[0]}")
+    #FileSystem().eval(f"/opt/homebrew/Cellar/im-select/1.0.1/bin/im-select {args[0]}")
+
+@vim_register(command="XelatexPreview", with_args=True)
+def XelatexPreview(args):
+    from ..remote_fs import FileSystem
+    name = CurrentEditFile() 
+    base_name = os.path.basename(name)
+    FileSystem().eval(f"cd /home/data/Desktop/latex/ && xelatex {name}")
+    #FileSystem().eval(f"open /home/data/Desktop/latex/{base_name}")
+    RemoteConfig().get_machine().execute(f"open /Users/xiongkun03/Desktop/latex/{base_name}.pdf")

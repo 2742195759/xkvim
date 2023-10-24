@@ -1,3 +1,7 @@
 fuzzyfinder
 pyppeteer
 pyppeteer_stealth
+PyYaml
+requests
+tree-sitter
+bs4
