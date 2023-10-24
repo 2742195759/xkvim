@@ -34,6 +34,7 @@ auto_files = [
     '*.hs',
     '*.haskell',
     '*.md',
+    '*.tex',
 ]
 
 def _StartAutoCompile():# {{{

@@ -86,7 +86,7 @@ def BashStart(args=[]):
         origin_name = args[0]
     else: 
         name = "bash://remote"
-        origin_name = ""
+        origin_name = "remote"
     existed_names = remote_bash_list()
     host, port = get_address()
     print (get_address())
@@ -212,6 +212,7 @@ def AddTerminalAbbre(args):
     add terminal abbreviate for *current project*.
     after add, you can use <M-a> to trigger it.
     """
+    from .rpc import rpc_wait
     key = input_no_throw("abbreviate key: ")
     if not key : return
     from Xiongkun import YankLine

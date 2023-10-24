@@ -12,9 +12,12 @@ def unpack_bytes(bytes):
     pass
 
 def forward_socket(input_socket, output_socket):
-    bytes = os.read(input_socket.fileno(), 10240)
-    print (id(input_socket.fileno()), "=>", id(output_socket.fileno()))
-    print ("[recv and send bytes]", bytes)
+    try:
+        bytes = os.read(input_socket.fileno(), 10240)
+        print (id(input_socket.fileno()), "=>", id(output_socket.fileno()))
+        print ("[recv and send bytes]", bytes)
+    except ConnectionResetError as e:
+        return False
     if not bytes: # close
         return False
     os.write(output_socket.fileno(), bytes)
