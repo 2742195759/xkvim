@@ -321,6 +321,7 @@ class LSPProxy:
         self.queue.do_request()
 
     def get_server(self, filepath):
+        self.check_disable(filepath)
         suff = filepath.split('.')[-1]
         for s in self.iter_servers():
             if s.match_suffix(suff): 
