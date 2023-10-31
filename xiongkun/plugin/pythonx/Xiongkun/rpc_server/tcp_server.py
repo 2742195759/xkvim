@@ -15,7 +15,7 @@
 #
 # See ":help channel-demo" in Vim.
 #
-# This requires Python 2.6 or later.
+# This requires Python 3.8 or later.
 
 from __future__ import print_function
 import json
@@ -36,8 +36,6 @@ import multiprocessing as mp
 import signal
 import os
 
-mp_manager = None
-
 try:
     # Python 3
     import socketserver
@@ -45,7 +43,7 @@ except ImportError:
     # Python 2
     import SocketServer as socketserver
 
-def bash_manager(socket):
+def bash_manager(socket, bash_pool):
     # 3 command to execute: 
     # connect name
     # delete name
@@ -81,16 +79,16 @@ def bash_manager(socket):
         name = command.split(b" ")[1]
         bash_pool.delete(name)
 
-def vim_rpc_loop(sock, services_cluster_cls):
+def vim_rpc_loop(sock, services_cluster_cls, queue):
+    print ("===== start a vim rpc server ======")
     rfile = sock.makefile('rb', 10240)
     wfile = sock.makefile('wb', 10240)
-    print ("===== start a vim rpc server ======")
     def send(obj):
         encoded = json.dumps(obj) + "\n"
         wfile.write(encoded.encode('utf-8'))
         wfile.flush()
 
-    servers = services_cluster_cls(mp_manager)
+    servers = services_cluster_cls(queue)
     servers.start_queue(send)
     stream = SockStream()
 
@@ -137,30 +135,34 @@ def vim_rpc_loop(sock, services_cluster_cls):
     sock.close()
     print ("===== stop a vim rpc server ======")
 
-child_pid = []
-
 class ThreadedTCPServer(socketserver.TCPServer):
     pass
 
-def read_single_char(socket, timeout=5):
-    ready = select.select([socket], [], [], timeout)
+def read_single_char(socket, timeout=1):
+    ready = select.select([socket], [], [], 0.5)
     if ready[0]:
         data = socket.recv(1)
     else: 
         raise TimeoutError("timeout when socket.recv(1)")
     return data
 
-def read_line(socket, timeout=5):
+def read_line(socket, timeout=1):
     received = b""
-    c = read_single_char(socket)
-    while c != b'\n': # read just one line and don't buffer.
-        received += c
+    try:
         c = read_single_char(socket)
+        while c != b'\n': # read just one line and don't buffer.
+            received += c
+            c = read_single_char(socket)
+    except:
+        print ("Exiting with received: ", received)
     return received
 
-def connection_handle(socket):
+def server_wrapper(listen_s, func, *args, **kwargs):
+    listen_s.close()
+    func(*args, **kwargs)
+
+def connection_handle(listen_s, socket, mp_manager, bash_pool):
     # override the main process signal handler.
-    global child_pid
     print("=== socket opened ===")
     try:
         mode = read_line(socket)
@@ -172,26 +174,28 @@ def connection_handle(socket):
     mode = mode.strip()
     proc = None
     if mode == b"bash": 
-        proc = bash_manager(socket)
+        proc = bash_manager(socket, bash_pool)
     elif mode == b"vimrpc":
-        proc = mp.Process(target=vim_rpc_loop, args=(socket, ServerCluster))
+        proc = mp.Process(target=server_wrapper, args=(listen_s, vim_rpc_loop, socket, ServerCluster, mp_manager.Queue()))
     elif mode == b"yiyan":
-        proc = mp.Process(target=vim_rpc_loop, args=(socket, YiyanServerCluster))
+        proc = mp.Process(target=server_wrapper, args=(listen_s, vim_rpc_loop, socket, YiyanServerCluster, mp_manager.Queue()))
     elif mode == b"lsp":
-        proc = mp.Process(target=lsp_server, args=(socket, ))
+        proc = mp.Process(target=server_wrapper, args=(listen_s, lsp_server, socket, ))
     else: 
         print (f"Unknow command. {mode}")
+    sys.stdout.flush()
     if proc: 
         proc.daemon=False
         proc.start()
-        child_pid.append(proc)
-    sys.stdout.flush()
+    return proc
 
 def server_tcp_main(HOST, PORT):
-    global child_pid
+    mp_manager = mp.Manager()
+    bash_pool = NamedBashPool()
+    child_pid = []
     listen_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listen_s.bind((HOST, PORT))
-    listen_s.listen(5)
+    listen_s.listen(20)
     print ("开始监听: ", (HOST, PORT))
     try:
         while True: 
@@ -199,20 +203,18 @@ def server_tcp_main(HOST, PORT):
             if listen_s in r:
                 try:
                     cnn, addr = listen_s.accept()
-                    if "linux" in platform.platform().lower():
-                        cnn.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True) # 设置保活机制
-                        cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
-                        cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 30)
-                        cnn.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
-                    connection_handle(cnn)
+                    worker = connection_handle(listen_s, cnn, mp_manager, bash_pool)
                     cnn.close() # close in this process.
+                    if worker is not None: 
+                        child_pid.append(worker)
                 except ConnectionResetError:
-                    cnn.close()
                     break
-            print (f"Joining Child Processes... [{len(child_pid)}]")
+                finally:
+                    cnn.close() # close in this process.
             for proc in child_pid:
-                proc.join(0.2)
+                proc.join(0.1)
             child_pid = [ proc for proc in child_pid if proc.exitcode is None ] # None means not exit.
+            print (f"End Joining Child Processes... [{len(child_pid)}]")
     except: 
         raise
     finally:
@@ -231,9 +233,6 @@ def parameter_parser():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    mp.set_start_method("fork")
-    mp_manager = mp.Manager()
-    bash_pool = NamedBashPool()
+    mp.set_start_method("spawn")
     args = parameter_parser()
     server_tcp_main(args.host, int(args.port))
-

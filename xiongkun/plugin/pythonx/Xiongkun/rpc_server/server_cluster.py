@@ -40,9 +40,9 @@ class ProcessManager:
         return p
 
 class ServerCluster: 
-    def __init__(self, mp_manager):
+    def __init__(self, queue):
         self.process_manager = ProcessManager()
-        self.queue = mp_manager.Queue()
+        self.queue = queue
         self._init_server()
         def keeplive(*a, **kw): 
             return [-1, True, 'ok']
