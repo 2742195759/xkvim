@@ -642,10 +642,10 @@ def handle_lsp_output(r, handle):
 def handle_idle(handle, lsp_proxy):
     lsp_proxy.dealing()
 
-def lsp_server(socket):
+def lsp_server(socket, mp_manager):
     Handle = namedtuple("Handle", ['wfile', 'rfile', 'request'])
     rfile = socket.makefile('rb', 10240)
-    wfile = socket.makefile('wb', 10240)
+    wfile = socket.makefile('wb', 0)
     handle = Handle(wfile, rfile, socket)
     queue = FileRequestQueue() # for speed up.
     lsp_proxy = LSPProxy(queue)

@@ -176,11 +176,11 @@ def connection_handle(listen_s, socket, mp_manager, bash_pool):
     if mode == b"bash": 
         proc = bash_manager(socket, bash_pool)
     elif mode == b"vimrpc":
-        proc = mp.Process(target=server_wrapper, args=(listen_s, vim_rpc_loop, socket, ServerCluster, mp_manager.Queue()))
+        proc = mp.Process(target=server_wrapper, args=(listen_s, vim_rpc_loop, socket, ServerCluster, mp_manager))
     elif mode == b"yiyan":
-        proc = mp.Process(target=server_wrapper, args=(listen_s, vim_rpc_loop, socket, YiyanServerCluster, mp_manager.Queue()))
+        proc = mp.Process(target=server_wrapper, args=(listen_s, vim_rpc_loop, socket, YiyanServerCluster, mp_manager))
     elif mode == b"lsp":
-        proc = mp.Process(target=server_wrapper, args=(listen_s, lsp_server, socket, ))
+        proc = mp.Process(target=server_wrapper, args=(listen_s, lsp_server, socket, mp_manager))
     else: 
         print (f"Unknow command. {mode}")
     sys.stdout.flush()
@@ -233,6 +233,6 @@ def parameter_parser():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    mp.set_start_method("spawn")
+    mp.set_start_method("fork")
     args = parameter_parser()
     server_tcp_main(args.host, int(args.port))
