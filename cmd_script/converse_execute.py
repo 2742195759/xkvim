@@ -1,4 +1,5 @@
 import os.path as osp
+import os
 
 def parameter_parser():
     import argparse
@@ -13,6 +14,10 @@ import requests
 headers = {"Content-Type":"application/json"}
 headers['Type'] = 'snd'
 headers['Name'] = args.name
-ret = requests.post("http://10.255.125.22:8084", data=json.dumps({'cmd':args.cmd, 'password':'807377414'}), headers=headers)
+if 'converse_password' not in os.environ: 
+    print ("找不到环境变量：$converse_password")
+    exit(0)
+password = os.environ['converse_password']
+ret = requests.post("http://10.255.125.22:8084", data=json.dumps({'cmd':args.cmd, 'password':password}), headers=headers)
 print (ret.status_code, ret.reason)
 print (ret.text)

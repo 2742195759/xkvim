@@ -1,5 +1,6 @@
 import hashlib
 import requests
+import os
 
 def parameter_parser():
     import argparse
@@ -8,7 +9,10 @@ def parameter_parser():
     return parser.parse_args()
 
 args = parameter_parser()
-pwd = "QwxZORdqlhpJvyAehyj9"
+if 'fanyi_password' not in os.environ: 
+    print ("找不到环境变量：$fanyi_password")
+    exit(0)
+pwd = os.environ['fanyi_password']
 app_id = "20220715001273779"
 salt = "123123123"
 query = args.query
