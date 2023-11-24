@@ -26,7 +26,11 @@ def ExecuteCommand(name, cmd, silent=True, block=True):
     headers['Type'] = 'snd'
     headers['Name'] = name
     try:
-        ret = requests.post("http://10.255.125.22:8084", data=json.dumps({"cmd": cmd, 'password':'807377414'}), headers=headers, timeout=3)
+        if 'converse_password' not in os.environ: 
+            print ("找不到环境变量：$converse_password")
+            return 
+        password = os.environ['converse_password']
+        ret = requests.post("http://10.255.125.22:8084", data=json.dumps({"cmd": cmd, 'password': password}), headers=headers, timeout=3)
     except Exception as e:
         print(f"Failed to connect to server. {e}")
         return 
