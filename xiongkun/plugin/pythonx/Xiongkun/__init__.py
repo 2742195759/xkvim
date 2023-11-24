@@ -16,7 +16,7 @@ from .quick_note import *
 from .remote_terminal import *
 from .log_analysis_plugin import *
 from .traceback import *
-from .quick_jump import BufferJump, WindowJump, GlobalJump, QuickPeek, JumpLastEdit, JumpLastBuffer, GlobalInsertStack
+from .quick_jump import *
 from .quick_edit import *
 from .log import OpenLog
 from .paddle import *

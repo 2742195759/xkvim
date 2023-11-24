@@ -312,14 +312,17 @@ class GlobalInsertStack:
         if self.cur <= 0: return 
         self.cur -= 1
         pos = self.stack[self.cur]
+        bufnr = pos[0]
         with vim_utils.VimVariableGuard(pos) as pos:
+            vim.command(f"b {bufnr}")
             vim.eval(f'setpos(".", {pos})')
 
     def push(self):
-        assert self.cur >= 0
+        assert self.cur >= 0, "Error happened."
         if len(self.stack) > self.max_size: 
             self.stack.pop(0)
         pos = vim.eval("getpos('.')")
+        pos[0] = vim.eval("bufnr()")
         self.stack.append(pos)
         self.cur = len(self.stack)
 
@@ -330,6 +333,46 @@ augroup QuickJumpInsert
 augroup END
 """
 )
+
+@Singleton
+class GlobalBookmark:
+    # Can save or load for a project.
+    def __init__(self):
+        self.bookmark = [] # (pos, descrip)
+        self.bookmark_counter = 0
+
+    def update_lastest(self, idx):
+        tmp = self.bookmark[idx]
+        del self.bookmark[idx]
+        self.bookmark = [tmp] + self.bookmark
+
+    def goto(self, idx):
+        pos, desc = self.bookmark[idx]
+        self.update_lastest(idx)
+        bufnr = pos[0]
+        with vim_utils.VimVariableGuard(pos) as pos:
+            vim.command(f"b {bufnr}")
+            vim.eval(f'setpos(".", {pos})')
+
+    def add(self):
+        pos = vim.eval("getpos('.')")
+        pos[0] = vim.eval("bufnr()")
+        from .vim_utils import input_no_throw
+        desc = input_no_throw("输入Bookmark描述: ")
+        if desc is None or desc == "":
+            desc = desc if desc else f"#bookmark#{self.bookmark_counter}"
+            self.bookmark_counter += 1
+        self.bookmark.insert(0, (pos, desc))
+
+    def get_pos(self, idx):
+        return self.bookmark[idx][0]
+
+    def get_descriptions(self):
+        return [desc for pos, desc in self.bookmark]
+
+@vim_register(keymap="mm")
+def SaveBookmark(args):
+    GlobalBookmark().add()
 
 @vim_register(keymap="ge")
 def JumpLastEdit(args):

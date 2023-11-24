@@ -127,6 +127,18 @@ class PreviewWindow(Window):# {{{
         def getLineNumber(self):
             return self.loc.getline()
 
+    class VimPositionItem(ShowableItem):
+        def __init__(self, pos):
+            # [bufnr, line, col, want]
+            self.pos = pos
+        def getBuffer(self):
+            if int(self.pos[0]) == 0: return vim.eval("bufnr()")
+            return int(self.pos[0])
+        def getTitle(self):
+            return vim.eval(f"bufname({self.getBuffer()})")
+        def getLineNumber(self):
+            return int(self.pos[1])
+
     class ContentItem(ShowableItem):
         def __init__(self, title, content, syntax, line, options={}):
             self.syntax = syntax
@@ -551,7 +563,12 @@ class LocationPreviewWindows:# {{{
         if self.candidate_idx < 0: return 
         if self.candidate_idx >= len(self.candidate_locs): return 
         return self.candidate_locs[self.candidate_idx]
-    
+
+    def move_to(self, move_to_config):
+        if self.pwin is None: return
+        with VimVariableGuard(move_to_config) as config:
+            vim.eval(f"popup_move({self.pwin}, {config})")
+
     def go(self):
         loc = self.cur_loc()
         if self.pwin is not None:

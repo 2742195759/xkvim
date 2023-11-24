@@ -11,8 +11,7 @@ from .remote_fs import GoToLocation, FileSystem
 from . import remote_fs
 from .log import debug
 from .vim_utils import win_execute
-
-start = None
+from .quick_jump import GlobalBookmark
 
 @vim_register(name="BufApp_KeyDispatcher", with_args=True)
 def Dispatcher(args):
@@ -880,6 +879,9 @@ class ListBoxWidget(Widget):
         if self.cur >= len(self.items): return None
         return self.items[self.cur]
 
+    def get_cur_idx(self):
+        return self.cur
+
     def cur_up(self): 
         if self.cur > 0 : self.cur -= 1
 
@@ -1028,6 +1030,7 @@ class FuzzyList(WidgetBufferWithInputs):
         root = WidgetList("", widgets, reverse=False)
         self.items = items
         self.type = type
+        self.previewing=False
         self.local = default_options.get("local", 0)
         super().__init__(root, name, history, default_options)
         self.set_items(self.type, self.items)
@@ -1092,6 +1095,27 @@ class FuzzyList(WidgetBufferWithInputs):
         from .quick_jump import JumpLines
         JumpLines([self.wid, on_select])
 
+    def on_preview(self):
+        pass
+
+    def close_preview(self):
+        pass
+
+    def on_exit(self):
+        if self.previewing is True:
+            self.close_preview()
+            self.previewing = False
+        super().on_exit()
+
+    def open_preview(self):
+        pass
+
+    def switch_preview(self):
+        if self.previewing: self.close_preview()
+        else: self.open_preview()
+        self.previewing = False if self.previewing else True
+        self.redraw()
+
     def get_keymap(self):
         """ some special key map for example.
         """
@@ -1105,10 +1129,16 @@ class FuzzyList(WidgetBufferWithInputs):
             '<c-s>': lambda x,y: self.on_enter("v"),
             '<c-t>': lambda x,y: self.on_enter("t"),
             '<c-p><c-p>': lambda x,y: x,
-            '<c-p>': lambda x,y: x,
+            '<c-p>': lambda x,y: self.switch_preview(),
             '<tab>': lambda x,y: self.show_label(),
         })
         return m
+
+    def onredraw(self):
+        super().onredraw()
+        # redraw preview window in the right
+        if self.previewing: 
+            self.on_preview()
 
     def oninit(self):
         super().oninit()
@@ -1181,6 +1211,42 @@ class BufferFinderBuffer(FuzzyList):
         else:
             print (f"Not found buffer for name: {buffer}")
 
+class BookmarkFinderBuffer(FuzzyList):
+    def __init__(self, name="BookmarkFinder", history=None, options={}):
+        options['local'] = 1
+        descriptions = GlobalBookmark().get_descriptions()
+        super().__init__("vim_bookmark", descriptions, name, history, options)
+
+    def on_enter(self, cmd):
+        idx = self.widgets['result'].get_cur_idx()
+        self.goto(idx)
+
+    def goto(self, idx):
+        self.close()
+        GlobalBookmark().goto(idx)
+
+    def on_preview(self):
+        idx = self.widgets['result'].get_cur_idx()
+        pos = GlobalBookmark().get_pos(idx)
+        from .windows import GPW, PreviewWindow
+        GPW.tmp_window()
+        GPW.set_showable([PreviewWindow.VimPositionItem(pos)])
+        options = {
+            'line': 1,
+            'col': 0,
+            'pos': 'topleft',
+            'minwidth': 80,
+            'maxwidth': 80,
+            'minheight': 10,
+            'maxheight': 10,
+        } # top most, horizeon centered : 80 * 10
+        GPW.move_to(options)
+        GPW.show()
+
+    def close_preview(self):
+        from .windows import GPW
+        GPW.hide()
+
 class FileFinderBuffer(FuzzyList):
     default_directory = FileSystem().cwd
 
@@ -1195,6 +1261,7 @@ class FileFinderBuffer(FuzzyList):
         self.on_enter_fn = on_enter
 
     def on_exit(self):
+        super().on_exit()
         SetCursorXY(*self.saved_cursor)
 
     def set_root(self, directory):
@@ -1236,6 +1303,7 @@ class FileFinderBuffer(FuzzyList):
             GoToLocation(loc, cmd)
 
     def on_exit(self):
+        super().on_exit()
         SetCursorXY(*self.saved_cursor)
 
     def on_change_database(self):
@@ -1287,9 +1355,13 @@ def BufferFinder(args):
     ff.create()
     ff.show()
 
-#vim.command("inoremap <M-b> <Cmd>B<CR>")
-#vim.command("tnoremap <M-b> <Cmd>B<CR>")
-        
+@vim_register(command="Bookmarks", with_args=False, keymap="'m")
+def ListBookmark(args):
+    from .buf_app import BookmarkFinderBuffer
+    ff = BookmarkFinderBuffer()
+    ff.create()
+    ff.show()
+
 @vim_register(command="SB", with_args=True, command_completer="buffer")
 def SplitBufferFinder(args):
     ff = FileFinderApp()
