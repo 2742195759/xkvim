@@ -106,6 +106,58 @@ class TimeNoteEditApp(Application):
         self.layout.set_buffer("win", self.mainbuf)
         vim.command(f'set nomodified')
 
+class SnippetEditBuffer(Buffer):
+    def __init__(self, name):
+        self.current_filetype = vim.eval("&ft")
+        super().__init__("SnippetEditBuffer", None, None)
+        self.texts = GetVisualWords().split("\n")
+        self.snip_name = name
+
+    def oninit(self):
+        vim.command(f'set buftype=acwrite')
+        vim.command(f'setlocal modifiable')
+        vim.command(f"set ft={self.current_filetype}")
+
+    def onredraw(self):
+        self._clear()
+        self._put_strings(self.texts)
+        vim.command(f"normal! gg")
+
+    def on_save_and_quit(self):
+        # you can quit in the buffer.
+        vim.command(f"set nomodified")
+        all_lines = "\n".join(GetAllLines())
+        vim.command("UltiSnipsEdit")
+        filename = vim.eval("bufname()")
+        with open(filename, "a") as fp:  
+            fp.write(f"\nsnippet {self.snip_name} ")
+            fp.write('"no description"\n')
+            fp.write(all_lines)
+            fp.write("\nendsnippet")
+        vim.command("bwipeout")
+        vim.command("call UltiSnips#RefreshSnippets()")
+
+    def auto_cmd(self, cmd):
+        if cmd == None: 
+            return [ "BufWriteCmd", ]
+        if cmd == "BufWriteCmd": 
+            bufnr = vim.eval("bufnr()")
+            self.on_save_and_quit()
+            vim.command(f"b #")
+            vim.command(f"bwipeout {bufnr}")
+
+class SnippetEditApp(Application):
+    def __init__(self, name):
+        super().__init__()
+        self.layout = CreateWindowLayout(cmds=["tabe"], active_win="win")
+        self.mainbuf = SnippetEditBuffer(name)
+
+    def start(self):
+        self.layout.create()
+        self.mainbuf.create()
+        self.layout.set_buffer("win", self.mainbuf)
+        vim.command(f'set nomodified')
+
 @vim_register(command="TN", with_args=True)
 def TestNoteEdit(args):
     print (args)
@@ -120,3 +172,10 @@ def TestNoteEdit(args):
     if args[0] == 'e':
         ff = TimeNoteEditApp()
         ff.start()
+
+@vim_register(command="AddSnippet", with_args=False)
+def AddSnippet(args):
+    name = input_no_throw("输入Snippet名称: ")
+    if name is None: return
+    ff = SnippetEditApp(name)
+    ff.start()

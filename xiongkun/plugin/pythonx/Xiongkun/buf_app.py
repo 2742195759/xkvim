@@ -259,11 +259,8 @@ class Buffer:
 
     def _set_autocmd(self):
         if not self.auto_cmd(None): return
-        vim.command(f"augroup {self.name}")
-        vim.command(f"au!")
         for event in self.auto_cmd(None):
-            vim.command(f"au {event} {self.name} py3 Xiongkun.BufApp_AutoCmdDispatcher('{self.name}', '{event}')")
-        vim.command(f"augroup END")
+            vim.command(f"au {event} <buffer={self.bufnr}> py3 Xiongkun.BufApp_AutoCmdDispatcher('{self.name}', '{event}')")
 
     def _set_keymap(self):
         for key in self.get_keymap().keys():

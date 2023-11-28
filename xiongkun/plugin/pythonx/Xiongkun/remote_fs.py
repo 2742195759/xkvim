@@ -66,14 +66,12 @@ def RemoteEdit(args):
         FileSystem().create_node(args[0])
     FileSystem().edit(args[0])
             
-vim_utils.commands(""" 
-augroup RemoteWrite
-    autocmd!
-    autocmd BufWriteCmd * RemoteSave
-    autocmd FileChangedRO * set noreadonly
-augroup END
+def start_register_remote_write(bufnr):
+    bufnr = int(bufnr)
+    vim_utils.commands(f""" 
+    autocmd BufWriteCmd <buffer={bufnr}> RemoteSave
+    autocmd FileChangedRO <buffer={bufnr}> set noreadonly
     """)
-
 
 def GoToBuffer(bufnr, method):
     """
@@ -301,6 +299,7 @@ class FileSystem:
                 timestamp = str(rpc_wait("remotefs.timestamp", filepath))
                 vim.eval("setbufvar(bufnr(), 'remote', 'remote')")
                 vim.eval(f"setbufvar(bufnr(), 'timestamp', '{timestamp}')")
+                start_register_remote_write(bufnr)
             return bufnr
         exist = self.bufexist(filepath)
         if not exist or force : 
