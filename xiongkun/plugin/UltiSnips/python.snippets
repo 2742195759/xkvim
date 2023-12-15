@@ -1495,3 +1495,47 @@ run_graph(inp, True, True)
 endsnippet
 #}}}
 
+
+snippet import_dygraph_to_static_utils "no description"
+from dygraph_to_static_utils import Dy2StTestBase, test_sot_only, test_pir_only, test_ast_only, test_legacy_and_pt_and_pir
+
+endsnippet
+snippet xxx_test "no description"
+    @test_ast_only
+    @test_pir_only
+
+endsnippet
+snippet xxx_program_print "no description"
+if to_static:
+    program = resnet.forward.get_concrete_program(img)[-1].program.program
+    print (program)
+
+endsnippet
+snippet get_concrete_program "no description"
+if to_static:
+    print (resnet.forward.get_concrete_program(img)[-1].program.program)
+break
+
+endsnippet
+snippet tensor_hash "no description"
+def tensor_hash(tensor):
+    # 将tensor转换为字节数组
+    byte_array = tensor.astype("float32").numpy().tobytes()
+    # 计算MD5哈希
+    hash_object = hashlib.md5(byte_array)
+    hex_dig = hash_object.hexdigest()
+    return hex_dig
+
+endsnippet
+snippet xxx_save "no description"
+# TODO(@xiongkun): open after save / load supported in pir.
+if to_static and not paddle.base.framework.use_pir_api():
+
+endsnippet
+snippet profile_range "no description"
+from paddle.profiler.utils import _nvprof_range
+start_point = 1000000 if os.environ.get("PROFILE", "False") == "False" else 50
+end_point = 1000000 if os.environ.get("PROFILE", "False") == "False" else 60
+with _nvprof_range(idx, start_point, end_point, True):
+    model(inputs)
+endsnippet

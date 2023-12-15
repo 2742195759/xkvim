@@ -364,6 +364,11 @@ class GlobalBookmark:
             self.bookmark_counter += 1
         self.bookmark.insert(0, (pos, desc))
 
+    def get_pos_idx(self, name):
+        for idx, (pos, desc) in enumerate(self.bookmark):
+            if desc == name: return idx
+        return None
+
     def get_pos(self, idx):
         return self.bookmark[idx][0]
 
