@@ -126,7 +126,6 @@ def RPCServerReconnect(args):
     from .rpc import remote_project
     # reconnect the rpc server
     SetRPCServer([remote_project.config_file])
-    # reconnect the named bash
 
 @vim_register(keymap="<c-l>")
 def XKVIM_reflesh_screen(args):

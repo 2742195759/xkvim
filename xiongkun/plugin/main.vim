@@ -39,6 +39,7 @@ function! s:OpenHeaderOrCpp(filepath)"{{{
     " Use the execute to do actual things
     " and wrap command as call <somefunction>
     let newpath = a:filepath
+    let search_word = expand("<cword>")
     let doit = 0
     if match(a:filepath, '\.cc$') != -1
         let newpath = substitute(a:filepath, '\.cc$', '\.h', '')
@@ -51,7 +52,14 @@ function! s:OpenHeaderOrCpp(filepath)"{{{
     if doit == 0
         echom "filepath don't seem to be a .cc or .h, do nothing"
     else
+        let tmp = pyxeval("Xiongkun.FileSystem().exists('" . newpath . "')")
+        if tmp == 0
+            echom "file not exist: ".newpath
+            return
+        en
         execute 'py3 Xiongkun.FileSystem().edit("' . newpath . '")'
+        let @/=search_word
+        normal n
     en 
 endf"}}}
 
@@ -64,42 +72,8 @@ function! s:ShowGitComment()"{{{
     execute 'py3' 'Xiongkun.ShowGitComment("' filename '",' str2nr(linenr) ')'
 endf"}}}
 
-function! MakeXelatex()"{{{
-    echo system("python3 ~/xkvim/cmd_script/xelatex.py --file=".expand("%:p"))
-endfunction"}}}
-
-function! MakeNvcc()"{{{
-    let file = expand("%:p")
-    call system("~/xkvim/cmd_script/remove.sh nvcc_file")
-    call system("python3 ~/xkvim/cmd_script/upload.py --file " . file . " --rename nvcc_file ")
-    echo system("python3 ~/xkvim/cmd_script/converse_execute.py --name xkweb --cmd " . "/home/ssd3/start_nvcc.sh")
-endfunction"}}}
-
-function! ProfileSingleScript(start_cmd)"{{{
-    let file = expand("%:p")
-    call system("~/xkvim/cmd_script/remove.sh profile")
-    let cmd = "~/xkvim/cmd_script/send_profile_task.sh " . file . " " . '"' . a:start_cmd . '"'
-    echo cmd
-    echom system(cmd)
-    let tmp_filename = "tmp_" . string(rand()) . ".qdrep"
-    echo system(printf("python3 ~/xkvim/cmd_script/converse_execute.py --name mac --cmd " . "\"cd ~/my_report/ && curl http://10.255.125.22:8082/my_report.qdrep --output %s && open ./%s\"", tmp_filename, tmp_filename))
-endfunction"}}}
-
 function! ThreadDispatchExecutor(timer_id)"{{{
     py3 Xiongkun.PythonFunctionTimer().fire()
-endfunction"}}}
-
-function! ReloadPythonPlugin()"{{{
-    py3 from importlib import reload
-    py3 << endpython
-import sys
-from types import ModuleType
-ls = [[name, mod] for name, mod in sys.modules.items()]
-for name, mod in ls[::-1]:
-    if name.startswith('Xiongkun'):
-        m = (eval(name))
-        if isinstance(m, ModuleType): reload(m)
-endpython
 endfunction"}}}
 
 function! FileTypeBranch()"{{{
@@ -109,13 +83,13 @@ function! FileTypeBranch()"{{{
         setlocal shiftwidth=2 "in paddle, Default 2 for shift"
         setlocal foldmethod=marker
         setlocal foldmarker={,}
-        setlocal foldlevel=2
+        "setlocal foldlevel=2
     elseif (&filetype == 'vim')
         setlocal commentstring=\"%s
     elseif (&filetype == 'python')
         setlocal commentstring=#%s
         setlocal foldmethod=indent
-        setlocal foldlevel=2
+        "setlocal foldlevel=2
     end
 endfunction"}}}
 
@@ -130,16 +104,7 @@ hi ListBoxLine term=bold ctermbg=24
 """""""""""""""": Command below {{{
 com! -n=0 Mt cal s:TriggerMatch(expand('<cword>'))
 com! -n=0 CC cal s:OpenHeaderOrCpp(expand('%'))
-com! -n=0 Latex cal MakeXelatex()
-com! -n=0 Nvcc cal MakeNvcc()
-com! -n=1 Profile cal ProfileSingleScript(<args>)
-com! -n=0 Reload cal ReloadPythonPlugin()
 """""""""""""""" }}}
-
-function! IMAP_EXECUTE_PY3(py3_stmt)"{{{
-    execute "py3 " . a:py3_stmt
-    return "\<Ignore>"
-endfunction"}}}
 
 """""""""""""""": Map below {{{
 nnoremap <silent> <space>m :Mt<cr>

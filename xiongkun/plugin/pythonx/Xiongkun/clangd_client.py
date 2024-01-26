@@ -715,6 +715,10 @@ def LSPRestart(args):
     _EndAutoCompile()
     _StartAutoCompile()
     clangd = LSPClient(clangd.host)
+    from .insert_complete import InsertWindow
+    InsertWindow().close()
+    InsertWindow().reset()
+    # reconnect the named bash
 
 def lsp_to_location(result):# {{{
     loc = []

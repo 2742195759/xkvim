@@ -256,12 +256,14 @@ class BoxListWindow(Window):# {{{
     def __init__(self, items, inp=None, title="UniverseSearch(@xiongkun):", keymap={}, callback={}, **args):
         super().__init__()
         self.items = items
+        self.history_stack = []
+        col, line = TotalWidthHeight()
         self.win_options = {
             "border": [], 
             "h": 20, 
             "title": title, 
             "syntax": "search",
-            "maxheight": 40, 
+            "maxheight": line-5, 
             "maxwidth": 200,
             "cursorline": True,
             "highlight": "Normal",
@@ -334,7 +336,18 @@ class BoxListWindow(Window):# {{{
             if syntax:
                 self._execute('set ft=%s' % syntax)
 
-    def update(self, items):
+    def stack_push(self):
+        self.history_stack.append(self.items)
+
+    def stack_pop(self):
+        if len(self.history_stack) == 0: 
+            print ("No history to pop.")
+            return
+        previous_items = self.history_stack.pop()
+        self.update(previous_items)
+        vim.command("redraw!")
+
+    def update(self, items, save_history=False):
         """ 
         [thread unsafty, please do this in UIThread.]:
         update items into the end of the windows.
@@ -342,6 +355,8 @@ class BoxListWindow(Window):# {{{
         """
         if not self.is_create(): # means the windows already deleted by other thread. so just do nothing.
             return False
+        if save_history: 
+            self.stack_push()
         self.items = items
         if len(self.items) == 0: 
             self.set_content("Empty.")
@@ -353,6 +368,7 @@ class BoxListWindow(Window):# {{{
             self._execute('call setbufline(winbufnr(%s), "$", %s)' % (self, vim_con))
             self._set_line(self.cur)
             vim_con.delete()
+            self.set_title('"Total Results: [%d]"' % len(self.items))
         return True
 
     def on_close(self, code):
@@ -429,7 +445,7 @@ class BoxListWindow(Window):# {{{
             return false: to call default process function. (VimScript)
         """
         def on_return(items):
-            self.update(items)
+            self.update(items, save_history=True)
         if key == '<m-1>': 
             return True
 
@@ -480,21 +496,22 @@ class BoxListWindow(Window):# {{{
             text = self._getinput("filter>%s>" % key)# {{{
             if text not in ["", ""]: 
                 def name_filter(item):
-                    if text in item['filename']: return True
+                    if text in item['filename'] or text in item['text']: return True
                     return False
                 def inv_name_filter(item):
-                    if text in item['filename']: return False
+                    if text in item['filename'] or text in item['text']: return True
                     return True
                 m = {'f': name_filter, 'F': inv_name_filter}
                 filter_fn = m[key]
-                self.items = list(filter(filter_fn, self.items))
-                self.update(self.items)
+                items = list(filter(filter_fn, self.items))
+                self.update(items, save_history=True)
             return True# }}}
-        if key in ['d', 'D']: 
+        if key in ['d']: 
             search_text = remove_angle_bracket(self.last_search)
-            if key == 'd': 
-                search_text = None
             rpc_call("grepfinder.sema_filter", on_return, self.items, search_text)
+            return True# }}}
+        if key in ['u']: 
+            self.stack_pop()
             return True# }}}
         if key in ['I']: 
             if remote_fs.FileSystem().is_remote(): 
