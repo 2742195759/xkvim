@@ -1215,7 +1215,8 @@ class BookmarkFinderBuffer(FuzzyList):
         super().__init__("vim_bookmark", descriptions, name, history, options)
 
     def on_enter(self, cmd):
-        idx = self.widgets['result'].get_cur_idx()
+        item = self.widgets['result'].cur_item()
+        idx = GlobalBookmark().get_pos_idx(item)
         self.goto(idx)
 
     def goto(self, idx):
@@ -1223,7 +1224,8 @@ class BookmarkFinderBuffer(FuzzyList):
         GlobalBookmark().goto(idx)
 
     def on_preview(self):
-        idx = self.widgets['result'].get_cur_idx()
+        item = self.widgets['result'].cur_item()
+        idx = GlobalBookmark().get_pos_idx(item)
         pos = GlobalBookmark().get_pos(idx)
         from .windows import GPW, PreviewWindow
         GPW.tmp_window()
