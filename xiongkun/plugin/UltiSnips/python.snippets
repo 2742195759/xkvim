@@ -1533,9 +1533,12 @@ if to_static and not paddle.base.framework.use_pir_api():
 
 endsnippet
 snippet profile_range "no description"
+import os
+import sys
 from paddle.profiler.utils import _nvprof_range
 start_point = 1000000 if os.environ.get("PROFILE", "False") == "False" else 50
-end_point = 1000000 if os.environ.get("PROFILE", "False") == "False" else 60
-with _nvprof_range(idx, start_point, end_point, True):
+end_point = 200 if os.environ.get("PROFILE", "False") == "False" else 60
+with _nvprof_range(iter, start_point, end_point, True):
+    if end_point == iter: sys.exit(0)
     model(inputs)
 endsnippet
