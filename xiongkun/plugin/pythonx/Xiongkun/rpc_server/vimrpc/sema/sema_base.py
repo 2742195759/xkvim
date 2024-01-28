@@ -96,6 +96,7 @@ class TreeSitterManager:
         ((field_declaration) @field)
         ((template_declaration) @template)
         ((class_specifier) @class_def)
+        ((struct_specifier) @class_def)
         """
         parser = self.get_parser("cpp")
         query = self.get_query(query_str, "cpp")
@@ -115,3 +116,22 @@ class TreeSitterManager:
             n = self.get_field(node[0], type2field[node[1]])
             if n is None: continue
             yield node[1], node[0], n
+
+if __name__ == "__main__":
+    contents = """
+class PADDLE_API AAAA {
+    int func() {
+        return 1;
+    }
+};
+
+struct CCCC {};
+
+void AAAA::BBBB(){
+    return ;
+}
+    """
+    contents = contents.split("\n")
+    test_manager = TreeSitterManager()
+    for node in test_manager.for_each_definition_cpp_do(contents): 
+        print (node[1].type, node[1].text)

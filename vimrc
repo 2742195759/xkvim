@@ -233,8 +233,8 @@ let g:netrw_ftp_cmd="ftp -p "
 
 abbre fftp ftp://10.255.129.13:8081/
 
-set foldopen=hor,search,jump,block,mark,quickfix
-set foldclose=all
+"set foldopen=hor,search,jump,block,mark,quickfix
+"set foldclose=all
 hi CursorLine term=bold ctermbg=240
 "hi CursorLine term=bold ctermbg=24 guibg=#13354A
 

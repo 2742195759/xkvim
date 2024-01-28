@@ -1496,6 +1496,46 @@ endsnippet
 #}}}
 
 
+snippet ir_program_helper "a example for pandas deal with xlsx" #{{{
+    def find_op_index(to_find):
+		# find the index of op in program
+        for idx, op in enumerate(block.ops):
+            if op == to_find: 
+                return idx
+        raise NotImplementedError("op not found")
+endsnippet  
+#}}}
+
+snippet get_concrete_program "no description"
+if to_static:
+    print (resnet.forward.get_concrete_program(img)[-1].program.forward_program)
+
+endsnippet
+snippet xxx_dygraph_to_static_utils "no description"
+from dygraph_to_static_utils import (
+    Dy2StTestBase,
+    test_legacy_and_pt_and_pir,
+    test_pir_only,
+    test_ast_only,
+    test_sot_only,
+    test_legacy_only,
+)
+
+endsnippet
+snippet xxx_only "no description"
+#@test_legacy_and_pt_and_pir
+@test_ast_only
+@test_pir_only
+
+endsnippet
+snippet example_layer "no description"
+class Layer(paddle.nn.Layer): 
+    def __init__(self):
+        super(Layer, self).__init__()
+        self.linear = paddle.nn.Linear(2, 2)
+    def forward(self, x):
+        return self.linear(x)
+
 snippet import_dygraph_to_static_utils "no description"
 from dygraph_to_static_utils import Dy2StTestBase, test_sot_only, test_pir_only, test_ast_only, test_legacy_and_pt_and_pir
 
@@ -1529,6 +1569,20 @@ def tensor_hash(tensor):
 endsnippet
 snippet xxx_save "no description"
 # TODO(@xiongkun): open after save / load supported in pir.
+if (
+    to_static
+    and not paddle.base.framework.use_pir_api()
+):
+
+endsnippet
+
+snippet dbg "random output a print."
+print ("`!p 
+if snip.c == "" :
+	import time
+	snip.rv="debug info: " + str(time.time()) 
+`")
+
 if to_static and not paddle.base.framework.use_pir_api():
 
 endsnippet

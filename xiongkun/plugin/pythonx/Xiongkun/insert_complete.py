@@ -44,10 +44,10 @@ class InsertCompleteBuffer(CursorLineBuffer):
         self.redraw()
 
     def show(self): # no content, we hide the window.
+        super().show()
         if len(self.items) == 0:    
             self.hide()
             return
-        super().show()
 
     def make_table(self, items):
         if len(items) == 0: 
@@ -133,6 +133,8 @@ class TypingState(State):
         keymap_register_commands = ("""
         inoremap <buffer> <C-n> <Cmd>py3 Xiongkun.InsertWindow().state.next()<cr>
         inoremap <buffer> <C-p> <Cmd>py3 Xiongkun.InsertWindow().state.previous()<cr>
+        inoremap <buffer> <C-j> <Cmd>py3 Xiongkun.InsertWindow().state.next()<cr>
+        inoremap <buffer> <C-k> <Cmd>py3 Xiongkun.InsertWindow().state.previous()<cr>
         inoremap <buffer> <up> <Cmd>py3 Xiongkun.InsertWindow().state.previous()<cr>
         inoremap <buffer> <down> <Cmd>py3 Xiongkun.InsertWindow().state.next()<cr>
         inoremap <buffer> <enter> <Cmd>py3 Xiongkun.InsertWindow().state.type_enter()<cr>
@@ -143,9 +145,9 @@ class TypingState(State):
         inoremap <buffer> <C-u> <Cmd>py3 Xiongkun.InsertWindow().state.delete_all()<cr>
         inoremap <buffer> <C-l> <Cmd>py3 Xiongkun.InsertWindow().state.stop()<cr>
         """)
-        for exit_key in ['<tab>', '<c-j>', '<c-x>', '<c-v>', '<c-z>']:
-            exit_command = """inoremap <buffer> {exit_key} <Cmd>py3 Xiongkun.InsertWindow().state.stop("{exit_key}")<cr>\n"""
-            keymap_register_commands += (exit_command.format(exit_key=exit_key))
+        for exit_key in ['<c-x>', '<c-v>', '<c-z>']:
+            exit_command = """inoremap <buffer> {exit_key} <Cmd>py3 Xiongkun.InsertWindow().state.stop('{exit_key_text}')<cr>\n"""
+            keymap_register_commands += (exit_command.format(exit_key=exit_key, exit_key_text=exit_key.replace("<", "@")))
         # get all registered keys
         registered_keys = []
         for line in keymap_register_commands.split("\n"): 
@@ -174,8 +176,10 @@ class TypingState(State):
     def stop(self, append_key=None):
         self.body.close()
         if append_key is not None: 
+            append_key = append_key.replace("@", "<")
             if append_key.startswith("<"): append_key = "\\" + append_key
-            vim.eval(f'feedkeys("{append_key}")')
+            vim.eval(f'feedkeys("{append_key}", "t")')
+            
 
     def type_enter(self):
         ret = self.select_string()
@@ -209,9 +213,6 @@ class TypingState(State):
     def delete_all(self):
         self.close_typing_state()
         return vim.eval('feedkeys("\x15", "in")')
-
-    def type_tab(self):
-        self.next()
 
     def check_exit(self, word):
         for char in "()[]{}@#*": 
@@ -247,8 +248,8 @@ class TypingState(State):
 
     def fire_item_select(self):
         cur_item = self.body.current_item()
-        if self.select_fn and hasattr(self.body.buf, "wid"):
-            self.select_fn(cur_item, vim.eval(f"popup_getpos({self.body.buf.wid})"))
+        if self.select_fn:
+            self.select_fn(cur_item, vim.eval(f"popup_getpos({self.body.wid})"))
 
     def exit(self):
         self.clear_auto()
@@ -259,13 +260,23 @@ class TypingState(State):
 @vim_utils.Singleton
 class InsertWindow:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.buf = InsertCompleteBuffer()
         self.buf.create()
+        self.buf.show()
+        self.buf.hide()
         self.state = None
         self.close()
 
-    def force_reset(self):
-        self.__init__()
+    @property
+    def wid(self):
+        # get self.buf.wid
+        # when deleted we will create a new one automatically.
+        if not hasattr(self.buf, 'wid') or vim.eval(f"popup_getpos({self.buf.wid})") == {}: 
+            self.reset()
+        return self.buf.wid
 
     #@interface
     def complete(self, items, start_point, complete_change=None, complete_done=None):
