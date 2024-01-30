@@ -78,6 +78,7 @@ class LSPDiagMessageWindow(DocPreviewBuffer):
             'filter': None,
             'title': ' ErrorMessage ',
             'buflisted': 0,
+            'clear_buffer': 0,
         }
         super().__init__(options)
         self.create()
@@ -110,7 +111,9 @@ def diag_trigger(args):
     message_str = LSPDiagManager().get_message(filepath, line)
     if message_str is not None:
         LSPDiagMessageWindow().set_markdown_doc(message_str)
+        print ("before show.")
         LSPDiagMessageWindow().show()
+        print ("after show.")
     else: 
         LSPDiagMessageWindow().hide()
 
@@ -543,6 +546,7 @@ class SignatureWindow(DocPreviewBuffer):
             "title": "",
             "border": [0, 0, 0, 0],
             "zindex": 20,
+            'clear_buffer': 0,
         }
         self.content = ""
         self.param = ""

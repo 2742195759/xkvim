@@ -251,7 +251,8 @@ class Buffer:
             del self.options['filter']
             with_filter = 0
         config = dict2str(self.options)
-        self.wid = vim.eval(f"VimPopupExperiment({self.bufnr}, {with_filter}, {config})")
+        self.wid = vim.eval(f"VimPopupExperiment({self.bufnr}, {with_filter}, {config}, {self.options.get('clear_buffer', 1)})")
+        return self.wid
 
     def start(self):
         self.create()
@@ -290,7 +291,9 @@ class Buffer:
 
     def close(self):
         vim.command("set updatetime=4000")
-        vim.command(f"call popup_close({self.wid})")
+        if self.is_popup_window():
+            vim.command(f"call popup_close({self.wid})")
+            del self.wid
 
     def on_exit(self):
         pass

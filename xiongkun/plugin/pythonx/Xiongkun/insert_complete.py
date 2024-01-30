@@ -159,6 +159,7 @@ class TypingState(State):
         vim_utils.commands(keymap_register_commands)
         vim_utils.commands("""
         augroup InsertComplete
+            autocmd!
             autocmd InsertLeave * py3 Xiongkun.InsertWindow().goto_state(Xiongkun.CloseState(Xiongkun.InsertWindow()))
             autocmd TextChangedI * py3 Xiongkun.InsertWindow().state.insert()
         augroup END
@@ -260,6 +261,7 @@ class TypingState(State):
 @vim_utils.Singleton
 class InsertWindow:
     def __init__(self):
+        self.state = None
         self.reset()
 
     def reset(self):
@@ -267,7 +269,6 @@ class InsertWindow:
         self.buf.create()
         self.buf.show()
         self.buf.hide()
-        self.state = None
         self.close()
 
     @property
