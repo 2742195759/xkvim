@@ -220,11 +220,13 @@ function! DispatchFilter(winid, key)
     return g:popup_handle
 endfunction!
 
-function! VimPopupExperiment(bufnr, filter, options)
+function! VimPopupExperiment(bufnr, filter, options, clear_buffer)
     let new_dict = a:options
     if a:filter == 1
         let new_dict['filter'] = function('DispatchFilter')
-        let new_dict['callback'] = function('VimPopupClose')
+        if a:clear_buffer
+            let new_dict['callback'] = function('VimPopupClose')
+        endif
         let new_dict['filtermode'] = 'a'
         let new_dict['mapping'] = 0
         let new_dict['wrap'] = 0

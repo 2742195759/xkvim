@@ -111,9 +111,7 @@ def diag_trigger(args):
     message_str = LSPDiagManager().get_message(filepath, line)
     if message_str is not None:
         LSPDiagMessageWindow().set_markdown_doc(message_str)
-        print ("before show.")
         LSPDiagMessageWindow().show()
-        print ("after show.")
     else: 
         LSPDiagMessageWindow().hide()
 
