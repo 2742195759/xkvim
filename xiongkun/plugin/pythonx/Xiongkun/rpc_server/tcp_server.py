@@ -48,10 +48,8 @@ def bash_manager(socket, bash_pool):
     # connect name
     # delete name
     # list
-    try:
-        command = read_line(socket).strip()
-    except TimeoutError:
-        print ("[TCPServer] Timeout when receiving... exiting.")
+    command = safe_read_line(socket)
+    if command is None:
         return
     print ("Bash Command: ", command)
     if command.startswith(b"list"):
@@ -139,37 +137,50 @@ class ThreadedTCPServer(socketserver.TCPServer):
     pass
 
 def read_single_char(socket, timeout=1):
-    ready = select.select([socket], [], [], 0.5)
+    ready = select.select([socket], [], [], timeout)
     if ready[0]:
         data = socket.recv(1)
+        if data == b'':
+            # closed by other side.
+            raise ConnectionResetError("connection is closed by other side.")
+        return data
     else: 
-        raise TimeoutError("timeout when socket.recv(1)")
-    return data
+        # timeout 
+        raise TimeoutError("read single char timeout for ", timeout, " seconds.")
 
 def read_line(socket, timeout=1):
     received = b""
-    try:
-        c = read_single_char(socket)
-        while c != b'\n': # read just one line and don't buffer.
-            received += c
-            c = read_single_char(socket)
-    except:
-        print ("Exiting with received: ", received)
+    c = read_single_char(socket, timeout)
+    while c != b'\n': # read just one line and don't buffer.
+        received += c
+        c = read_single_char(socket, timeout)
     return received
 
 def server_wrapper(listen_s, func, *args, **kwargs):
     listen_s.close()
     func(*args, **kwargs)
 
+def safe_read_line(socket):
+    try:
+        data = read_line(socket, 5)
+        return data
+    except TimeoutError:
+        print ("[TCPServer] Timeout when receiving... exiting.")
+        return None
+    except ConnectionResetError:
+        print ("[TCPServer] Connection is reset by other side.")
+        return None
+    except Exception as e:
+        print ("[TCPServer] Receive exception: ", e, "\njust ignored.")
+        return None
+    
+
 def connection_handle(listen_s, socket, mp_manager, bash_pool):
     # override the main process signal handler.
     print("=== socket opened ===")
-    try:
-        mode = read_line(socket)
-    except TimeoutError:
-        print ("[TCPServer] Timeout when receiving... exiting.")
+    mode = safe_read_line(socket)
+    if mode is None:
         return
-
     print ("[TCPServer] receive: ", mode)
     mode = mode.strip()
     proc = None
