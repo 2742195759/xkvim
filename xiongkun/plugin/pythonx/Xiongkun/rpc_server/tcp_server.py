@@ -51,6 +51,7 @@ def bash_manager(socket, bash_pool):
     command = safe_read_line(socket)
     if command is None:
         return
+    command = command.strip()
     print ("Bash Command: ", command)
     if command.startswith(b"list"):
         names = bash_pool.names()

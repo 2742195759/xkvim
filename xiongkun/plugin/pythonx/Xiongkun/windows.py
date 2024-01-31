@@ -499,7 +499,7 @@ class BoxListWindow(Window):# {{{
                     if text in item['filename'] or text in item['text']: return True
                     return False
                 def inv_name_filter(item):
-                    if text in item['filename'] or text in item['text']: return True
+                    if text in item['filename'] or text in item['text']: return False
                     return True
                 m = {'f': name_filter, 'F': inv_name_filter}
                 filter_fn = m[key]
