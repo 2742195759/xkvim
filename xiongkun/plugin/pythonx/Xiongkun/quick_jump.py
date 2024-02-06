@@ -362,6 +362,9 @@ class GlobalBookmark:
         if desc is None or desc == "":
             desc = desc if desc else f"#bookmark#{self.bookmark_counter}"
             self.bookmark_counter += 1
+        existed_index = self.get_pos_idx(desc)
+        if existed_index is not None: 
+            self.bookmark.pop(existed_index)
         self.bookmark.insert(0, (pos, desc))
 
     def get_pos_idx(self, name):

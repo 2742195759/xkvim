@@ -236,6 +236,10 @@ class FileSystem:
             self.prefix = ""
             self.cwd = remote_project.root_directory
             self._is_remote = True
+            git_branch = ''.join(FileSystem().eval('git symbolic-ref --short HEAD 2>/dev/null'))
+            with vim_utils.VimVariableGuard(git_branch) as git_branch:
+                vim.command(f"let g:current_branch={git_branch}")
+            vim.command("AirlineRefresh!")
         else: 
             print ("localFileSystem Mounted.")
             self.prefix = ""
@@ -432,7 +436,6 @@ class FileSystem:
         current_timestamp = vim.eval(f"getbufvar('{bufname}', 'timestamp', '-1')")
         assert current_timestamp != -1
         stamp = str(rpc_wait("remotefs.timestamp", filepath))
-        #print (stamp, 'vs', current_timestamp)
         if stamp == current_timestamp: 
             return True
         return False

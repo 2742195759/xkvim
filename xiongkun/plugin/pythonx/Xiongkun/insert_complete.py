@@ -294,6 +294,8 @@ class InsertWindow:
         self.state.enter()
 
     def show(self, col):
+        if self.buf._popup_closed_unexpected():
+            self.reset()
         self.buf.show() # show first, we can create the window.
         self.move_to_cursor(col) # after create window, we can move it.
 
@@ -307,9 +309,13 @@ class InsertWindow:
         return buf.items[select_nr]
 
     def hide(self):
+        if self.buf._popup_closed_unexpected():
+            self.reset()
         self.buf.hide()
 
     def set_complete_items(self, items):
+        if self.buf._popup_closed_unexpected():
+            self.reset()
         self.buf.set_complete_items(items)
 
     def move_to_cursor(self, col):

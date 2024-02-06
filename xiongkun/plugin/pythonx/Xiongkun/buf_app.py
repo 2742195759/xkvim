@@ -241,18 +241,26 @@ class Buffer:
         vim.command(f"vne")
         vim.command(f"b {self.bufnr}")
 
-    def _popup_show(self):
-        assert hasattr(self, "bufnr")
-        if hasattr(self, "wid"): 
-            vim.eval(f"popup_show({self.wid})")
-            return
+    def _popup_closed_unexpected(self):
+        if self.state == "exit": return False
+        if hasattr(self, "wid") and vim.eval(f"popup_getpos({self.wid})") == {}: 
+            return True
+        return False
+
+    def _popup_create(self):
+        if hasattr(self, "wid"):
+            vim.eval(f"popup_close({self.wid})")
         with_filter = 1
         if 'filter' in self.options and self.options['filter'] is None:
             del self.options['filter']
             with_filter = 0
         config = dict2str(self.options)
         self.wid = vim.eval(f"VimPopupExperiment({self.bufnr}, {with_filter}, {config}, {self.options.get('clear_buffer', 1)})")
-        return self.wid
+
+    def _popup_show(self):
+        if not hasattr(self, 'wid'): 
+            self._popup_create()
+        vim.eval(f"popup_show({self.wid})")
 
     def start(self):
         self.create()
@@ -297,6 +305,32 @@ class Buffer:
 
     def on_exit(self):
         pass
+
+class SafePopup:
+    def __init__(self, buffer_fn):
+        assert callable(buffer_fn), "buffer_fn must be a callable to recover."
+        self.buffer_fn = buffer_fn
+        self.restart()
+
+    def restart(self):
+        print ('restarting ...')
+        self.buffer = self.buffer_fn()
+
+    def show(self):
+        if self.buffer._popup_closed_unexpected():
+            self.restart()
+        self.buffer.show()
+
+    def hide(self):
+        if self.buffer._popup_closed_unexpected():
+            self.restart()
+        self.buffer.hide()
+
+    def __getattr__(self, key):
+        if key in ['hide', 'show', 'restart']:
+            return self.__dict__[key]()
+        return getattr(self.buffer, key)
+
 
 class FixStringBuffer(Buffer):
     def __init__(self, contents, syntax=None):

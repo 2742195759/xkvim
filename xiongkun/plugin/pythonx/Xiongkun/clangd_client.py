@@ -18,6 +18,7 @@ from .remote_fs import FileSystem
 from .command_doc_popup import DocPreviewBuffer
 from .clangd_client_utils import get_content_deltas
 from .insert_complete import InsertWindow
+from .buf_app import SafePopup
 
 vim.command("set cot=menuone,noselect")
 vim.command("set scl=yes")
@@ -71,8 +72,7 @@ def StopAutoCompileGuard():# {{{
         if not is_disabled:
             _StartAutoCompile()
 
-@vim_utils.Singleton
-class LSPDiagMessageWindow(DocPreviewBuffer): 
+class LSPDiagMessageBuffer(DocPreviewBuffer): 
     def __init__(self):
         options = {
             'filter': None,
@@ -100,6 +100,12 @@ class LSPDiagMessageWindow(DocPreviewBuffer):
 
     def _set_syntax(self):
         self.execute(f'set syntax=yaml')
+
+@vim_utils.Singleton
+class LSPDiagMessageWindow(SafePopup):
+    def __init__(self):
+        create_fn = lambda : LSPDiagMessageBuffer()
+        super().__init__(create_fn)
 
 @vim_register(name="Py_diag_trigger")
 def diag_trigger(args):
@@ -537,8 +543,7 @@ def did_change(args):
     if args[0] == "1": args[0] = True
     lsp_server().file_manager.did_change(filepath, args[0])
 
-@vim_utils.Singleton
-class SignatureWindow(DocPreviewBuffer):
+class SignatureBuffer(DocPreviewBuffer):
     def __init__(self):
         options = {
             "title": "",
@@ -576,6 +581,12 @@ class SignatureWindow(DocPreviewBuffer):
         if self.content: self._put_strings(self.content)
         if self.syntax: self.execute(f'set syntax={self.syntax}')
         if self.param : self.execute(f"match Search /{vim_utils.escape(self.param, '/')}/")
+
+@vim_utils.Singleton
+class SignatureWindow(SafePopup):
+    def __init__(self):
+        create_fn = lambda: SignatureBuffer()
+        super().__init__(create_fn)
 
 @vim_register(name="Py_signature_help")
 def signature_help(args):
