@@ -1596,3 +1596,29 @@ with _nvprof_range(iter, start_point, end_point, True):
     if end_point == iter: sys.exit(0)
     model(inputs)
 endsnippet
+
+snippet example_cinn "no description"
+import os                                                                                                                                                                                                           
+os.environ['FLAGS_cinn_new_group_scheduler'] = '1'                                                                                                                                                                  
+os.environ['FLAGS_group_schedule_tiling_first'] = '1'                                                                                                                                                                  
+os.environ['FLAGS_prim_all'] = 'true'                                                                                                                                                                               
+os.environ['FLAGS_enable_pir_api'] = '1'                                                                                                                                                                            
+os.environ['FLAGS_use_cinn'] = '1'                                                                                                                                                                                  
+os.environ['GLOG_v'] = '8'                                                                                                                                                                                  
+                                                                                                                                                                                                                    
+import paddle                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+build_strategy = paddle.static.BuildStrategy()                                                                                                                                                                      
+build_strategy.build_cinn_pass = True                                                                                                                                                                               
+                                                                                                                                                                                                                    
+@paddle.jit.to_static(full_graph=True, build_strategy=build_strategy)                                                                                                                                               
+def func(x):                                                                                                                                                                                                        
+    x = paddle.nn.functional.relu(x)                                                                                                                                                                                
+    return x                                                                                                                                                                                                        
+                                                                                                                                                                                                                    
+x = paddle.rand((100, 1))                                                                                                                                                                                           
+#print (func.get_concrete_program(x)[-1].forward_program)                                                                                                                                                           
+out = func(x)                                                                                                                                                                                                       
+print (out)
+
+endsnippet

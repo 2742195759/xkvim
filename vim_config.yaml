@@ -18,6 +18,7 @@ search_config: [
 ]
 
 terminal_abbreviate: [
+  ["xk", "xiongkun"],
 ]
 
 # mac | pc is supported

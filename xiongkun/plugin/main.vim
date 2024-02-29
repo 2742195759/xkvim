@@ -128,7 +128,7 @@ inoremap <M-u> <Cmd>py3 Xiongkun.windows.GlobalPreviewWindow.open_in_preview_win
 vnoremap // y/\V<C-R>=escape(@",'/\')<CR><CR>
 nnoremap <expr> gp '`[' . strpart(getregtype(), 0, 1) . '`]'
 """ copy the visual into a tempname file. to view a part of a file
-vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:set filetype=tmp<cr>:set buftype=nofile<cr>
+vnoremap \S  y:let tmp=&filetype<cr>:tabe <C-R>=tempname()<cr><cr>P:set filetype=tmp<cr>:set buftype=nofile<cr>:set foldcolumn=0<cr>:set signcolumn=no<cr>
 "vnoremap K :!dict <C-R>=expand("<cword>")<cr><cr>
 "
 
@@ -236,6 +236,7 @@ function! VimPopupExperiment(bufnr, filter, options, clear_buffer)
     let new_dict['border'] = get(a:options, 'border', [])
     let new_dict['wrap'] = get(a:options, 'wrap', 0)
     let new_dict['padding'] = get(a:options, 'padding', [0, 1, 0, 1])
+    let new_dict['tabpage'] = -1
     return popup_create(a:bufnr, new_dict)
 endfunction
 
