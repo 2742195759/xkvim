@@ -88,3 +88,44 @@ main :: IO ()
 {-main = run (RegEnv [("succ", (RegItem Succ)), ("concat", (RegItem Concat))]) "concat" "1"-}
 main = runall (RegEnv [("succ", (RegItem Succ)), ("concat", (RegItem Concat))]) [("concat", "1"), ("succ", "2")]
 endsnippet
+
+snippet subprocess "no description"
+import System.Process
+import System.IO
+import Data.Traversable (mapM)
+import Data.List (isInfixOf)
+import System.Exit
+import Control.Concurrent
+
+main :: IO ()
+main = do
+     (_, Just hout, _, _) <- createProcess ((proc "ls" []) { std_out = CreatePipe })
+     allTests <- hGetContents hout >>= return . gatherTests
+     mapM (getOutputFromTest stateCollector) (take 10000 allTests) >>= putStrLn . unlines
+
+gatherTests :: String -> [String]
+gatherTests x = filter isTestFile $ lines x
+            where isTestFile = isInfixOf "test_sub_graph_"
+
+paddleCinnEnv :: [(String, String)]
+paddleCinnEnv = [   ("PYTHONPATH", "/home/ssd2/xiongkun/Paddle/build/python/")
+                  -- , ("GLOG_vmodule", "trivial_op_impl=4")
+                  {-, ("CUDA_VISIBLE_DEVICES", "1")-}
+                ]
+
+getOutputFromTest :: (String -> String -> String) -> String -> IO String
+getOutputFromTest outputer file = do
+    (exitcode, out, err) <- readCreateProcessWithExitCode ((proc "bash" ["-c", "source ~/.bashrc && python ./" ++ file ++ " 2>&1"])
+                                                                        { std_out = CreatePipe,
+                                                                          env = Just paddleCinnEnv}) ""
+    -- ??? CreateProcess + hGetContent + waitForProcess will hanging forever.
+    return $ outputer file out
+
+outputCollector :: String -> String -> String
+outputCollector file output = "Start unittest: " ++ file ++ "\n" ++ output
+
+stateCollector :: String -> String -> String
+stateCollector file output = "Start unittest: " ++ file ++ "\n" ++ isOk output
+                    where isOk x = if isInfixOf "OK" x then "Success\n" else "Failed\n"
+
+endsnippet

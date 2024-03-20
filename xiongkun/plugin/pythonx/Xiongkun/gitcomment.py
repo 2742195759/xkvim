@@ -259,7 +259,7 @@ class DiffBuffer(BashCommandResultBuffer):
         }
 
 class GitPreviewApp(Application):#{{{
-    def __init__(self, command_getter, init_file=None):
+    def __init__(self, command_getter, init_file=None, commit_list=[]):
         """
         """
         super().__init__()
@@ -296,16 +296,22 @@ class GitPreviewApp(Application):#{{{
 
         self.git_diff_layout = None
         self.git_log_layout = CreateWindowLayout(active_win='win')
-
         self.git_log_buf = GitFileCommitLogBuffer(self.command_getter, ondiff)
 
         self.git_diff_0 = BufferSmartPoint()
         self.git_diff_1 = BufferSmartPoint()
         self.git_diff_files = BufferSmartPoint()
+        self.on_diff = ondiff
+        self.commit_list = commit_list
 
     def start(self):
-        self.git_log_buf.create()
-        self.git_log_layout.create({'win': self.git_log_buf})
+        if len(self.commit_list) == 0: 
+            # select by user.
+            self.git_log_buf.create()
+            self.git_log_layout.create({'win': self.git_log_buf})
+        else:
+            assert len(self.commit_list) == 2, "Must be call with 2 commit_list."
+            self.on_diff(*self.commit_list)
 #}}}
 
 @vim_register(command="GF", with_args=True, action_tag="git history")
@@ -351,4 +357,40 @@ def GitFileHistory(args):
         init_file = None
 
     app = GitPreviewApp(command_getter, init_file)
+    app.start()
+
+@vim_register(command="GDiff", with_args=True, action_tag="git diff two commit")
+def GitDiffCommit(args):
+    """ 
+    ## Overview
+    1. 打开一个新的窗口，显示当前文件的git历史
+    2. 支持再里面进行展示文件显示：
+      ------------------------
+      |       files          |
+      ------------------------
+      | first     |  second  |
+      ------------------------
+
+    ## Usage
+    GDiff [first_commit/branch] [second_commit/branch]
+
+    >>> GDiff 3620947dfa9dd106698c17bca45b17815bc62a6a
+    >>> GDiff HEAD 3620947dfa9dd106698c17bca45b17815bc62a6a
+    ## Description
+    1. 如果GDiff一个参数，对比 HEAD vs commit
+    2. 如果GDiff两个参数，对比 commit1 vs commit2
+    """
+    init_file = None
+    init_file = CurrentEditFile()
+    commit_list = []
+    if len(args) == 0: 
+        print("Please Input 1/2 arguments.")
+        return 
+    elif len(args) == 1: 
+        commit_list.append("".join(FileSystem().eval("git rev-parse HEAD")).strip())
+        commit_list.append(args[0])
+    elif len(args) == 2: 
+        commit_list.append(args[0])
+        commit_list.append(args[1])
+    app = GitPreviewApp(lambda:"no command", init_file, commit_list)
     app.start()
