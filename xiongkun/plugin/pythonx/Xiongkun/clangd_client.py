@@ -13,7 +13,7 @@ import time
 from .log import debug, log
 from urllib.parse import quote, unquote
 from . import remote_fs
-from .rpc import RPCServer, RPCChannel
+from .rpc import RPCServer, RPCChannel, py_server_local_creator
 from .remote_fs import FileSystem
 from .command_doc_popup import DocPreviewBuffer
 from .clangd_client_utils import get_content_deltas
@@ -745,7 +745,7 @@ def lsp_server():
     if clangd is None: 
         _EndAutoCompile()
         _StartAutoCompile()
-        clangd = LSPClient(f"127.0.0.1:{RPCChannel.local_port}")
+        clangd = LSPClient(f"127.0.0.1:{py_server_local_creator.port()}")
     return clangd.lsp_server
 
 def set_remote_lsp(config_file):

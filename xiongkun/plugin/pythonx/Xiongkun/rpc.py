@@ -72,29 +72,52 @@ def create_rpc_handle(name, function_name, receive_name):
     """ % name
     )
 
+class PyLocalCreator:
+    def __init__(self):
+        self._port = find_free_port()
+        self._log_path = f"/tmp/log.{self._port}"
+
+    def port(self): 
+        return self._port
+
+    def cmd (self): 
+        return f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {self._port} 1>{self._log_path} 2>&1"
+
+    def log_path(self):
+        return self._log_path
+
+py_server_local_creator = PyLocalCreator()
+
+class PyPackProtocal:
+    def __init__(self):
+        pass
+
+    def pack(self, package):
+        escaped = escape(json.dumps(package), '\\')
+        escaped = escape(escaped, '"')
+        str_package = '"' + escaped + '\n"'
+        return str_package
+        
+    def unpack(self, strs):
+        return json.loads(strs)
 
 class RPCChannel:
-    local_port = find_free_port()
-    is_init = False
-    rpc_log = f"/tmp/log.{local_port}"
-
     def delete(self):
         if hasattr(self, "local_server"): 
             os.killpg(self.local_server.pid, signal.SIGKILL)
-            
-    def __init__(self, name, remote_server, type, function, noblock=0):
+
+    def __init__(self, name, remote_server, type, function, noblock=0, creator=None, packer=None):
         if remote_server is None: 
-            port = RPCChannel.local_port
+            self.creator = py_server_local_creator if creator is None else creator
+            port = self.creator.port()
             remote_server = f"127.0.0.1:{port}"
-            if not RPCChannel.is_init: 
-                start_server_cmd = f"python3 {HOME_PREFIX}/xkvim/xiongkun/plugin/pythonx/Xiongkun/rpc_server/tcp_server.py --host 127.0.0.1 --port {port} 1>{RPCChannel.rpc_log} 2>&1"
-                self.local_server = subprocess.Popen([start_server_cmd], shell=True, universal_newlines=False, close_fds=True, preexec_fn=os.setsid)
-                #print (f"log path: {RPCChannel.rpc_log}")
-                RPCChannel.is_init = True
+            start_server_cmd = self.creator.cmd()
+            self.local_server = subprocess.Popen([start_server_cmd], shell=True, universal_newlines=False, close_fds=True, preexec_fn=os.setsid)
 
         self.channel_name = f"g:{name}_channel"
         self.receive_name = f"g:{name}_receive"
         self.name = name
+        self.packer = PyPackProtocal() if packer is None else packer
         self.func_name = function
         create_rpc_handle(name, self.func_name, self.receive_name)
         config = {
@@ -125,7 +148,7 @@ class RPCChannel:
         self.on_receive(msg)
 
     def on_receive(self, msg):
-        id, is_finished, output = json.loads(msg)
+        id, is_finished, output = self.packer.unpack(msg)
         if id not in self.callbacks: 
             # maybe keeplive package.
             return
@@ -136,9 +159,7 @@ class RPCChannel:
                 self.callbacks.pop(id)
 
     def send(self, package, sync=None):
-        escaped = escape(json.dumps(package), '\\')
-        escaped = escape(escaped, '"')
-        str_package = '"' + escaped + '\n"'
+        str_package = self.packer.pack(package)
         from .log import log
         if sync is None: 
             vim.eval(f'ch_sendraw({self.channel_name}, {str_package})')
@@ -178,8 +199,8 @@ def dummy_callback(*args, **kwargs):
     return None
 
 class RPCServer:
-    def __init__(self, name="RPC", remote_server=None, type="vimrpc", function="Xiongkun.rpc_server()"):
-        self.channel = RPCChannel(name, remote_server, type, function)
+    def __init__(self, name="RPC", remote_server=None, type="vimrpc", function="Xiongkun.rpc_server()", creator=None, packer=None):
+        self.channel = RPCChannel(name, remote_server, type, function, 0, creator, packer=None)
 
     def call(self, name, on_return, *args):
         stream = self.channel.stream_new()
@@ -228,6 +249,7 @@ commands("""
 augroup LocalServerDelete
     autocmd!
     autocmd VimLeave * py3 Xiongkun.local_rpc.channel.delete()
+    autocmd VimLeave * py3 Xiongkun.HaskellServer().channel.delete()
 augroup END
 """)
 

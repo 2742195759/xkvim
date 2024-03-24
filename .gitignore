@@ -9,3 +9,7 @@ Default/
 node-v15.14.0-linux-x64/
 */__pycache__/
 bashrc
+*.dyn_hi
+*.dyn_o
+*.hi
+*.o 

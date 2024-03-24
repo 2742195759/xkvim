@@ -32,6 +32,7 @@ from .filetype_plugin import *
 from .remote_fs import *
 from .haskell import *
 from .insert_complete import *
+from .haskell_rpc import *
 
 pro = None; 
 
