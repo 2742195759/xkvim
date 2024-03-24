@@ -1,0 +1,68 @@
+search_config: [
+    '--exclude-dir="/build/*"',
+    '--exclude-dir="/.git/*"',
+    '--exclude-dir="/doc/*"',
+    '--exclude-dir="/docs/*"',
+    '--exclude-dir="/patches/*"',
+    '--exclude-dir="/r/*"',
+    '--exclude-dir="/tools/*"',
+    '--exclude-dir="/Default/*"',
+    '--exclude="tags"',
+    '--exclude="*.cmake"',
+    '--exclude="*.json"',
+    '--exclude="*.swp"',
+    '--exclude-dir="/__pycache__/*"',
+    '--exclude="*.log"',
+    '--exclude-dir="/node-v*"',
+    '--exclude-dir="/BrowserMetrics*"',
+]
+
+terminal_abbreviate: [
+    ["proxy", "export http_proxy=http://172.19.57.45:3128\nexport https_proxy=http://172.19.57.45:3128\nexport no_proxy=localhost,bj.bcebos.com,su.bcebos.com,paddle-wheel.bj.bcebos.com\n"], 
+    ["proxy2", "export https_proxy=agent.baidu.com:8188;export http_proxy=agent.baidu.com:8188"], 
+    ["noproxy", "unset http_proxy\nunset https_proxy\n"], 
+    ["find", "find ./ -name '*.py'"], 
+    ["objdump", "objdump -t -C "], 
+    ["nm", "nm -C "], 
+    ["CUDA_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES=2"], 
+    ["FLAGS_call_stack_level", "FLAGS_call_stack_level=2"],
+    ["FLAGS_cudnn_deterministic", "FLAGS_cudnn_deterministic=True"],
+    ["FLAGS_use_system_allocator", "FLAGS_use_system_allocator=True"],
+    ["FLAGS_benchmark", "FLAGS_benchmark=1 "],
+    ["FLAGS_enable_pir_api", "FLAGS_enable_pir_api=True "],
+    ["main_program", "paddle.static.default_main_program()"],
+    ["git push", "git push xiongkun {b:git branch | grep \\* | cut -c3-}"],
+    ["git add xiongkun", "git remote add xiongkun https://github.com/2742195759/Paddle"],
+    ["git username", "git config --global user.email 'xiongkun03@baidu.com'\ngit config --global user.name 'xiongkun"],
+    ["git fetch", "git fetch upstream pull/<PR-ID>/head:<local-branch>"],
+    ["git develop", "git fetch --all \n git checkout upstream/develop \n"],
+    ["rebuild paddle", "rm -f CMakeCache.txt && ./rebuild.sh"],
+    ["install paddle nightly", "python -m pip install paddlepaddle-gpu==0.0.0.post112 -f https://www.paddlepaddle.org.cn/whl/linux/gpu/develop.html\n"],
+    ["nsys", "/opt/nvidia/nsight-systems/2022.4.1/bin/nsys profile -t cuda,nvtx --cpuctxsw=process-tree -o my_report --capture-range=cudaProfilerApi --force-overwrite true python /tmp/xxxx.py"],
+    ["uninstall paddle", "pip uninstall paddlepaddle_gpu\n"],
+    ["reinstall sot", "pip uninstall PaddleSOT\npip install git+https://github.com/PaddlePaddle/PaddleSOT\n"],
+    ["where paddle", "python -c 'import paddle; print(paddle.__path__)'\n"],
+    ["where sot", "python -c 'import sot; print(sot.__path__)'\n"],
+    ["paddle commit", "python -c 'import paddle; print(paddle.version.commit)'\n"],
+    ["paddle develop install", "pip uninstall paddlepaddle_gpu && wget http://10.255.125.22:8082/paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl && pip install paddlepaddle_gpu-0.0.0-cp38-cp38-linux_x86_64.whl\n"],
+    ["install nsys", "wget -O NsightSystems-linux-public-2022.4.1.21-0db2c85.run http://10.255.125.22:8082/software/NsightSystems-linux-public-2022.4.1.21-0db2c85.run"],
+    ["upload file", "python ~/xkvim/cmd_script/upload.py --file "],
+    ["PYTHONPATH", 'PYTHONPATH={p:Xiongkun.FileSystem().cwd}/build/python/'], 
+]
+
+# mac | pc is supported
+default_remote: mac
+
+# Run command <F9>
+#default_run: ""
+
+# used by special_path_eval
+special_paths: 
+  - name: sot
+    remote: true
+    type: bash
+    command: python3.8 -c "import sot; print(sot.__path__[0])"
+  - name: paddle
+    remote: true
+    type: bash
+    command: python3.8 -c "import paddle; print(paddle.__path__[0])"

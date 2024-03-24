@@ -107,7 +107,7 @@ snippet PrintTensor "Print CPU Tensor / GPU Tensor."
 }
 endsnippet
 #}}}
-#
+
 #{{{ remove_if
 snippet std::remove_if "Remove element in vector using lambda example code. like filter in python."
 std::vector<int>v = {1,2,3,4};
@@ -116,3 +116,100 @@ v.resize(t - v.begin());
 $0 // vector: v is the returning vector.
 endsnippet
 #}}}
+
+#{{{ # p_
+snippet MV "Create MixVector Wrapper"
+paddle::framework::MixVector<${1:size_t}> mixv_${2:name} ( & ${3:vector_name} );
+endsnippet
+#}}}
+
+snippet print_vector "C++ print a vector by vlog." #{{{
+\#include "paddle/utils/string/string_helper.h"
+VLOG(2) << "vector: `` value is : " << paddle::string::join_strings(vector, ',');
+endsnippet
+#}}}
+
+snippet llvm_elog "llvm logger method" #{{{
+\#include "support/Logger.h"
+elog("config error at {0}:{1}:{2}: {3}", D.getFilename(), D.getLineNo(),
+     D.getColumnNo(), D.getMessage());
+endsnippet
+#}}}
+
+snippet cl_create_diag "Create DiagnosticsEngine" #{{{
+llvm::IntrusiveRefCntPtr<DiagnosticsEngine> CommandLineDiagsEngine =
+    CompilerInstance::createDiagnostics(new DiagnosticOptions, &D, false);
+endsnippet
+#}}}
+#
+#{{{
+snippet str "std::string" i 
+std::string 
+endsnippet
+#}}}
+#
+#{{{  
+snippet vec "std::vec<XXX>" i 
+std::vector<${1:int}> $0
+endsnippet
+#}}}
+
+snippet RecordEvent "RecordEvent usage example in paddle."   #{{{
+{
+  include "paddle/fluid/platform/profiler.h"
+  platform::RecordEvent record_event(
+      "NpuMemcpyAsync:CPU->NPU", platform::TracerEventType::UserDefined, 1);
+  platform::NPUMemcpyAsync(dst, src, num, ACL_MEMCPY_HOST_TO_DEVICE,
+                             reinterpret_cast<aclrtStream>(stream));
+}
+
+snippet timer "a ms timer for C++11" #{{{
+#include<chrono>
+#include<iostream>
+using namespace std;
+using namespace std::chrono;
+class TimerClock
+{
+public:
+ TimerClock()
+ {
+  update();
+ }
+
+ ~TimerClock()
+ {
+ }
+
+ void update()
+ {
+  _start = high_resolution_clock::now();
+ }
+ //获取秒
+ double getTimerSecond()
+ {
+  return getTimerMicroSec() * 0.000001;
+ }
+ //获取毫秒
+ double getTimerMilliSec()
+ {
+  return getTimerMicroSec()*0.001;
+ }
+ //获取微妙
+ long long getTimerMicroSec()
+ {
+  //当前时钟减去开始时钟的count
+  return duration_cast<microseconds>(high_resolution_clock::now() - _start).count();
+ }
+private:
+ time_point<high_resolution_clock>_start;
+};
+
+int main(){
+    TimerClock TC;
+    TC.update();
+    // do your work here.
+    cout << "cost time:" << TC.getTimerMilliSec() <<"ms"<< endl;
+}
+endsnippet
+#}}}
+

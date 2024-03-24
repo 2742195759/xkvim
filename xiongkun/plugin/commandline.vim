@@ -7,7 +7,9 @@ endf
 
 fu! CmdCtrlSlash()
     let cmd = getcmdline()
-    "let cmd = "/home/data/cvpack2/tests/test_rpn.py"
+    if cmd[-1:-1] == '/'
+        let cmd = cmd[0:-2]
+    endif
     let new_cmd = s:DeleteUntilSlash(cmd)
     return "\<C-U>".new_cmd
 endf
@@ -15,3 +17,5 @@ endf
 cnoremap <C-A> <Home>
 cnoremap <C-F> <Right>
 cnoremap <C-B> <Left>
+"cnoremap <C-/> <Cmd>call CmdCtrlSlash()<CR>
+cnoremap <expr> <C-s> CmdCtrlSlash()

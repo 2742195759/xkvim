@@ -96,6 +96,13 @@ $0
 endsnippet
 #}}}
 
+# {{{
+snippet Exception "Create Customized Exception."
+class NetworkError(Exception):
+    pass
+endsnippet
+# }}}
+
 #{{{unittest
 snippet unittest "add unittest for python code"
 class ${1:TestCaseName}(unittest.TestCase):
@@ -107,7 +114,9 @@ class ${1:TestCaseName}(unittest.TestCase):
 
     def test_${3:add}(self):
         self.assertEqual(1, 1)
-
+        with self.assertRaisesRegex(AssertionError,
+                                    ('the context of the exception')):
+            pass
 $0
 endsnippet
 #}}}
@@ -174,7 +183,7 @@ endsnippet
 #}}}
 
 #{{{fread
-snippet open "open file and read lines"
+snippet fread "open file and read lines"
 with open(${1:"output.txt"}, "r") as fp :
     ${2:lines} = fp.readlines()
 endsnippet
@@ -230,29 +239,102 @@ endsnippet
 
 #{{{ # pd.profile
 snippet pd_profile_cpu "add profile"
-import paddle.fluid.profiler as profiler
-if batch_id == 1:
-    profiler.start_profiler("All", "OpDetail")
-if batch_id == 10:
-    profiler.stop_profiler("total", "./profile_new_exe")
+"""
+profile 1: output a chrome timeline.
+"""
+prof = profiler.Profiler(scheduler=[10, 20],  #{{{
+                         targets=[profiler.ProfilerTarget.CPU, profiler.ProfilerTarget.GPU],
+                         on_trace_ready = profiler.export_chrome_tracing('./log'),
+                         ) 
+prof.start()  
+for i in range(30):
+    loss = net(inp)   
+    prof.step()
+prof.stop()
+prof.summary(op_detail=True)
+#}}}
+"""
+profile 2: output a terminal profile report
+"""
+prof = paddle.utils.profiler.Profiler()  #{{{
+"""
+self.options = {
+    'state': 'All',
+    'sorted_key': 'default',
+    'tracer_level': 'Default',
+    'batch_range': [0, sys.maxsize],
+    'output_thread_detail': False,
+    'profile_path': 'none',
+    'timeline_path': 'none',
+    'op_summary_path': 'none'
+}
+"""
+prof.profiler_options.options['profile_path'] = "./paddle_profile.txt"
+prof.profiler_options.options['batch_range'] = [10, 20] 
+prof.start()  
+with prof:
+    for i in range(30):
+        loss = net(inp)   
+        paddle.utils.get_profiler().record_step()
+#}}}
 endsnippet
 #}}}
 
 #{{{ # pd.nvprofile
 snippet pd_profile_cuda "cuda profile"
-import paddle.fluid.core as core
-global_step += 1
-if is_nsys and global_step == 100:
-    core.nvprof_start()
-    core.nvprof_enable_record_event()
-    core.nvprof_nvtx_push(str(global_step))
-if is_nsys and global_step == 110:
-    core.nvprof_nvtx_pop()
-    core.nvprof_stop()
-    sys.exit()
-if is_nsy and global_step > 100 and global_step < 110:
-    core.nvprof_nvtx_pop()
-    core.nvprof_nvtx_push(str(global_step))
+import os
+class PaddleProfiler:
+    def __init__(self, start, end):
+        self.s = start
+        self.e = end
+        self.cur = 0
+
+    def step(self):
+        self.cur += 1
+        if self.cur == self.s:
+            self.profile_start()
+        if self.cur == self.e:
+            self.profile_stop()
+        if self.cur > self.s and self.cur < self.e:
+            self.profile_step()
+
+    def profile_start(self):
+        from paddle.framework import core
+        core.nvprof_start()
+        core.nvprof_enable_record_event()
+        core.nvprof_nvtx_push(str(self.cur))
+
+    def profile_step(self):
+        from paddle.framework import core
+        core.nvprof_nvtx_pop()
+        core.nvprof_nvtx_push(str(self.cur))
+
+    def profile_stop(self):
+        from paddle.framework import core
+        core.nvprof_nvtx_pop()
+        core.nvprof_stop()
+        os._exit(0)
+pp = PaddleProfiler(100, 110)
+for batch in batches:
+    pp.step()
+
+with paddle.fluid.profiler._nvprof_range(i, 10, 20):
+    forward()
+
+# 启动命令：
+# nsys profile -o my_report -w true -t cuda,nvtx,osrt,cudnn,cublas -s cpu --capture-range=cudaProfilerApi --stop-on-range-end=true --cudabacktrace=true -x true python train.py
+endsnippet
+#}}}
+
+#{{{ # pd.in_eager
+snippet pd.in_eager "is paddle in eager mode ? "
+if _in_eager_mode():
+    return _C_ops.final_state_allclose()
+endsnippet
+#}}}
+
+snippet pd.mode_import "non_static_mode"  #{{{
+from paddle.fluid.framework import in_dygraph_mode, non_static_mode, _in_legacy_dygraph
 endsnippet
 #}}}
 
@@ -341,3 +423,1202 @@ with EventStorage() as storage:
 	storage.step()
 endsnippet
 #}}}
+
+###############
+#
+# Ply snippets
+#
+###############
+
+#{{{ # p_
+snippet p_ "p_function of ply. a syntax parser function"
+def p_${1:expr}(p):
+    '''
+    $1 : ${2:TODO}
+    '''
+    ${3:p[0] = p[1]}
+
+$0
+endsnippet
+#}}}
+
+###############
+#
+# Threading
+#
+###############
+
+snippet Lock "Threading Lock" #{{{
+from threading import Lock
+l = Lock() # normal lock
+l = RLock() # reusable lock. multi-acquire and multi-release
+l.acquire()
+l.release()
+endsnippet
+#}}}
+
+snippet subprocess "subprocess example in python" #{{{
+import subprocess
+# create subprocess
+child = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+# write into the stdin: string
+child.stdin.write("write into.")
+# C-D
+child.stdin.close()
+# get output from stdout
+info = child.stdout.read(num_bytes)
+info = child.stdout.readline()
+
+endsnippet
+#}}}
+
+snippet Thread "create thread and run a function." #{{{
+import threading
+# exit after run
+threading.Thread(target=func, args=(a1,), daemon=True).start() 
+# exit manually
+threading.Thread(target=func, args=(a1,), daemon=False).start() 
+endsnippet
+#}}}
+
+snippet pd.speed_test "[dygraph] speed test example for evaluation of matmul." #{{{
+import time
+import paddle
+
+shape = (100 ,100)
+times = 10000
+average_time = 30
+
+paddle.set_device('gpu')
+x = paddle.to_tensor(np.random.rand(*shape))
+y = paddle.to_tensor(np.random.rand(*shape))
+
+time_list = []
+for _ in range(average_time):
+    start = time.time()
+    for i in range(times):
+        z = paddle.matmul(x, y)
+    time_list.append( time.time() - start )
+
+print ("AvgTime: ", sum(time_list) * 1.0 / len(time_list))
+endsnippet
+#}}}
+
+snippet pd.static_example "[static] a static graph example" #{{{
+import paddle
+import paddle.fluid as fluid
+import numpy as np
+import sys
+import os
+import os.path as osp
+import numpy as np
+import os
+import unittest
+
+import paddle
+import paddle.fluid as fluid
+import paddle.fluid.core as core
+import paddle.fluid.layers as layers
+import paddle.fluid.framework as framework
+from paddle.fluid.backward import append_backward
+from paddle.fluid.framework import Program, program_guard
+
+paddle.enable_static()
+
+# TODO( Snippet paddle import. )
+paddle.set_device('cpu')
+paddle.enable_static()
+main_prg, startup_prg = paddle.static.Program(), paddle.static.Program()
+with program_guard(main_prg, startup_prg):
+    var_a = paddle.static.data(name='a', shape=[2,2], dtype='float32')
+    var_a.stop_gradient = False
+    linear = paddle.nn.Linear(2, 2)
+    exe = paddle.static.Executor()
+    sgd = paddle.optimizer.SGD(0.001, parameters=[linear.weight])
+    sgd.minimize(linear(var_a).mean())
+    exe.run(startup_prg)
+    print (main_prg)
+    out = exe.run(main_prg, 
+                  feed={'a': np.array([[1.0,2],[3,4]], dtype='float32'), 
+                        'b': np.array([0])}, 
+                  fetch_list=[var_a])
+    print("RuntimeShape", out[0].shape)
+endsnippet
+#}}}
+
+snippet doc "create doc for python function." #{{{
+    '''
+    Description of function.
+
+    Parameters
+    ----------
+    parameter_name:
+        description of parameter.
+    
+    Returns
+    -------
+    A tuple of g_labels, g_view, g_nout, g_count
+    g_labels:
+        the layout of all labels in a string
+    g_view:
+        the index table
+    g_nout:
+        the number of output dimensions
+    g_count:
+        the counter array for dimension contractions
+    '''
+endsnippet
+#}}}
+
+snippet string_example "string method example." #{{{
+x = "abcdefg".replace("abc", "xxx") # "xxxdefg
+x = "bbcaaadd".count('a') # 3
+x, *y = "xxxx".split("->") # x: "xxxx", y: []
+res = map(lambda x: x.strip(), "x , y ".split(",")) # res = ['x', 'y']
+x = "a".isalpha() # True
+endsnippet
+#}}}
+
+snippet default_dict "default_dict" #{{{
+import collections
+ddict = collections.defaultdict(lambda: [])
+endsnippet
+#}}}
+
+snippet counter "counter example from collections" #{{{
+import collections
+a = "11222333"
+cnt = collections.Counter(a)
+list(cnt.elements()) # ['1', '2', '3']
+cnt.get("1") # 2
+endsnippet
+#}}}
+
+snippet prod "prod of a list" #{{{
+import numy as np
+np.prod([1,2,3,], dtype=np.int64)  # 6
+endsnippet
+#}}}
+
+snippet filter "filter a list or map" #{{{
+list = [None, 1, 2, 3]
+# while function == True, we keep it.
+filter(None, list) # [1,2,3]
+filter(lambda x: x == 1, list) # [1]
+endsnippet
+#}}}
+
+snippet func_cache "function cache provided by functools" #{{{
+from functools import lru_cache
+# function is a function. the lru_cache is a wrapper.
+# so we call the lru_cache and reset the function with wrapped function.
+function = lru_cache(maxsize=128)(function)
+endsnippet
+#}}}
+
+snippet print_to_file "print into a file." #{{{
+with open(${2:"./output.txt"}, "w") as fp:
+    import sys
+    saved = sys.stdout
+    sys.stdout = fp
+    print (${1:"hello world"})
+    sys.stdout = saved
+endsnippet
+#}}}
+
+snippet fake_data "paddle fake dataloader for model." #{{{
+# method 1: fake data_loader .
+BATCH_SIZE = 128
+BATCH_NUM = 665
+IMAGE_SIZE = (3, 224, 224)
+class RandomDataset(paddle.io.Dataset):
+    def __init__(self, num_samples):
+        self.num_samples = num_samples
+
+    def __getitem__(self, idx):
+        image = np.random.random(IMAGE_SIZE).astype('float32')
+        label = np.random.randint(0, 1, 1).astype('int64')
+        return image, label
+
+    def __len__(self):
+        return self.num_samples
+
+dataset = RandomDataset(665 * BATCH_SIZE)
+data_loader = paddle.io.DataLoader(dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=True,
+            drop_last=True,
+            num_workers=2)
+endsnippet
+#}}}
+
+snippet fake_data "paddle fake data for training." #{{{
+# method 2: fake data directly.
+inputs_node = paddle.rand((args.batch_size, args.msa_length // args.dap_size, args.res_length, args.cm))
+inputs_pair = paddle.rand((args.batch_size, args.res_length // args.dap_size, args.res_length, args.cz))
+
+node_mask = paddle.ones((args.batch_size, args.msa_length, args.res_length))
+pair_mask = paddle.ones((args.batch_size, args.res_length, args.res_length))
+
+endsnippet
+#}}}
+
+snippet tensorflow_static "tensorflow static example" #{{{
+# import tensorflow as tf
+
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
+# m0 = tf.reshape(tf.random.normal(shape=[2, 3]), [2, -1])
+# m1 = tf.reshape(tf.random.normal(shape=[3, 5]), [3, -1])
+m0 = tf.placeholder(tf.float32, (None, 2, None), name='Xs')
+m1 = tf.placeholder(tf.float32, (None, None, 3), name='ys')
+print(m0, m1)
+
+e = tf.einsum('ijk, ijk->ijk', m0, m1)
+# output[i,k] = sum_j m0[i,j] * m1[j, k]
+print(e.shape)
+print(e)
+print(tf.get_default_graph())
+
+endsnippet
+#}}}
+
+snippet example_tf_to_static "tensorflow dygraph to static example" #{{{
+import tensorflow as tf
+@tf.function  # The decorator converts `add` into a `Function`.
+def add(a, b):
+  return a + b
+
+import pdb
+pdb.set_trace() 
+add(tf.ones([2, 2]), tf.ones([2, 2]))  #  [[2., 2.], [2., 2.]]
+print(tf.autograph.to_code(add.python_function))
+endsnippet
+#}}}
+
+snippet example_pd_to_static "paddle dygraph to static example, for quick verifing" #{{{
+import paddle
+def vlist_of_dict(x):
+    a = []
+    for i in range(x):       
+        pp = {"config": x}
+        a.append(pp)          
+    return a 
+
+b = paddle.to_tensor([True, False, True])
+x = paddle.to_tensor([3])
+z = paddle.to_tensor([6])
+y = paddle.rand((100, 2, 2))
+
+print(paddle.jit.to_static(vlist_of_dict).code)
+print(paddle.jit.to_static(vlist_of_dict)(x))
+endsnippet
+#}}}
+
+snippet example_pd_simple_net "a simple net with linear as parameters" #{{{
+import paddle
+import numpy as np
+import random
+from numpy.testing import assert_array_equal
+
+class SimpleNet(paddle.nn.Layer):               
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.linear1 = paddle.nn.Linear(10, 3)    
+        self.linear2 = paddle.nn.Linear(3, 1)    
+        
+    def forward(self, x):
+        out1 = self.linear1(x)
+        out2 = self.linear2(out1) 
+        return [out1, out2]
+
+def run_graph(inp, to_static):
+    """ dygraph only backward.
+    """
+    paddle.seed(2021)
+    np.random.seed(2021)
+    random.seed(2021)
+    net = SimpleNet()
+    if to_static:
+        net = paddle.jit.to_static(net)
+    loss = net(inp)
+    #loss = net(inp)
+    #loss[0].backward()
+    #print (net.linear1.weight.grad)
+    return loss
+
+def run_dygraph_optimizer(inp, to_static):
+    """ dygraph train + SGD optimizer
+    """
+    paddle.seed(2021)
+    np.random.seed(2021)
+    random.seed(2021)
+    net = SimpleNet()
+    optimizer = paddle.optimizer.SGD(learning_rate=0.3,
+        parameters=net.parameters())
+    for i in range(10):
+        optimizer.clear_grad()
+        loss = net(inp)
+        print("XK: ", loss.item())
+        loss.backward()
+        optimizer.step()
+    return loss
+    
+
+inp = paddle.rand((10,))
+assert_array_equal(run_graph(inp, True)[0].numpy(), run_graph(inp, False)[0].numpy(), "Not Equal in dygraph and static graph", True)
+endsnippet
+#}}}
+
+snippet example_pd_unittest "a simple but complete unittest for paddle" #{{{
+# Copyright (c) 2020 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from __future__ import print_function
+import unittest
+import paddle
+import numpy as np
+import random
+from paddle.fluid.dygraph.container import BufferList
+from numpy.testing import assert_array_equal
+from paddle import fluid
+
+class SimpleNet(paddle.nn.Layer):               
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.linear1 = paddle.nn.Linear(10, 3)    
+        self.linear2 = paddle.nn.Linear(3, 1)    
+        self.hidden  = BufferList([
+            paddle.to_tensor([1.0]), 
+            paddle.to_tensor([2.0]),
+        ])
+        #self.hidden  = paddle.to_tensor([1.0])
+        
+    def forward(self, x):
+        out1 = self.linear1(x)
+        out2 = self.linear2(out1) + self.hidden[0]
+        self.hidden.assign([
+            paddle.to_tensor([3.0]), 
+            paddle.to_tensor([4.0])
+        ])
+        return [out1, out2]
+
+def run_graph(inp, to_static):
+    paddle.seed(2021)
+    np.random.seed(2021)
+    random.seed(2021)
+    net = SimpleNet()
+    if to_static:
+        net = paddle.jit.to_static(net)
+    loss = net(inp)
+    return loss
+
+class TestBufferList(unittest.TestCase):
+
+    def test_bufferlist(self):
+        inp = paddle.rand((10,))
+        assert_array_equal(run_graph(inp, True)[0].numpy(), run_graph(inp, False)[0].numpy(), "Not Equal in dygraph and static graph", True)
+
+
+if __name__ == '__main__':
+    with fluid.framework._test_eager_guard():
+        unittest.main()
+endsnippet
+#}}}
+
+snippet debug_print_net_parameter "print all the net parameters" #{{{
+for name, param in net.named_parameters():
+    if param is not None:
+        print (name, param.cast("float32").mean())
+endsnippet
+#}}}
+
+snippet load_inference_model "load and run inference model" #{{{
+def my_executor():
+    exe = paddle.static.Executor()
+    path = "./output_inference/cascade_mask_rcnn_r50_fpn_1x_coco/model" 
+    program, feeds, fetchs = paddle.static.load_inference_model(path, exe)
+    import pickle
+    inputs = pickle.load(open("/home/data/cacade.in", "rb"))
+    #inputs = pickle.dump(inputs, open("/home/data/cacade.in", "wb"))
+    results = exe.run(program,
+              feed=inputs,
+              fetch_list=fetchs)
+    print (results)
+endsnippet
+#}}}
+
+snippet example_torchscript "a example use torch script to dy2static" #{{{
+import torch
+import torch.nn as nn
+import numpy as np
+def func(grad):
+   return grad * 2
+
+@torch.jit.script
+def f(x):
+    x.requires_grad=True
+    x.register_hook(func)
+    return 2 * x
+    
+print(f(torch.randn(2, 2)))
+endsnippet 
+#}}}
+
+snippet absolute_import "absolute_import by imp library." #{{{
+import imp
+ggg = imp.load_source("ggg", "/home/data/global.py")
+ggg.global_loss = x
+endsnippet 
+#}}}
+
+snippet debug_accurary "a example to debug network accuracy problem in dygraph." #{{{
+for i in range(30):
+    optimizer.clear_grad()
+    loss = net(src_word, src_pos)
+    loss = loss.sum()
+    print ("Step: ", i)
+    print ("    =======Loss=========")
+    print("XK: ", loss.item())
+    loss.backward()
+    print ("    =======GradAndWeights=========")
+    for name, param in net.named_parameters():
+        if param.grad is not None:
+            print (name+"_grad", param.grad.mean().item())
+        if param is not None:
+            print (name, param.mean().item())
+    optimizer.step()
+    print ("    =======Update=========")
+    for name, param in net.named_parameters():
+        if param is not None:
+            print (name, param.mean().item())
+endsnippet 
+#}}}
+
+snippet debug_print "print a tensor value in static graph" #{{{
+paddle.static.Print(${1}.mean(), message="Memory", print_phase="forward")
+endsnippet 
+#}}}
+
+snippet debug_accurary_dy2static "a example to debug network accuracy problem in dygraph." #{{{
+import paddle
+import numpy as np
+import random
+from numpy.testing import assert_array_equal
+
+paddle.set_printoptions(precision=31)
+
+def parameter_parser():
+    import argparse
+    parser = argparse.ArgumentParser(description="Support Args:")
+    parser.add_argument("--to_static",  type=str,   default="true",  help="data path")
+    return parser.parse_args()
+
+args = parameter_parser()
+
+class SimpleNet(paddle.nn.Layer):               
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.linear0 = paddle.nn.Linear(64, 64)    
+        self.linear1 = paddle.nn.Linear(64, 64)    
+        self.linear2 = paddle.nn.Linear(64, 64)    
+        self.linear3 = paddle.nn.Linear(64, 64)    
+        self.linear4 = paddle.nn.Linear(64, 64)    
+        
+    def forward(self, x):
+        x = self.linear0(x)
+
+        x1 = x + 0
+        x2 = x + 0
+        x3 = x + 0
+
+        #x1.register_hook(lambda x: print("x1.grad", x.mean()))
+        #x2.register_hook(lambda x: print("x2.grad", x.mean()))
+        #x3.register_hook(lambda x: print("x3.grad", x.mean()))
+
+        out1 = self.linear1(x1) # tmp0
+        out2 = self.linear2(x2) # tmp1
+        out3 = self.linear3(x3) # tmp2
+
+        s = out1.mean() + out2.mean() + out3.mean()
+        #s = out3.mean() + out1.mean() + out2.mean()
+        return s
+
+def run_dygraph_optimizer(to_static):
+    """ dygraph train + SGD optimizer
+    """
+    paddle.seed(2021)
+    np.random.seed(2021)
+    random.seed(2021)
+    net = SimpleNet()
+
+    if to_static: 
+        net = paddle.jit.to_static(net)
+
+    inp = paddle.rand((2, 2048, 64, 64))
+    optimizer = paddle.optimizer.SGD(learning_rate=0.03,
+        parameters=net.parameters())
+    for i in range(10):
+        print ("======== New Step =======")
+        optimizer.clear_grad()
+        loss = net(inp)
+        for name, param in net.named_parameters():
+            if param is not None:
+                print ("param: ", name, param.cast("float32").mean())
+        loss.backward()
+        for name, param in net.named_parameters():
+            if param.grad is not None:
+                print ("grad:  ", name, param.grad.cast("float32").mean())
+        print ("loss", loss.mean())
+        optimizer.step()
+    return loss
+    
+if args.to_static == "true":
+    run_dygraph_optimizer(True).numpy()
+else: 
+    run_dygraph_optimizer(False).numpy()
+    
+"""
+Start command: 
+PYTHONPATH="/home/data/Paddle/build/python" python3.7 /home/data/test/test_aggre.py --to_static=false > /home/data/log1.txt && PYTHONPATH="/home/data/Paddle/build/python" python3.7 /home/data/test/test_aggre.py --to_static=true > /home/data/log2.txt
+
+Vim diff command:
+diffsplit 
+"""
+endsnippet 
+#}}}
+
+snippet example_setup "a example of setup.py." #{{{
+"""Setup for pip package."""
+
+import PPAutoDiff
+
+from setuptools import find_packages, setup
+
+
+def read_requirements_file(filepath):
+    with open(filepath) as fin:
+        requirements = fin.read()
+    return requirements
+
+
+REQUIRED_PACKAGES = read_requirements_file("requirements.txt")
+
+
+setup(
+    name='ppautodiff',
+    version=PPAutoDiff.__version__,
+    description=
+    ('A tools to automatically diff precision between Paddle and Pytorch Model.'
+     ),
+    long_description='',
+    url='https://github.com/PaddlePaddle/PPAutoDiff',
+    author='PaddlePaddle Author',
+    author_email='',
+    install_requires=REQUIRED_PACKAGES,
+    packages=find_packages(),
+    include_package_data=True,
+    python_requires=">=3.7",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: OS Independent",
+    ],
+    license='Apache 2.0',
+    keywords=('ppautodiff automatically diff precision between paddle and pytorch model'),
+)
+endsnippet 
+#}}}
+
+snippet github_workflow "a example of github workflow" #{{{
+#workflow name
+name: Test 
+
+#trigger event
+on: [push, pull_request]
+
+# jobs definition
+jobs:
+  # name of job
+  Test:
+    # name of job
+    name: Test
+    # which os platform you want to run on
+    runs-on: ubuntu-20.04
+    # ...
+    permissions:
+      pull-requests: write
+      contents: read
+      id-token: write
+    # steps to run: sequential run
+    steps:
+      # use: call github action. see github/action for all list of actions
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      # customed command definition
+      - name: Install dependencies
+        # customed command 
+        # | is to continue a line
+        run: |
+          # each line is a command
+          python -m pip install --upgrade pip
+          make install
+      # make test. write all you command in Makefile.
+      - name: run the command
+        run: make test
+endsnippet 
+#}}}
+
+snippet print_memory "a example of print memory." #{{{
+import  os
+import re
+import time
+def print_memory(number):
+    pattern = r"(\d+)MiB /"
+    os.system("nvidia-smi > /home/data/tmp.txt")
+    with open("/home/data/tmp.txt", "r") as fp :
+        lines = fp.readlines()
+    out = []
+    for line in lines:
+        memory = re.search(pattern, line)
+        if memory is not None:
+            out.append(memory.group(1))
+
+    return out[number] + "Mb"
+print(print_memory(3))
+endsnippet 
+#}}}
+
+snippet print_train_program "print the train program of dy2static." #{{{
+print(net.forward.get_concrete_program(inp)[1].train_program)
+endsnippet  
+#}}}
+
+snippet print_main_program "print the default main program of static." #{{{
+print(paddle.static.default_main_program())
+endsnippet 
+#}}}
+
+snippet bytecode "dump the bytecode of python function" #{{{
+import dis
+def func(x, y):
+	return x + y
+dis.dis(func)
+endsnippet 
+#}}}
+
+snippet cmd "add cmd for python files for <F9> execution." #{{{
+#cmd: export PYTHONPATH=/home/data/Paddle/build/python
+#cmd: conda activate py38
+endsnippet 
+#}}}
+
+snippet select "select nonblocking function." #{{{
+    def __nonblocking(self, socket_client, socket_server):
+        '''
+        使用select实现异步处理数据
+
+        参数：socket_client 代理端与客户端之间建立的套接字
+        参数：socket_server 代理端与服务端之间建立的套接字
+        '''
+        _rlist = [socket_client, socket_server]
+        is_recv = True
+        while is_recv:
+            try:
+                # rlist, wlist, elist = select.select(_rlist, _wlist, _elist, [timeout])
+                # 参数1：当列表_rlist中的文件描述符fd状态为readable时，fd将被添加到rlist中
+                # 参数2：当列表_wlist中存在文件描述符fd时，fd将被添加到wlist
+                # 参数3：当列表_xlist中的文件描述符fd发生错误时，fd将被添加到elist
+                # 参数4：超时时间timeout
+                #  1) 当timeout==None时，select将一直阻塞，直到监听的文件描述符fd发生变化时返回
+                #  2) 当timeout==0时，select不会阻塞，无论文件描述符fd是否有变化，都立刻返回
+                #  3) 当timeout>0时，若文件描述符fd无变化，select将被阻塞timeout秒再返回
+                rlist, _, elist = select.select(_rlist, [], [], 2)
+                if elist:
+                    break
+                for tmp_socket in rlist:
+                    is_recv = True
+                    # 接收数据
+                    data = tmp_socket.recv(self.socket_recv_bufsize)
+                    if data == b'':
+                        is_recv = False
+                        continue
+                    
+                    # socket_client状态为readable, 当前接收的数据来自客户端
+                    if tmp_socket is socket_client: 
+                        socket_server.send(data) # 将客户端请求数据发往服务端
+                        debug('proxy', 'client -> server')
+
+                    # socket_server状态为readable, 当前接收的数据来自服务端
+                    elif tmp_socket is socket_server:
+                        socket_client.send(data) # 将服务端响应数据发往客户端
+                        debug('proxy', 'client <- server')
+                        
+                time.sleep(self.delay) # 适当延迟以降低CPU占用
+            except Exception as e:
+                break
+
+        socket_client.close()
+        socket_server.close()   
+endsnippet#}}}
+
+snippet execute_time "execute time of function." #{{{
+def execute_time(func):  
+    def wrapper(*args, **kwargs):  
+        start_time = time.time()  
+        result = func(*args, **kwargs)  
+        end_time = time.time()  
+        execution_time = end_time - start_time  
+        print("Execute time:", execution_time)
+        return result  
+    return wrapper 
+endsnippet 
+#}}}
+
+snippet bytecode_ast "execute time of function." #{{{
+import os
+import sys
+import dis
+sys.path.append("/home/data/xiongkun/paddle_bytecode/")
+
+import pprint
+from paddle_bytecode.convert_to_bytecode_ast import convert_to_bytecode_ast
+from paddle_bytecode.dump_transform import DumpTransform
+
+def func(a, b):
+    return a + b 
+
+output = convert_to_bytecode_ast(dis.get_instructions(func))
+pprint.pprint(DumpTransform()(output))
+endsnippet  
+#}}}
+
+snippet py_closure "execute time of function." #{{{
+import dis
+import os
+import types
+import inspect
+
+def func(a, b):
+    print (func.__code__.co_cellvars)
+    print (func.__code__.co_freevars)
+    print ("first: ", inspect.currentframe().f_locals)
+    c = 3
+    breakpoint() 
+    print ("second:", inspect.currentframe().f_locals)
+    def mm ():
+        print (mm.__code__.co_cellvars)
+        print (mm.__code__.co_freevars)
+        print ("")
+        def cc (): 
+            nonlocal a 
+            a = 12
+            a = c + 1
+            print (cc.__code__.co_cellvars)
+            print (cc.__code__.co_freevars)
+            print ("")
+            return a + b
+        return cc()
+    print ("third:", inspect.currentframe().f_locals)
+    return mm()
+
+dis.dis(func)
+print (func(2, 3))
+
+xx = 1
+
+tt = types.CellType()
+breakpoint() 
+endsnippet  
+#}}}
+
+snippet wrapper_application "a wrapper of a specified application, you can get input/output easily." #{{{
+##!/bin/env python3
+import subprocess
+import os
+import sys
+import select
+
+dump_file = "/home/data/project/dump.txt"
+
+fp = open (dump_file, "w")
+
+def main():
+    fp.write(str(sys.argv))
+    child = subprocess.Popen("/root/.ghcup/bin/haskell-language-server-wrapper --lsp", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    _rlist = [sys.stdin, child.stdout, child.stderr]
+    while child.poll() is None:
+        rlist, _, _ = select.select(_rlist, [], [], 2)
+        for tmp_socket in rlist:
+            if tmp_socket == sys.stdin: 
+                bytes = os.read(sys.stdin.fileno(), 10240)
+                os.write(fp.fileno(), "\r\n[Input]:\r\n".encode("utf-8"))
+                os.write(fp.fileno(), bytes)
+                child.stdin.write(bytes)
+                child.stdin.flush()
+            elif tmp_socket == child.stdout: 
+                bytes = os.read(child.stdout.fileno(), 10240).decode("utf-8")
+                os.write(fp.fileno(), "\r\n[Output]:\r\n".encode("utf-8"))
+                os.write(fp.fileno(), bytes.encode("utf-8"))
+                sys.stdout.write(bytes)
+                sys.stdout.flush()
+            elif tmp_socket == child.stderr: 
+                bytes = os.read(tmp_socket.fileno(), 10240).decode("utf-8")
+                sys.stderr.write(bytes)
+                sys.stderr.flush()
+
+main()
+endsnippet  
+#}}}
+
+snippet difflib "a delta compare and delta apply function." #{{{
+import difflib
+def get_content_deltas(a, b):
+    """ 
+    inputs: `a` a list of string, without '\n'
+    inputs: `b` a list of string, without '\n'
+    outputs: changes satisfying the LSP protocol: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentContentChangeEvent
+    """
+    changes = []
+
+    def insert_before(line, new_text):
+        change = {'range': {'start': {}, 'end': {}}, 'text': new_text}
+        change['range']['start']['line'] = line
+        change['range']['start']['character'] = 0
+        change['range']['end']['line'] = line
+        change['range']['end']['character'] = 0
+        return change
+
+    def delete_current(line):
+        change = {'range': {'start': {}, 'end': {}}, 'text': ''}
+        change['range']['start']['line'] = line
+        change['range']['start']['character'] = 0
+        change['range']['end']['line'] = line + 1
+        change['range']['end']['character'] = 0
+        return change
+
+    linenr = 0
+    for diff in difflib.ndiff(a, b):
+        if diff.startswith("  "): 
+            linenr += 1
+        if diff.startswith("+ "): 
+            changes.append(insert_before(linenr, diff[2:]+"\n"))
+            linenr += 1
+        if diff.startswith("- "): 
+            changes.append(delete_current(linenr))
+
+    return changes
+
+def apply_content_deltas(current, changes):
+    buffer = "\n".join(current)
+    def to_idx(buffer, line, col):
+        lines = buffer.split("\n")
+        idx = 0
+        for i in range(line):
+            idx += len(lines[i]) + 1
+        idx += col
+        return idx
+
+    for change in changes: 
+        start_idx = to_idx(buffer, change['range']['start']['line'], change['range']['start']['character'])
+        end_idx   = to_idx(buffer, change['range']['end']['line'], change['range']['end']['character'])
+        buffer = buffer[:start_idx] + change['text'] + buffer[end_idx:]
+
+    return buffer.split("\n")
+
+#a = ["sdfasdfasdf", 'hello', "sdfsdf"]
+#b = ["sdfasdfasdf", 'hellowor', "sdfsdf"]
+
+def main(): 
+
+    a = ["sdfas", "dfasdf", "======",'hello', "sdfsdf"]
+    b = ['hellowor', "he", "======", "llo", "xxx", "sdfsdf"]
+
+    for change in get_content_deltas(a, b): 
+        print (change)
+
+    print(apply_content_deltas(a, get_content_deltas(a, b)))
+
+if __name__ == "__main__":
+    main()
+endsnippet  
+#}}}
+
+snippet run_file_header "a header for run single file." #{{{
+#!/bin/env python3
+#cmd: conda activate py38
+#cmd: export ENABLE_FALL_BACK=False
+endsnippet  
+#}}}
+
+snippet pandas "a example for pandas deal with xlsx" #{{{
+import pandas as pd
+path = "./sot_speed.xlsx"
+
+# sheet name is the table number.
+table_dy = pd.read_excel(path, sheet_name=4, header=0, names=None, index_col=None, 
+              usecols=None, dtype=None, engine=None, 
+              converters=None, true_values=None, false_values=None, 
+              skiprows=None, nrows=None, na_values=None, parse_dates=False, 
+              date_parser=None, thousands=None, comment=None, skipfooter=0)
+
+table_sot = pd.read_excel(path, sheet_name=5, header=0, names=None, index_col=None, 
+              usecols=None, dtype=None, engine=None, 
+              converters=None, true_values=None, false_values=None, 
+              skiprows=None, nrows=None, na_values=None, parse_dates=False, 
+              date_parser=None, thousands=None, comment=None, skipfooter=0)
+
+breakpoint() 
+
+print (table_dy)
+
+print (table_sot)
+
+output = pd.merge(table_dy, table_sot, on=["模型库", "模型", "运行环境"], suffixes=("_dy", "_sot"))
+
+output.to_excel('output.xlsx')
+
+breakpoint() 
+endsnippet  
+#}}}
+
+snippet debug_program_split "a example for pandas deal with xlsx" #{{{
+    def forward_backward_print(forward_program, backward_program, program_attr):
+        def get_result_label(program, opresult):
+            opr_set = set()
+            for idx, op in enumerate(program.block().ops): 
+                for r in op.results(): 
+                    opr_set.add(r)
+                    if r == opresult:
+                        return len(opr_set) - 1
+            assert False
+        print ("Forward:")
+        print (forward_program)
+        print ("Backward:")
+        print (backward_program)
+        mapping = {'bo': 'fo', 'bm': 'fm', 'bx': 'fx', 'bp': 'fp'}
+        for idx, op in enumerate(backward_program.block().ops): 
+            if op.name() == "pd.data":
+                opresult = op.results()[0]
+                for bw, fw in mapping.items(): 
+                    if opresult in program_attr[bw]: 
+                        fwd_opresult = program_attr[fw][program_attr[bw].index(opresult)]
+                        print (f"mapping opresult: bwd_%{idx} -> fwd_%{get_result_label(forward_program, fwd_opresult)}")
+                if opresult in program_attr['bo_g']: 
+                    fwd_opresult = program_attr['fo'][program_attr['bo_g'].index(opresult)]
+                    print (f"mapping opresult: bwd_%{idx} -> fwd_%{get_result_label(forward_program, fwd_opresult)}_grad")
+endsnippet  
+#}}}
+
+snippet example_sot_slow "a example which sot behaves badly." #{{{                                                                                                                                          
+import paddle
+import time
+import paddle
+import numpy as np
+import random
+import os
+from numpy.testing import assert_array_equal
+from sot.utils import sotprof_range
+
+os.environ['ENABLE_FALL_BACK'] = "True"
+os.environ['MIN_GRAPH_SIZE'] = '1'
+os.environ['FLAGS_cudnn_deterministic'] = '1'
+
+class SimpleNet(paddle.nn.Layer):               
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.layers = paddle.nn.LayerList([paddle.nn.Linear(10, 10) for _ in range(100)])
+        
+    def forward(self, x):
+        try:
+            for i in range(len(self.layers)):
+                x = self.layers[i](x)
+                x = self.layers[i](x)
+                x = self.layers[i](x)
+                x = self.layers[i](x)
+        except:
+            pass
+        return x
+
+def execute_time(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print("Execute time:", execution_time)
+        return result
+    return wrapper
+
+@execute_time
+def run_graph(inp, to_static, start_profile=False):
+    """ dygraph only backward.
+    """
+    paddle.seed(2021)
+    np.random.seed(2021)
+    random.seed(2021)
+    net = SimpleNet()
+    if to_static:
+        net = paddle.jit.to_static(net)
+    for i in range(100):
+        if start_profile:
+            with sotprof_range(i, 30, 40, True):
+                inp = net(inp)
+        else:
+            inp = net(inp)
+    loss = inp
+    print ("loss is", loss.mean())
+    return loss
+
+inp = paddle.rand((10,10))
+run_graph(inp, True)
+
+# ================================== #
+run_graph(inp, True, True)
+#run_graph(inp, False, True)
+endsnippet
+#}}}
+
+
+snippet ir_program_helper "a example for pandas deal with xlsx" #{{{
+    def find_op_index(to_find):
+		# find the index of op in program
+        for idx, op in enumerate(block.ops):
+            if op == to_find: 
+                return idx
+        raise NotImplementedError("op not found")
+endsnippet  
+#}}}
+
+snippet get_concrete_program "no description"
+if to_static:
+    print (resnet.forward.get_concrete_program(img)[-1].program.forward_program)
+
+endsnippet
+snippet xxx_dygraph_to_static_utils "no description"
+from dygraph_to_static_utils import (
+    Dy2StTestBase,
+    test_legacy_and_pt_and_pir,
+    test_pir_only,
+    test_ast_only,
+    test_sot_only,
+    test_legacy_only,
+)
+
+endsnippet
+snippet xxx_only "no description"
+#@test_legacy_and_pt_and_pir
+@test_ast_only
+@test_pir_only
+
+endsnippet
+snippet example_layer "no description"
+class Layer(paddle.nn.Layer): 
+    def __init__(self):
+        super(Layer, self).__init__()
+        self.linear = paddle.nn.Linear(2, 2)
+    def forward(self, x):
+        return self.linear(x)
+
+snippet import_dygraph_to_static_utils "no description"
+from dygraph_to_static_utils import Dy2StTestBase, test_sot_only, test_pir_only, test_ast_only, test_legacy_and_pt_and_pir
+
+endsnippet
+snippet xxx_test "no description"
+    @test_ast_only
+    @test_pir_only
+
+endsnippet
+snippet xxx_program_print "no description"
+if to_static:
+    program = resnet.forward.get_concrete_program(img)[-1].program.program
+    print (program)
+
+endsnippet
+snippet get_concrete_program "no description"
+if to_static:
+    print (resnet.forward.get_concrete_program(img)[-1].program.program)
+break
+
+endsnippet
+snippet tensor_hash "no description"
+def tensor_hash(tensor):
+    # 将tensor转换为字节数组
+    byte_array = tensor.astype("float32").numpy().tobytes()
+    # 计算MD5哈希
+    hash_object = hashlib.md5(byte_array)
+    hex_dig = hash_object.hexdigest()
+    return hex_dig
+
+endsnippet
+snippet xxx_save "no description"
+# TODO(@xiongkun): open after save / load supported in pir.
+if (
+    to_static
+    and not paddle.base.framework.use_pir_api()
+):
+
+endsnippet
+
+snippet dbg "random output a print."
+print ("`!p 
+if snip.c == "" :
+	import time
+	snip.rv="debug info: " + str(time.time()) 
+`")
+
+if to_static and not paddle.base.framework.use_pir_api():
+
+endsnippet
+snippet profile_range "no description"
+import os
+import sys
+from paddle.profiler.utils import _nvprof_range
+start_point = 1000000 if os.environ.get("PROFILE", "False") == "False" else 50
+end_point = 200 if os.environ.get("PROFILE", "False") == "False" else 60
+with _nvprof_range(iter, start_point, end_point, True):
+    if end_point == iter: sys.exit(0)
+    model(inputs)
+endsnippet
+
+snippet example_cinn "no description"
+import os                                                                                                                                                                                                           
+os.environ['FLAGS_cinn_new_group_scheduler'] = '1'                                                                                                                                                                  
+os.environ['FLAGS_group_schedule_tiling_first'] = '1'                                                                                                                                                                  
+os.environ['FLAGS_prim_all'] = 'true'                                                                                                                                                                               
+os.environ['FLAGS_enable_pir_api'] = '1'                                                                                                                                                                            
+os.environ['FLAGS_use_cinn'] = '1'                                                                                                                                                                                  
+os.environ['GLOG_v'] = '8'                                                                                                                                                                                  
+                                                                                                                                                                                                                    
+import paddle                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+build_strategy = paddle.static.BuildStrategy()                                                                                                                                                                      
+build_strategy.build_cinn_pass = True                                                                                                                                                                               
+                                                                                                                                                                                                                    
+@paddle.jit.to_static(full_graph=True, build_strategy=build_strategy)                                                                                                                                               
+def func(x):                                                                                                                                                                                                        
+    x = paddle.nn.functional.relu(x)                                                                                                                                                                                
+    return x                                                                                                                                                                                                        
+                                                                                                                                                                                                                    
+x = paddle.rand((100, 1))                                                                                                                                                                                           
+#print (func.get_concrete_program(x)[-1].forward_program)                                                                                                                                                           
+out = func(x)                                                                                                                                                                                                       
+print (out)
+
+endsnippet

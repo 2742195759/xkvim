@@ -7,25 +7,57 @@ set ttimeoutlen=15
 set <M-e>=e  "表示结束
 inoremap <M-e> <esc>
 set <M-d>=d  "表示定义函数
+set <M-r>=r  "表示定义函数
 set <M-;>=;  "补充分号
+set <M-.>=.  "重复上一次的 Code Action
 set <M-a>=a  "添加注释
 set <M-A>=A  "取消注释
-set <M-f>=f  "寻找定义，.h -> .cpp
-set <M-s>=s  "定义Set和Get函数
+set <M-g>=g  "寻找定义，.h -> .cpp
+set <M-s>=s  "定义Set和Get函数, Preview窗口预览keyword.
+set <M-c>=c  "寻找到Decl of cpp
 set <M-1>=1  "切换tab , prev
 set <M-2>=2  "切换tab , next 
+set <M-3>=3  "切换到上一个tab：g<Tab>
 set <M-o>=o  "Jump前一个
+set <M-u>=u  "open preview window in pre windows.
 set <M-i>=i  "Jump后一个
 set <M-F>=F  "切换Source/Head文件
-set <M-m>=m  
-set <M-W>=W 
+set <M-m>=m  "GoTo the Git Commit
+set <M-w>=w 
 set <M-p>=p  "preview popup window.
+set <M-q>=q  "destory a terminal
+set <M-j>=j  "next Index search results.
+set <M-k>=k  "prev Index search results.
+set <M-e>=e  "<ESC>"
+set <M-/>=/  "<ESC>"
+set <M-h>=h  
+set <M-l>=l  
+set <M-n>=n  
+set <M-O>=O
+set <M-I>=I
+set <M-:>=:  
+set <M-[>=[  
+set <M-]>=]  
+
 "set <M->=  "换行，但是会执行
-nnoremap  <M-o> <C-o>
-nnoremap  <M-i> <C-i>
+nnoremap  <M-3> g<Tab>
+tnoremap  <M-3> <C-w>g<Tab>
 
 """ commandline map  {{{
 cnoremap <M-a> <Home>
 cnoremap <M-e> <End>
 cnoremap <M-w> <C-w>
 """}}}
+
+nnoremap <F4> :redraw!<cr>
+nnoremap <M-d> :Def<cr>
+nnoremap <M-r> :Ref<cr>
+nnoremap <M-c> 10[{
+
+" 因为meta key 存在的原因，原来的 esc 就是 会导致 esc 出现延迟，所以使用
+" <M-e> 作为 esc ，保持输入的流畅性。这样的实现很舒服。我觉得可以。
+" 所有的按钮不应该使用 <M-e>
+inoremap <M-e> <esc>
+cnoremap <M-e> <C-c>
+nnoremap <M-e> <esc>
+vnoremap <M-e> <esc>

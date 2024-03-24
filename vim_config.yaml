@@ -1,0 +1,29 @@
+search_config: [
+    '--exclude-dir="/build/*"',
+    '--exclude-dir="/.git/*"',
+    '--exclude-dir="/doc/*"',
+    '--exclude-dir="/docs/*"',
+    '--exclude-dir="/patches/*"',
+    '--exclude-dir="/r/*"',
+    '--exclude-dir="/tools/*"',
+    '--exclude-dir="/Default/*"',
+    '--exclude="tags"',
+    '--exclude="*.cmake"',
+    '--exclude="*.json"',
+    '--exclude="*.swp"',
+    '--exclude-dir="/__pycache__/*"',
+    '--exclude="*.log"',
+    '--exclude-dir="/node-v*"',
+    '--exclude-dir="/BrowserMetrics*"',
+]
+
+terminal_abbreviate: [
+  ["xk", "xiongkun"],
+]
+
+# mac | pc is supported
+default_remote: mac
+
+# Run command <F9>
+#default_run: ""
+

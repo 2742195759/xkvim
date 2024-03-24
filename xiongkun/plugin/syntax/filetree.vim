@@ -1,0 +1,2 @@
+exec 'syn match NERDTreeDir #['. '+-] .*/#'
+
