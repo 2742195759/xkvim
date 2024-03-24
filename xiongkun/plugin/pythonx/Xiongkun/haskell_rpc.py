@@ -5,15 +5,14 @@ from .func_register import *
 
 class HaskellLocalServerCreator:
     def __init__(self):
-        #self._port = find_free_port()
-        self._port = 3000
+        self._port = find_free_port()
         self._log_path = f"/tmp/log.{self._port}"
 
     def port(self): 
         return self._port
 
     def cmd (self): 
-        return f"cd {HOME_PREFIX}/xkvim/haskell/vimrpc/ && ./main 127.0.0.1 {self._port} 1>{self._log_path} 2>&1"
+        return f"cd {HOME_PREFIX}/xkvim/haskell/vimrpc/ && HOST=127.0.0.1 PORT={self._port} ./main 1>{self._log_path} 2>&1"
 
     def log_path(self):
         return self._log_path
@@ -45,6 +44,7 @@ class HaskellServer(RPCServer):
     def __init__(self):
         creator = HaskellLocalServerCreator()
         packer = HaskellPacker()
+        print ("Create a haskell server.")
         super().__init__("HaskellRpc", None, "haskell_rpc", "Xiongkun.HaskellServer()", creator, packer)
 
 @vim_register(command="TestHaskell")

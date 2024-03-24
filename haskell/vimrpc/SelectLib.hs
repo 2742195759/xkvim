@@ -22,6 +22,7 @@ import Control.Monad.Trans.State.Lazy (StateT, modify, runStateT, get)
 import Foreign.C.Types (CInt)
 import Control.Monad.Trans.Class (lift)
 import Data.Map as M
+import System.Posix.Env (getEnv)
 
 type Handle = (Socket -> SelectMonad ())
 type SockMap = M.Map Foreign.C.Types.CInt (Socket, Handle)
@@ -73,8 +74,12 @@ sendDataToSocket from to = do
 
 initProcess :: SelectMonad () -> Handle -> SelectMonad ()
 initProcess initHandle listenHandle = do 
-    lift $ putStrLn "listening 127.0.0.1:3000"
-    addr <- lift $ resolve "127.0.0.1" "3000"
+    mhost <- lift $ getEnv "HOST"
+    mport <- lift $ getEnv "PORT"
+    let host = maybe "127.0.0.1" id mhost
+    let port = maybe "3000" id mport
+    lift $ putStrLn $ "listening " ++ host ++ ":" ++ port
+    addr <- lift $ resolve host port
     server <- lift $ doListen addr
     selectInsert server listenHandle 
     initHandle

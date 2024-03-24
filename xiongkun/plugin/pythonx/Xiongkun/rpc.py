@@ -72,6 +72,7 @@ def create_rpc_handle(name, function_name, receive_name):
     """ % name
     )
 
+@Singleton
 class PyLocalCreator:
     def __init__(self):
         self._port = find_free_port()
@@ -110,6 +111,7 @@ class RPCChannel:
         if remote_server is None: 
             self.creator = py_server_local_creator if creator is None else creator
             port = self.creator.port()
+            print ("Creating server : ", self.creator.cmd())
             remote_server = f"127.0.0.1:{port}"
             start_server_cmd = self.creator.cmd()
             self.local_server = subprocess.Popen([start_server_cmd], shell=True, universal_newlines=False, close_fds=True, preexec_fn=os.setsid)
@@ -249,9 +251,9 @@ commands("""
 augroup LocalServerDelete
     autocmd!
     autocmd VimLeave * py3 Xiongkun.local_rpc.channel.delete()
-    autocmd VimLeave * py3 Xiongkun.HaskellServer().channel.delete()
 augroup END
 """)
+    #autocmd VimLeave * py3 Xiongkun.HaskellServer().channel.delete()
 
 @contextmanager  
 def LocalServerContextManager():  
