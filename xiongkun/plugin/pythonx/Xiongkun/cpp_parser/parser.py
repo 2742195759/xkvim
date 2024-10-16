@@ -28,7 +28,7 @@ from .selecter import Selector
 
 # All tokens must be named in advance.
 tokens = ( 'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'LPAREN', 'RPAREN',
-           'NAME', 'NUMBER', 'SEMICOLON', 'COMMA' )
+           'NAME', 'NUMBER', 'SEMICOLON', 'COMMA', "DOT" )
 
 # Ignored characters
 t_ignore = ' \t'
@@ -42,6 +42,7 @@ t_LPAREN = r'\('
 t_RPAREN = r'\)'
 t_SEMICOLON = r'\;'
 t_COMMA = r'\,'
+t_DOT = r'\.'
 
 # A function can be used if there is an associated action.
 # Write the matching regex in the docstring.
@@ -77,18 +78,30 @@ def set_pos(node, p, s, e):
 
 def p_root(p):
     '''
-    root : function SEMICOLON
+    root : function SEMICOLON 
+    '''
+    p[0] = p[1]
+
+def p_expr(p):
+    '''
+    expr : TODO
     '''
     p[0] = p[1]
 
 def p_function(p):
     '''
-    function : NAME LPAREN args RPAREN
+    function : name LPAREN args RPAREN
     '''
     p[0] = FuncNode()
     set_pos(p[0], p, 1, 4)
     p[0].name = p[1]
     p[0].append_childs(p[3])
+
+def p_name(p):
+    '''
+    name : namespace 
+    '''
+    p[0] = p[1]
 
 def p_args_recur(p):
     '''

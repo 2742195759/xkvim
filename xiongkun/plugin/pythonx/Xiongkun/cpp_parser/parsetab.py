@@ -6,9 +6,9 @@ _tabversion = '3.10'
 
 _lr_method = 'LALR'
 
-_lr_signature = 'functionCOMMA DIVIDE LPAREN MINUS NAME NUMBER PLUS RPAREN SEMICOLON TIMES\n    root : function SEMICOLON\n    \n    function : NAME LPAREN args RPAREN\n    \n    args : arg COMMA args\n    \n    args : arg\n    \n    arg : function \n        | identifier\n    \n    identifier : NAME\n    '
+_lr_signature = 'CHILD NEXT NUMBER\n    root : selects\n    \n    selects : select NEXT selects\n    \n    selects : select\n    \n    select : childselect\n    \n    childselect : CHILD NUMBER\n    '
     
-_lr_action_items = {'NAME':([0,3,10,],[2,4,4,]),'$end':([1,9,],[0,-2,]),'LPAREN':([2,4,],[3,3,]),'COMMA':([4,6,7,8,9,],[-7,10,-5,-6,-2,]),'RPAREN':([4,5,6,7,8,9,11,],[-7,9,-4,-5,-6,-2,-3,]),}
+_lr_action_items = {'CHILD':([0,6,],[5,5,]),'$end':([1,2,3,4,7,8,],[0,-1,-3,-4,-5,-2,]),'NEXT':([3,4,7,],[6,-4,-5,]),'NUMBER':([5,],[7,]),}
 
 _lr_action = {}
 for _k, _v in _lr_action_items.items():
@@ -17,7 +17,7 @@ for _k, _v in _lr_action_items.items():
       _lr_action[_x][_k] = _y
 del _lr_action_items
 
-_lr_goto_items = {'function':([0,3,10,],[1,7,7,]),'args':([3,10,],[5,11,]),'arg':([3,10,],[6,6,]),'identifier':([3,10,],[8,8,]),}
+_lr_goto_items = {'root':([0,],[1,]),'selects':([0,6,],[2,8,]),'select':([0,6,],[3,3,]),'childselect':([0,6,],[4,4,]),}
 
 _lr_goto = {}
 for _k, _v in _lr_goto_items.items():
@@ -26,12 +26,10 @@ for _k, _v in _lr_goto_items.items():
        _lr_goto[_x][_k] = _y
 del _lr_goto_items
 _lr_productions = [
-  ("S' -> function","S'",1,None,None,None),
-  ('root -> function SEMICOLON','root',2,'p_root','ylp.py',81),
-  ('function -> NAME LPAREN args RPAREN','function',4,'p_function','ylp.py',87),
-  ('args -> arg COMMA args','args',3,'p_args_recur','ylp.py',96),
-  ('args -> arg','args',1,'p_args_single','ylp.py',103),
-  ('arg -> function','arg',1,'p_arg','ylp.py',109),
-  ('arg -> identifier','arg',1,'p_arg','ylp.py',110),
-  ('identifier -> NAME','identifier',1,'p_identifier','ylp.py',116),
+  ("S' -> root","S'",1,None,None,None),
+  ('root -> selects','root',1,'p_root','selecter.py',80),
+  ('selects -> select NEXT selects','selects',3,'p_selects_1','selecter.py',86),
+  ('selects -> select','selects',1,'p_selects_2','selecter.py',92),
+  ('select -> childselect','select',1,'p_select','selecter.py',98),
+  ('childselect -> CHILD NUMBER','childselect',2,'p_childselect','selecter.py',104),
 ]

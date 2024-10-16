@@ -1,0 +1,7 @@
+PyYAML
+fuzzyfinder
+ply
+requests_toolbelt
+bs4
+jedi-language-server
+tree_sitter

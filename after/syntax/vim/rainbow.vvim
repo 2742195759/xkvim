@@ -1,0 +1,267 @@
+" rainbow.vvim : provides "rainbow-colored" if-elsif-endif for-endfor while-endwhile function-endfunction
+"               Vim language version
+"   Author: 	Charles E. Campbell
+"   Date:		Dec 03, 2015
+"   Associated Files:  plugin/RainbowPlugin.vim autoload/Rainbow.vim doc/Rainbow.txt
+" ---------------------------------------------------------------------
+" non-compatible only: {{{1
+if &cp
+ finish
+endif
+let keepcpo= &cpo
+let s:work = ''
+set cpo&vim
+
+" ---------------------------------------------------------------------
+" Default Settings: {{{1
+if !exists("g:hlrainbow_vim")
+ let g:hlrainbow_vim= "if,for,while,func"
+endif
+
+" ---------------------------------------------------------------------
+" Clusters {{{1
+syn cluster vimGroup	contains=vimAbb,vimAddress,vimAugroup,vimAutoCmd,vimBehave,vimCmdSep,vimCmplxRepeat,vimComment,vimContinue,vimCtrlChar,vimEcho,vimEchoHL,vimEchoHLNone,vimEnvvar,vimExecute,vimFiletype,vimFunc,vimFunction,vimGlobal,vimHighlight,vimInsert,vimIsCommand,vimLet,vimLineComment,vimMap,vimMark,vimNorm,vimNotation,vimNotFunc,vimNumber,vimOper,vimOperParen,vimRegister,vimSearch,vimSet,vimSpecFile,vimString,vimSubst,vimSyntax,vimUnmap,vimUserCmd,vimVar
+syn cluster vimRainbowGroup0 contains=@vimGroup,vimRif1,vimRfor1,vimRwhile1,vimRfunc1
+syn cluster vimRainbowGroup1 contains=@vimGroup,vimRif2,vimRfor2,vimRwhile2,vimRfunc2
+syn cluster vimRainbowGroup2 contains=@vimGroup,vimRif3,vimRfor3,vimRwhile3,vimRfunc3
+syn cluster vimRainbowGroup3 contains=@vimGroup,vimRif4,vimRfor4,vimRwhile4,vimRfunc4
+syn cluster vimRainbowGroup4 contains=@vimGroup,vimRif5,vimRfor5,vimRwhile5,vimRfunc5
+syn cluster vimRainbowGroup5 contains=@vimGroup,vimRif6,vimRfor6,vimRwhile6,vimRfunc6
+syn cluster vimRainbowGroup6 contains=@vimGroup,vimRif7,vimRfor7,vimRwhile7,vimRfunc7
+syn cluster vimRainbowGroup7 contains=@vimGroup,vimRif8,vimRfor8,vimRwhile8,vimRfunc8
+syn cluster vimRainbowGroup8 contains=@vimGroup,vimRif9,vimRfor9,vimRwhile9,vimRfunc9
+syn cluster vimRainbowGroup9 contains=@vimGroup,vimRif0,vimRfor0,vimRwhile0,vimRfunc0
+
+" =====================================================================
+" Highlighting: {{{1
+
+" ---------------------------------------------------------------------
+" if - else - endif: {{{2
+if g:hlrainbow_vim =~ '\<if\>'
+ syn region vimRif0		matchgroup=hlLevel0	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup0,vimRelse0
+ syn region vimRif1		matchgroup=hlLevel1	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup1,vimRelse1	contained
+ syn region vimRif2		matchgroup=hlLevel2	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup2,vimRelse2	contained
+ syn region vimRif3		matchgroup=hlLevel3	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup3,vimRelse3	contained
+ syn region vimRif4		matchgroup=hlLevel4	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup4,vimRelse4	contained
+ syn region vimRif5		matchgroup=hlLevel5	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup5,vimRelse5	contained
+ syn region vimRif6		matchgroup=hlLevel6	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup6,vimRelse6	contained
+ syn region vimRif7		matchgroup=hlLevel7	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup7,vimRelse7	contained
+ syn region vimRif8		matchgroup=hlLevel8	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup8,vimRelse8	contained
+ syn region vimRif9		matchgroup=hlLevel9	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup9,vimRelse9	contained
+
+ syn match vimRelse0		contained	"\<else\%[if]\>"
+ syn match vimRelse1		contained	"\<else\%[if]\>"
+ syn match vimRelse2		contained	"\<else\%[if]\>"
+ syn match vimRelse3		contained	"\<else\%[if]\>"
+ syn match vimRelse4		contained	"\<else\%[if]\>"
+ syn match vimRelse5		contained	"\<else\%[if]\>"
+ syn match vimRelse6		contained	"\<else\%[if]\>"
+ syn match vimRelse7		contained	"\<else\%[if]\>"
+ syn match vimRelse8		contained	"\<else\%[if]\>"
+ syn match vimRelse9		contained	"\<else\%[if]\>"
+
+ hi link vimRelse0		hlLevel0
+ hi link vimRelse1		hlLevel1
+ hi link vimRelse2		hlLevel2
+ hi link vimRelse3		hlLevel3
+ hi link vimRelse4		hlLevel4
+ hi link vimRelse5		hlLevel5
+ hi link vimRelse6		hlLevel6
+ hi link vimRelse7		hlLevel7
+ hi link vimRelse8		hlLevel8
+ hi link vimRelse9		hlLevel9
+
+else
+
+ syn region vimRif0		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup0,vimRelse0
+ syn region vimRif1		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup1,vimRelse1	contained
+ syn region vimRif2		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup2,vimRelse2	contained
+ syn region vimRif3		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup3,vimRelse3	contained
+ syn region vimRif4		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup4,vimRelse4	contained
+ syn region vimRif5		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup5,vimRelse5	contained
+ syn region vimRif6		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup6,vimRelse6	contained
+ syn region vimRif7		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup7,vimRelse7	contained
+ syn region vimRif8		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup8,vimRelse8	contained
+ syn region vimRif9		matchgroup=None	start="\<if\>"			end="\<endif\=\>"	contains=@vimRainbowGroup9,vimRelse9	contained
+
+ syn match vimRelse0		contained	"\<else\%[if]\>"
+ syn match vimRelse1		contained	"\<else\%[if]\>"
+ syn match vimRelse2		contained	"\<else\%[if]\>"
+ syn match vimRelse3		contained	"\<else\%[if]\>"
+ syn match vimRelse4		contained	"\<else\%[if]\>"
+ syn match vimRelse5		contained	"\<else\%[if]\>"
+ syn match vimRelse6		contained	"\<else\%[if]\>"
+ syn match vimRelse7		contained	"\<else\%[if]\>"
+ syn match vimRelse8		contained	"\<else\%[if]\>"
+ syn match vimRelse9		contained	"\<else\%[if]\>"
+
+ sil! syn clear vimRelse0
+ sil! syn clear vimRelse1
+ sil! syn clear vimRelse2
+ sil! syn clear vimRelse3
+ sil! syn clear vimRelse4
+ sil! syn clear vimRelse5
+ sil! syn clear vimRelse6
+ sil! syn clear vimRelse7
+ sil! syn clear vimRelse8
+ sil! syn clear vimRelse9
+endif
+
+" ---------------------------------------------------------------------
+"  for: {{{2
+if g:hlrainbow_vim =~ '\<for\>'
+ syn region vimRfor0			matchgroup=hlLevel0	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup0,vimRbreak0
+ syn region vimRfor1			matchgroup=hlLevel1	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup1,vimRbreak1	contained
+ syn region vimRfor2			matchgroup=hlLevel2	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup2,vimRbreak2	contained
+ syn region vimRfor3			matchgroup=hlLevel3	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup3,vimRbreak3	contained
+ syn region vimRfor4			matchgroup=hlLevel4	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup4,vimRbreak4	contained
+ syn region vimRfor5			matchgroup=hlLevel5	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup5,vimRbreak5	contained
+ syn region vimRfor6			matchgroup=hlLevel6	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup6,vimRbreak6	contained
+ syn region vimRfor7			matchgroup=hlLevel7	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup7,vimRbreak7	contained
+ syn region vimRfor8			matchgroup=hlLevel8	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup8,vimRbreak8	contained
+ syn region vimRfor9			matchgroup=hlLevel9	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup9,vimRbreak9	contained
+
+ if g:hlrainbow_vim !~ '\<while\>'
+  syn match vimRbreak0	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak1	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak2	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak3	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak4	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak5	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak6	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak7	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak8	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak9	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+
+  hi link vimRbreak0 			hlLevel0
+  hi link vimRbreak1 			hlLevel1
+  hi link vimRbreak2 			hlLevel2
+  hi link vimRbreak3 			hlLevel3
+  hi link vimRbreak4 			hlLevel4
+  hi link vimRbreak5 			hlLevel5
+  hi link vimRbreak6 			hlLevel6
+  hi link vimRbreak7 			hlLevel7
+  hi link vimRbreak8 			hlLevel8
+  hi link vimRbreak9 			hlLevel9
+ endif
+
+else
+
+ syn region vimRfor0			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup0,vimRbreak0
+ syn region vimRfor1			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup1,vimRbreak1	contained
+ syn region vimRfor2			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup2,vimRbreak2	contained
+ syn region vimRfor3			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup3,vimRbreak3	contained
+ syn region vimRfor4			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup4,vimRbreak4	contained
+ syn region vimRfor5			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup5,vimRbreak5	contained
+ syn region vimRfor6			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup6,vimRbreak6	contained
+ syn region vimRfor7			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup7,vimRbreak7	contained
+ syn region vimRfor8			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup8,vimRbreak8	contained
+ syn region vimRfor9			matchgroup=None	start="\<for\>"			end="\<endfor\=\>"	contains=@vimRainbowGroup9,vimRbreak9	contained
+
+ if g:hlrainbow_vim !~ '\<while\>'
+  syn match vimRbreak0	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak1	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak2	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak3	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak4	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak5	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak6	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak7	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak8	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+  syn match vimRbreak9	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ endif
+endif
+
+" ---------------------------------------------------------------------
+"  while: {{{2
+if g:hlrainbow_vim =~ '\<while\>'
+ syn region vimRwhile0		matchgroup=hlLevel0	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup0,vimRbreak0
+ syn region vimRwhile1		matchgroup=hlLevel1	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup1,vimRbreak1	contained
+ syn region vimRwhile2		matchgroup=hlLevel2	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup2,vimRbreak2	contained
+ syn region vimRwhile3		matchgroup=hlLevel3	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup3,vimRbreak3	contained
+ syn region vimRwhile4		matchgroup=hlLevel4	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup4,vimRbreak4	contained
+ syn region vimRwhile5		matchgroup=hlLevel5	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup5,vimRbreak5	contained
+ syn region vimRwhile6		matchgroup=hlLevel6	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup6,vimRbreak6	contained
+ syn region vimRwhile7		matchgroup=hlLevel7	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup7,vimRbreak7	contained
+ syn region vimRwhile8		matchgroup=hlLevel8	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup8,vimRbreak8	contained
+ syn region vimRwhile9		matchgroup=hlLevel9	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup9,vimRbreak9	contained
+
+ syn match vimRbreak0	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak1	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak2	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak3	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak4	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak5	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak6	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak7	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak8	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak9	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+
+ hi link vimRbreak0 			hlLevel0
+ hi link vimRbreak1 			hlLevel1
+ hi link vimRbreak2 			hlLevel2
+ hi link vimRbreak3 			hlLevel3
+ hi link vimRbreak4 			hlLevel4
+ hi link vimRbreak5 			hlLevel5
+ hi link vimRbreak6 			hlLevel6
+ hi link vimRbreak7 			hlLevel7
+ hi link vimRbreak8 			hlLevel8
+ hi link vimRbreak9 			hlLevel9
+
+else
+
+ syn region vimRwhile0		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup0,vimRbreak0
+ syn region vimRwhile1		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup1,vimRbreak1	contained
+ syn region vimRwhile2		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup2,vimRbreak2	contained
+ syn region vimRwhile3		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup3,vimRbreak3	contained
+ syn region vimRwhile4		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup4,vimRbreak4	contained
+ syn region vimRwhile5		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup5,vimRbreak5	contained
+ syn region vimRwhile6		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup6,vimRbreak6	contained
+ syn region vimRwhile7		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup7,vimRbreak7	contained
+ syn region vimRwhile8		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup8,vimRbreak8	contained
+ syn region vimRwhile9		matchgroup=None	start="\<while\>"		end="\<endw\%[hile]\>"	contains=@vimRainbowGroup9,vimRbreak9	contained
+
+ syn match vimRbreak0	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak1	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak2	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak3	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak4	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak5	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak6	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak7	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak8	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+ syn match vimRbreak9	contained	"\<\(brea\%[k]\|con\%[tinue]\)\>"
+endif
+
+" ---------------------------------------------------------------------
+"  function: {{{2
+if g:hlrainbow_vim =~ '\<func\>'
+ syn region vimRwhile0		matchgroup=hlLevel0	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup0,vimRbreak0
+ syn region vimRwhile1		matchgroup=hlLevel1	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup1,vimRbreak1	contained
+ syn region vimRwhile2		matchgroup=hlLevel2	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup2,vimRbreak2	contained
+ syn region vimRwhile3		matchgroup=hlLevel3	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup3,vimRbreak3	contained
+ syn region vimRwhile4		matchgroup=hlLevel4	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup4,vimRbreak4	contained
+ syn region vimRwhile5		matchgroup=hlLevel5	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup5,vimRbreak5	contained
+ syn region vimRwhile6		matchgroup=hlLevel6	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup6,vimRbreak6	contained
+ syn region vimRwhile7		matchgroup=hlLevel7	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup7,vimRbreak7	contained
+ syn region vimRwhile8		matchgroup=hlLevel8	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup8,vimRbreak8	contained
+ syn region vimRwhile9		matchgroup=hlLevel9	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup9,vimRbreak9	contained
+
+else
+
+ syn region vimRwhile0		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup0
+ syn region vimRwhile1		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup1	contained
+ syn region vimRwhile2		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup2	contained
+ syn region vimRwhile3		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup3	contained
+ syn region vimRwhile4		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup4	contained
+ syn region vimRwhile5		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup5	contained
+ syn region vimRwhile6		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup6	contained
+ syn region vimRwhile7		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup7	contained
+ syn region vimRwhile8		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup8	contained
+ syn region vimRwhile9		matchgroup=None	start="\<fu\%[nction]\>"		end="\<endf\%[unction]\>"	contains=@vimRainbowGroup9	contained
+endif
+
+" ---------------------------------------------------------------------
+"  Modelines: {{{1
+let &cpo= keepcpo
+" vim: fdm=marker ft=vim ts=4

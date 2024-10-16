@@ -1,0 +1,41 @@
+snippet github_workflow "a example of github workflow" #{{{
+#workflow name
+name: Test 
+
+#trigger event
+on: [push, pull_request]
+
+# jobs definition
+jobs:
+  # name of job
+  Test:
+    # name of job
+    name: Test
+    # which os platform you want to run on
+    runs-on: ubuntu-20.04
+    # ...
+    permissions:
+      pull-requests: write
+      contents: read
+      id-token: write
+    # steps to run: sequential run
+    steps:
+      # use: call github action. see github/action for all list of actions
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      # customed command definition
+      - name: Install dependencies
+        # customed command 
+        # | is to continue a line
+        run: |
+          # each line is a command
+          python -m pip install --upgrade pip
+          make install
+      # make test. write all you command in Makefile.
+      - name: run the command
+        run: make test
+endsnippet 
+#}}}
+

@@ -1,0 +1,48 @@
+snippet article "article template for latex."
+
+\documentclass{article}
+\usepackage{xeCJK}
+\setCJKmainfont{KaiTi}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{caption}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Bash,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4
+}
+
+\begin{document}
+\title{APM源码笔记{}}
+\author{菜刀}
+\maketitle
+\begin{equation}
+    x^2 = y
+\end{equation}
+
+\end{document}
+
+endsnippet
+
+snippet codeblock "add code block: lstlisting"
+\begin{lstlisting}[caption = ${1:title}]
+${2:docker run -it 2742195759/xelatex /bin/bash}
+\end{lstlisting}
+$0
+endsnippet

@@ -5,6 +5,7 @@ export LANG=zh_CN.UTF-8
 export LANGUAGE=zh_CN.UTF-8
 
 # Aliases
+#
 
 alias rm='rm -i'
 alias cp='cp -i'
@@ -69,4 +70,5 @@ git config --global user.email xiongkun03@baidu.com
 git config --global user.name xiongkun
 git config --global push.default current
 git config --global credential.helper store
+export PATH=$PATH:$HOME/xkvim/bash_scripts:$HOME/xkvim/cmd_script
 

@@ -12,7 +12,7 @@ endf
 
 " 1. g:nerd_search_path is used as search start point
 " 2. read the search_config file ,the file in the file is ignored
-"
+
 function! GetDirectorySearchConfigure()
     let search_point = g:nerd_search_path
     let search_ignore = getcwd() . "/search_config"

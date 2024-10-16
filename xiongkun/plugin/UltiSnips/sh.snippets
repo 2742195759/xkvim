@@ -1,0 +1,6 @@
+
+snippet rebuild_cinn.sh "no description"
+make -j32 paddle
+cp -f ./paddle/fluid/pybind/libpaddle.so ./python/paddle/base/libpaddle.so
+cp -f ./libcinnapi.so ./python/paddle/libs/libcinnapi.so
+endsnippet

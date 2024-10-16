@@ -1,0 +1,10 @@
+if [ $# != 1 ] ; then 
+    echo "USAGE: vimcode project.yaml"
+else
+    if [ -f "$1" ]; then 
+        VIMCODE=ON vim -c "SetRPCProject $1"
+    else
+        echo "USAGE: vimcode project.yaml"
+        echo "Error: file $1 is not exists."
+    fi
+fi

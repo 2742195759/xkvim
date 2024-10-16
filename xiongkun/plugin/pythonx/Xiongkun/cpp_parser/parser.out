@@ -3,6 +3,7 @@ Created by PLY version 3.11 (http://www.dabeaz.com/ply)
 Unused terminals:
 
     DIVIDE
+    DOT
     MINUS
     NUMBER
     PLUS
@@ -12,147 +13,39 @@ Grammar
 
 Rule 0     S' -> function
 Rule 1     root -> function SEMICOLON
-Rule 2     function -> NAME LPAREN args RPAREN
-Rule 3     args -> arg COMMA args
-Rule 4     args -> arg
-Rule 5     arg -> function
-Rule 6     arg -> identifier
-Rule 7     identifier -> NAME
+Rule 2     expr -> TODO
+Rule 3     function -> name LPAREN args RPAREN
+Rule 4     name -> namespace
+Rule 5     args -> arg COMMA args
+Rule 6     args -> arg
+Rule 7     arg -> function
+Rule 8     arg -> identifier
+Rule 9     identifier -> NAME
 
 Terminals, with rules where they appear
 
-COMMA                : 3
+COMMA                : 5
 DIVIDE               : 
-LPAREN               : 2
+DOT                  : 
+LPAREN               : 3
 MINUS                : 
-NAME                 : 2 7
+NAME                 : 9
 NUMBER               : 
 PLUS                 : 
-RPAREN               : 2
+RPAREN               : 3
 SEMICOLON            : 1
 TIMES                : 
 error                : 
 
 Nonterminals, with rules where they appear
 
-arg                  : 3 4
-args                 : 2 3
-function             : 1 5 0
-identifier           : 6
+TODO                 : 2
+arg                  : 5 6
+args                 : 3 5
+expr                 : 
+function             : 1 7 0
+identifier           : 8
+name                 : 3
+namespace            : 4
 root                 : 
-
-Parsing method: LALR
-
-state 0
-
-    (0) S' -> . function
-    (2) function -> . NAME LPAREN args RPAREN
-
-    NAME            shift and go to state 2
-
-    function                       shift and go to state 1
-
-state 1
-
-    (0) S' -> function .
-
-
-
-state 2
-
-    (2) function -> NAME . LPAREN args RPAREN
-
-    LPAREN          shift and go to state 3
-
-
-state 3
-
-    (2) function -> NAME LPAREN . args RPAREN
-    (3) args -> . arg COMMA args
-    (4) args -> . arg
-    (5) arg -> . function
-    (6) arg -> . identifier
-    (2) function -> . NAME LPAREN args RPAREN
-    (7) identifier -> . NAME
-
-    NAME            shift and go to state 4
-
-    args                           shift and go to state 5
-    arg                            shift and go to state 6
-    function                       shift and go to state 7
-    identifier                     shift and go to state 8
-
-state 4
-
-    (2) function -> NAME . LPAREN args RPAREN
-    (7) identifier -> NAME .
-
-    LPAREN          shift and go to state 3
-    COMMA           reduce using rule 7 (identifier -> NAME .)
-    RPAREN          reduce using rule 7 (identifier -> NAME .)
-
-
-state 5
-
-    (2) function -> NAME LPAREN args . RPAREN
-
-    RPAREN          shift and go to state 9
-
-
-state 6
-
-    (3) args -> arg . COMMA args
-    (4) args -> arg .
-
-    COMMA           shift and go to state 10
-    RPAREN          reduce using rule 4 (args -> arg .)
-
-
-state 7
-
-    (5) arg -> function .
-
-    COMMA           reduce using rule 5 (arg -> function .)
-    RPAREN          reduce using rule 5 (arg -> function .)
-
-
-state 8
-
-    (6) arg -> identifier .
-
-    COMMA           reduce using rule 6 (arg -> identifier .)
-    RPAREN          reduce using rule 6 (arg -> identifier .)
-
-
-state 9
-
-    (2) function -> NAME LPAREN args RPAREN .
-
-    $end            reduce using rule 2 (function -> NAME LPAREN args RPAREN .)
-    COMMA           reduce using rule 2 (function -> NAME LPAREN args RPAREN .)
-    RPAREN          reduce using rule 2 (function -> NAME LPAREN args RPAREN .)
-
-
-state 10
-
-    (3) args -> arg COMMA . args
-    (3) args -> . arg COMMA args
-    (4) args -> . arg
-    (5) arg -> . function
-    (6) arg -> . identifier
-    (2) function -> . NAME LPAREN args RPAREN
-    (7) identifier -> . NAME
-
-    NAME            shift and go to state 4
-
-    arg                            shift and go to state 6
-    args                           shift and go to state 11
-    function                       shift and go to state 7
-    identifier                     shift and go to state 8
-
-state 11
-
-    (3) args -> arg COMMA args .
-
-    RPAREN          reduce using rule 3 (args -> arg COMMA args .)
 
